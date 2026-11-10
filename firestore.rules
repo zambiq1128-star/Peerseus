@@ -1,0 +1,10 @@
+rules_version = '2';
+// Hackathon rules: any signed-in user can read and write.
+// Tighten before real users (e.g. only owners edit their profile/materials).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
