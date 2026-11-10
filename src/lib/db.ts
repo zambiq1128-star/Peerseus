@@ -36,11 +36,26 @@ function firestoreDb(): Db {
       await updateDoc(doc(fs(), col, id), stripUndefined(data));
     },
     async uploadFile(path, file) {
+      // Firebase Storage needs the paid Blaze plan on new projects. Without a bucket,
+      // small files are kept inline in the Firestore document (1 MB doc limit).
+      if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
+        if (file.size > 700 * 1024) throw new Error("File maks 700 KB selama Firebase Storage belum diaktifkan. Tempel ringkasannya sebagai teks saja.");
+        return readAsDataUrl(file);
+      }
       const r = ref(getStorage(getFirebaseApp()), path);
       await uploadBytes(r, file, { contentType: file.type });
       return getDownloadURL(r);
     },
   };
+}
+
+function readAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(file);
+  });
 }
 
 function stripUndefined<T>(v: T): T {
@@ -102,12 +117,7 @@ function localDb(): Db {
       if (file.size > 1.5 * 1024 * 1024) {
         throw new Error("Mode demo lokal hanya menerima file ≤ 1,5 MB. Sambungkan Firebase untuk file lebih besar.");
       }
-      return new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(r.result as string);
-        r.onerror = () => reject(r.error);
-        r.readAsDataURL(file);
-      });
+      return readAsDataUrl(file);
     },
   };
 }
