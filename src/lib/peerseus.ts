@@ -26,8 +26,16 @@ export const courseMembers = (courseId: string) => db.list<Membership>("membersh
 export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">, file?: File) {
   const id = newId("mat_");
   let fileUrl: string | undefined;
-  if (file) fileUrl = await db.uploadFile(`materials/${input.courseId}/${id}/${file.name}`, file);
-  const m: Material = { ...input, id, createdAt: Date.now(), reports: 0, fileUrl, fileName: file?.name, mimeType: file?.type };
+  if (file) {
+    try {
+      fileUrl = await db.uploadFile(`materials/${input.courseId}/${id}/${file.name}`, file);
+    } catch (e) {
+      // The quiz only needs the text, so a failed attachment shouldn't block the upload.
+      if (!input.text.trim()) throw e;
+      console.warn("Attachment skipped:", e);
+    }
+  }
+  const m: Material = { ...input, id, createdAt: Date.now(), reports: 0, ...(fileUrl ? { fileUrl, fileName: file?.name, mimeType: file?.type } : {}) };
   await db.set("materials", id, m);
   return m;
 }

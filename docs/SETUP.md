@@ -11,7 +11,7 @@ Total sekitar 15 menit. Semua langkah gratis (Spark plan + Vercel Hobby).
 2. **Build → Authentication → Get started → Sign-in method → Google → Enable**, pilih support email, Save.
 3. **Build → Firestore Database → Create database** → lokasi `asia-southeast2 (Jakarta)` → **Start in production mode**.
    Lalu buka tab **Rules**, ganti isinya dengan isi file [`firestore.rules`](../firestore.rules), klik **Publish**.
-4. (Opsional) **Storage**: di project baru Storage butuh Blaze plan (bayar sesuai pemakaian, ada kuota gratis). Kalau dilewati, app tetap jalan: PDF ≤ 700 KB disimpan langsung di Firestore, dan materi teks tidak terpengaruh. Kalau diaktifkan, pakai rules dari [`storage.rules`](../storage.rules).
+4. (Opsional) **Storage**: di project baru Storage butuh Blaze plan (bayar sesuai pemakaian, ada kuota gratis). Kalau dilewati, app tetap jalan: teks PDF dibaca langsung di browser untuk membuat kuis, dan file PDF ≤ 500 KB tetap bisa diunduh. Kalau diaktifkan, pakai rules dari [`storage.rules`](../storage.rules).
 5. **Project settings (ikon ⚙️) → General → Your apps → ikon `</>` (Web)** → daftarkan app (tanpa Hosting).
    Salin nilai dari `firebaseConfig` ke env:
 

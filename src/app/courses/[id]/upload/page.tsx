@@ -4,6 +4,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { createMaterial } from "@/lib/peerseus";
+import { extractPdfText } from "@/lib/pdfText";
+
+// Only small PDFs are kept as a downloadable file; the quiz is made from the extracted text.
+const MAX_ATTACH_BYTES = 500 * 1024;
+const isPdf = (f: File) => f.type === "application/pdf" || /\.pdf$/i.test(f.name);
 import { PageTitle } from "@/components/ui";
 
 export default function Upload() {
@@ -17,19 +22,40 @@ export default function Upload() {
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [reading, setReading] = useState(false);
+  const [note, setNote] = useState("");
 
   async function onFile(f: File | null) {
     setFile(f);
-    if (f && (f.type.startsWith("text/") || /\.(md|txt)$/i.test(f.name))) setText(await f.text());
+    setErr("");
+    setNote("");
+    if (!f) return;
+    if (!isPdf(f)) {
+      setText(await f.text());
+      return;
+    }
+    setReading(true);
+    try {
+      const t = await extractPdfText(f);
+      if (t) {
+        setText(t);
+        setNote(`Teks PDF terbaca (${t.length.toLocaleString("id-ID")} karakter). Kamu bisa merapikannya di atas.`);
+      } else {
+        setNote("PDF ini tidak punya teks yang bisa dibaca (mungkin hasil scan). Tempel ringkasannya di kolom Isi materi.");
+      }
+    } catch {
+      setNote("PDF tidak bisa dibaca. Tempel ringkasannya di kolom Isi materi.");
+    }
+    setReading(false);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    if (!text.trim() && !file) return setErr("Isi ringkasan teks atau lampirkan file.");
+    if (!text.trim()) return setErr("Isi materi masih kosong. Tempel ringkasan atau lampirkan PDF yang berisi teks.");
     setBusy(true);
     try {
-      const isTextFile = file && (file.type.startsWith("text/") || /\.(md|txt)$/i.test(file.name));
+      const attach = file && isPdf(file) && file.size <= MAX_ATTACH_BYTES ? file : undefined;
       const m = await createMaterial(
         {
           courseId: id,
@@ -40,7 +66,7 @@ export default function Upload() {
           uploaderId: profile!.id,
           uploaderName: profile!.name,
         },
-        isTextFile ? undefined : file ?? undefined,
+        attach,
       );
       router.push(`/materials/${m.id}`);
     } catch (e) {
@@ -66,13 +92,15 @@ export default function Upload() {
         <div>
           <label className="label">Atau lampirkan file (PDF/TXT)</label>
           <input type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" onChange={(e) => onFile(e.target.files?.[0] ?? null)} className="text-sm" />
+          {reading && <p className="mt-1 text-xs text-muted">Membaca PDF…</p>}
+          {note && <p className="mt-1 text-xs text-muted">{note}</p>}
         </div>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
           <span className="text-muted">Materi ini buatan saya atau boleh dibagikan (bukan buku/soal berhak cipta tanpa izin).</span>
         </label>
         {err && <p className="text-sm text-bad">{err}</p>}
-        <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? "Mengunggah…" : "Upload & lanjut buat kuis"}</button>
+        <button className="btn-primary w-full" disabled={busy || reading || !agree}>{busy ? "Mengunggah…" : "Upload & lanjut buat kuis"}</button>
       </form>
     </div>
   );
