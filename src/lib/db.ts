@@ -42,11 +42,20 @@ function firestoreDb(): Db {
         if (file.size > 700 * 1024) throw new Error("File maks 700 KB selama Firebase Storage belum diaktifkan. Tempel ringkasannya sebagai teks saja.");
         return readAsDataUrl(file);
       }
-      const r = ref(getStorage(getFirebaseApp()), path);
-      await uploadBytes(r, file, { contentType: file.type });
-      return getDownloadURL(r);
+      // If Storage isn't enabled, uploadBytes keeps retrying for minutes; give up quickly instead.
+      const storage = getStorage(getFirebaseApp());
+      storage.maxUploadRetryTime = 15000;
+      const r = ref(storage, path);
+      return withTimeout((async () => {
+        await uploadBytes(r, file, { contentType: file.type });
+        return getDownloadURL(r);
+      })(), 20000, "Upload ke Firebase Storage gagal (Storage belum aktif?).");
     },
   };
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(msg)), ms))]);
 }
 
 function readAsDataUrl(file: File) {
@@ -72,7 +81,11 @@ function readCol(col: string): Record<string, unknown> {
   }
 }
 function writeCol(col: string, data: Record<string, unknown>) {
-  localStorage.setItem(PREFIX + col, JSON.stringify(data));
+  try {
+    localStorage.setItem(PREFIX + col, JSON.stringify(data));
+  } catch {
+    throw new Error("Penyimpanan browser penuh (mode demo lokal). Hapus data situs ini atau sambungkan Firebase.");
+  }
 }
 function getPath(obj: unknown, path: string): unknown {
   return path.split(".").reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], obj);
