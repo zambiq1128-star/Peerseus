@@ -11,10 +11,15 @@
   "dependencies": {
     "@google/genai": "^3.0.0",
     "firebase": "^13.2.0",
+    "katex": "^0.16.47",
     "next": "^15.5.29",
     "pdfjs-dist": "^4.10.38",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

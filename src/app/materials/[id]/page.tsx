@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { generateQuiz } from "@/lib/peerseus";
 import type { Material, Question, Quiz } from "@/lib/types";
 import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { MarkdownView, MathText } from "@/components/Markdown";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -50,7 +51,10 @@ export default function MaterialPage() {
       <div>
         <Link href={`/courses/${material.courseId}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
         <h1 className="mt-2 text-xl font-bold">{material.title}</h1>
-        <p className="text-sm text-muted">{material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}</p>
+        <p className="text-sm text-muted">
+          {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
+          {isUploader && <> · <Link href={`/materials/${material.id}/edit`} className="font-medium text-accent">Edit materi</Link></>}
+        </p>
       </div>
 
       {/* Step 1: the quiz (the main action on this page) */}
@@ -90,7 +94,15 @@ export default function MaterialPage() {
         )}
         {material.text && (
           <>
-            <pre className={`whitespace-pre-wrap font-sans text-sm leading-relaxed ${showText ? "" : "line-clamp-6"}`}>{material.text}</pre>
+            {material.format === "markdown" ? (
+              <div className={showText ? "" : "relative max-h-72 overflow-hidden"}>
+                <MarkdownView text={material.text} />
+                {!showText && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white" />}
+              </div>
+            ) : (
+              // Old plain-text materials keep their original look.
+              <pre className={`whitespace-pre-wrap font-sans text-sm leading-relaxed ${showText ? "" : "line-clamp-6"}`}>{material.text}</pre>
+            )}
             <button className="mt-2 text-sm font-medium text-accent" onClick={() => setShowText(!showText)}>{showText ? "Tutup" : "Baca selengkapnya"}</button>
           </>
         )}
@@ -134,15 +146,20 @@ function Review({ quiz, onDone, onRegen, busy }: { quiz: Quiz; onDone: () => voi
             <span className="text-xs font-semibold text-muted">Soal {i + 1} · {q.topic}</span>
             <button className="text-xs text-bad" onClick={() => setQs(qs.filter((_, j) => j !== i))}>Hapus</button>
           </div>
-          <textarea className="input" rows={2} value={q.question} onChange={(e) => set(i, { question: e.target.value })} />
+          <div className="text-sm font-medium"><MathText text={q.question} /></div>
+          <textarea className="input font-mono text-xs" rows={2} value={q.question} onChange={(e) => set(i, { question: e.target.value })} aria-label="Teks soal" />
           <div className="grid gap-2 sm:grid-cols-2">
             {q.options.map((o, k) => (
-              <label key={k} className={`flex items-center gap-2 rounded-lg border p-2 ${q.answerIndex === k ? "border-good bg-green-50" : "border-line"}`}>
-                <input type="radio" name={`ans-${q.id}`} checked={q.answerIndex === k} onChange={() => set(i, { answerIndex: k })} />
-                <input className="w-full bg-transparent text-sm outline-none" value={o} onChange={(e) => set(i, { options: q.options.map((x, z) => (z === k ? e.target.value : x)) })} />
+              <label key={k} className={`block rounded-lg border p-2 ${q.answerIndex === k ? "border-good bg-green-50" : "border-line"}`}>
+                <span className="flex items-center gap-2">
+                  <input type="radio" name={`ans-${q.id}`} checked={q.answerIndex === k} onChange={() => set(i, { answerIndex: k })} />
+                  <span className="text-sm"><MathText text={o} /></span>
+                </span>
+                <input className="mt-1 w-full bg-transparent font-mono text-xs text-muted outline-none" value={o} onChange={(e) => set(i, { options: q.options.map((x, z) => (z === k ? e.target.value : x)) })} aria-label={`Opsi ${"ABCD"[k]}`} />
               </label>
             ))}
           </div>
+          {q.explanation && <p className="text-xs text-muted">Pembahasan: <MathText text={q.explanation} /></p>}
         </div>
       ))}
       <div className="sticky bottom-4 flex justify-end gap-2 rounded-xl border border-line bg-white p-3">

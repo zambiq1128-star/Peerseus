@@ -23,21 +23,15 @@ export const getMembership = (courseId: string, uid: string) => db.get<Membershi
 export const courseMembers = (courseId: string) => db.list<Membership>("memberships", [["courseId", "==", courseId]]);
 
 // ---------- Materials & quizzes ----------
-export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">, file?: File) {
-  const id = newId("mat_");
-  let fileUrl: string | undefined;
-  if (file) {
-    try {
-      fileUrl = await db.uploadFile(`materials/${input.courseId}/${id}/${file.name}`, file);
-    } catch (e) {
-      // The quiz only needs the text, so a failed attachment shouldn't block the upload.
-      if (!input.text.trim()) throw e;
-      console.warn("Attachment skipped:", e);
-    }
-  }
-  const m: Material = { ...input, id, createdAt: Date.now(), reports: 0, ...(fileUrl ? { fileUrl, fileName: file?.name, mimeType: file?.type } : {}) };
-  await db.set("materials", id, m);
+/** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */
+export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">) {
+  const m: Material = { ...input, id: newId("mat_"), createdAt: Date.now(), reports: 0 };
+  await db.set("materials", m.id, m);
   return m;
+}
+
+export async function updateMaterial(id: string, patch: Pick<Material, "title" | "topics" | "text">) {
+  await db.update("materials", id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 
 export async function generateQuiz(material: Material, uid: string, count = 8): Promise<Quiz> {
