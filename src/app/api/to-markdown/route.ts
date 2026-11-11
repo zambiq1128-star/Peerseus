@@ -1,11 +1,10 @@
-import { errorResponse, generate, GeminiError } from "@/lib/gemini";
+import { errorResponse, fallbackModel, generate, GeminiError, modelFor } from "@/lib/gemini";
 import { normalizeMath, stripFence } from "@/lib/latex";
 
 export const runtime = "nodejs";
 // One page or one ~4,000-character part per request, so a minute is plenty.
 export const maxDuration = 60;
-const BUDGET_MS = 50_000;
-const ATTEMPT_MS = 35_000;
+const BUDGET_MS = 55_000;
 
 const MAX_IMAGE_CHARS = 4_000_000; // base64; Vercel rejects bodies over 4.5 MB anyway
 const MAX_TEXT_CHARS = 12_000;
@@ -18,7 +17,18 @@ type Body = {
   text?: string;
   page?: number;
   total?: number;
+  /** Ask for the fallback model (after 3 failed tries on the main one). */
+  useFallback?: boolean;
 };
+
+/**
+ * Settings the browser needs to pace requests: the PDF model's requests-per-minute limit
+ * (GEMINI_PDF_RPM, default 15 when GEMINI_PDF_MODEL is set, otherwise 5) and whether a fallback exists.
+ */
+export async function GET() {
+  const rpm = Number(process.env.GEMINI_PDF_RPM) || (process.env.GEMINI_PDF_MODEL?.trim() ? 15 : 5);
+  return Response.json({ rpm, model: modelFor("pdf"), hasFallback: !!fallbackModel(), enabled: !!process.env.GEMINI_API_KEY });
+}
 
 const RULES = `Aturan penulisan:
 - Tulis dalam Markdown. Judul bagian pakai #, ##, ###. Daftar pakai - atau 1.
@@ -73,15 +83,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { text: out, model } = await generate({
+    const { text: out, model, usedFallback } = await generate({
+      task: "pdf",
+      useFallback: !!b.useFallback,
       contents: [{ role: "user", parts }],
       config: { temperature: 0, maxOutputTokens: 8192 },
       deadline: Date.now() + BUDGET_MS,
-      attemptMs: ATTEMPT_MS,
     });
     const markdown = normalizeMath(stripFence(out));
     if (!markdown) throw new GeminiError(502, "empty after cleanup", "empty");
-    return Response.json({ markdown, model });
+    return Response.json({ markdown, model, usedFallback });
   } catch (e) {
     return errorResponse(e);
   }

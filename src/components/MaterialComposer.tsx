@@ -2,7 +2,7 @@
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { MarkdownView } from "@/components/Markdown";
 import { chunkText, normalizeMath, texToMarkdown } from "@/lib/latex";
-import { ConvertError, convertWithRetry, runPool, type ConvertBody } from "@/lib/convert";
+import { ConvertError, convertPart, gapForRpm, newAiState, pdfPacing, runPool, type AiState, type ConvertBody, type WaitInfo } from "@/lib/convert";
 import { MAX_PDF_PAGES, openPdf, type PdfHandle } from "@/lib/pdfPages";
 
 type Unit = {
@@ -12,7 +12,6 @@ type Unit = {
   /** Plain text used when the AI conversion fails (PDF text layer or the pasted part). */
   fallback: string;
   error?: string;
-  wait?: string;
 };
 type Job = { kind: "pdf" | "text"; name: string; units: Unit[] };
 
@@ -42,6 +41,9 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
   const [pending, setPending] = useState<string | null>(null);
   const pdfRef = useRef<PdfHandle | null>(null);
   const stopRef = useRef({ stopped: false });
+  // Main/fallback model choice for the current run (switches to fallback after 3 failed tries).
+  const aiRef = useRef<AiState>(newAiState());
+  const [waitInfo, setWaitInfo] = useState<WaitInfo>(null);
   const valueRef = useRef(value);
   const lastAuto = useRef<string | null>(null);
   valueRef.current = value;
@@ -79,10 +81,13 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
     const stop = { stopped: false };
     stopRef.current = stop;
     setRunning(true);
+    setWaitInfo(null);
     let fatal = "";
+    // One page at a time, spaced to the PDF model's per-minute limit (15 RPM → about 5 s apart).
+    const { rpm } = await pdfPacing();
     await runPool(units, async (u) => {
       if (stop.stopped) return;
-      patch(u.n, { status: "working", error: undefined, wait: undefined });
+      patch(u.n, { status: "working", error: undefined });
       try {
         let body: ConvertBody;
         if (kind === "pdf") {
@@ -94,24 +99,25 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
         } else {
           body = { mode: "text", text: u.fallback, page: u.n, total };
         }
-        const out = await convertWithRetry(body, (w) => patch(u.n, { wait: w }), stop);
-        patch(u.n, { status: "done", out, wait: undefined });
+        const out = await convertPart(body, aiRef.current, setWaitInfo, stop);
+        patch(u.n, { status: "done", out });
       } catch (e) {
         const err = e instanceof ConvertError ? e : new ConvertError((e as Error).message, false);
-        patch(u.n, { status: "failed", error: err.message, wait: undefined });
+        patch(u.n, { status: "failed", error: err.message });
         // Without an API key every request fails the same way: stop and use the plain text.
         if (err.code === "no_key" || err.code === "bad_request") {
           fatal = err.message;
           stop.stopped = true;
         }
       }
-    }, 2, 6000, stop);
+    }, 1, gapForRpm(rpm), stop);
     // Stopped early (cancelled or no API key): remaining units fall back to plain text.
     for (const u of units) {
       if (!stop.stopped) break;
       const fallback = kind === "pdf" && pdfRef.current ? await pdfRef.current.text(u.n).catch(() => "") : u.fallback;
       setJob((j) => (j ? { ...j, units: j.units.map((x) => (x.n === u.n && (x.status === "waiting" || x.status === "working") ? { ...x, status: "failed", fallback, error: fatal || "Dibatalkan" } : x)) } : j));
     }
+    setWaitInfo(null);
     setRunning(false);
   }
 
@@ -133,6 +139,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
       return setNote(`PDF ini ${pdf.numPages} halaman. Maksimal ${MAX_PDF_PAGES} halaman per upload, jadi pecah dulu PDF-nya (misalnya per bab) lalu upload sebagai beberapa materi.`);
     }
     pdfRef.current = pdf;
+    aiRef.current = newAiState();
     const units: Unit[] = Array.from({ length: pdf.numPages }, (_, i) => ({ n: i + 1, status: "waiting", out: "", fallback: "" }));
     setJob({ kind: "pdf", name: f.name, units });
     await process("pdf", units, pdf.numPages);
@@ -166,6 +173,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
     const parts = chunkText(src, 4000);
     const units: Unit[] = parts.map((p, i) => ({ n: i + 1, status: "waiting", out: "", fallback: p }));
     lastAuto.current = valueRef.current === src ? src : lastAuto.current;
+    aiRef.current = newAiState();
     setJob({ kind: "text", name: "teks", units });
     await process("text", units, parts.length);
   }
@@ -191,7 +199,6 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
   const finished = job?.units.filter((u) => u.status === "done" || u.status === "failed").length ?? 0;
   const failed = job?.units.filter((u) => u.status === "failed") ?? [];
   const word = job?.kind === "pdf" ? "halaman" : "bagian";
-  const waiting = job?.units.find((u) => u.wait);
 
   return (
     <div className="space-y-4">
@@ -246,14 +253,15 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
             </div>
             <div className="flex flex-wrap gap-1">
               {job.units.map((u) => (
-                <button key={u.n} type="button" title={u.error ?? u.wait ?? ""} disabled={u.status !== "failed" || running} onClick={() => retryOne(u.n)}
+                <button key={u.n} type="button" title={u.error ?? ""} disabled={u.status !== "failed" || running} onClick={() => retryOne(u.n)}
                   className={`min-w-8 rounded border px-1.5 py-0.5 text-xs tabular-nums ${
                     u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-red-50" : u.status === "working" ? "border-accent text-accent" : "border-line text-muted"}`}>
                   {u.n}{u.status === "failed" ? " ↻" : ""}
                 </button>
               ))}
             </div>
-            {waiting && running && <p className="text-xs text-muted">{word[0].toUpperCase() + word.slice(1)} {waiting.n}: {waiting.wait}.</p>}
+            {waitInfo && running && <WaitLine info={waitInfo} />}
+            {running && aiRef.current.useFallback && <p className="text-xs text-muted">Memakai model AI cadangan.</p>}
             {!running && failed.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" className="btn-ghost !py-1 text-xs" onClick={retryFailed}>Ulangi {failed.length} {word} yang gagal</button>
@@ -315,4 +323,15 @@ export function MarkdownEditor({ value, onChange }: { value: string; onChange: (
       <p className="mt-1 text-xs text-muted">Rumus: $...$ dalam kalimat, $$...$$ untuk blok. Rumus yang salah tampil merah di pratinjau.</p>
     </div>
   );
+}
+
+/** "Kuota AI per menit habis, menunggu sebentar... (23 detik)": the run continues by itself. */
+function WaitLine({ info }: { info: NonNullable<WaitInfo> }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const left = Math.max(0, Math.ceil((info.until - now) / 1000));
+  return <p className="text-xs text-amber-700">{info.message} {left > 0 && `(${left} detik)`}</p>;
 }

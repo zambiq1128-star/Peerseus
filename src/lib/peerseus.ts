@@ -1,4 +1,5 @@
 "use client";
+import { callAi, newAiState, type Reply, type WaitInfo } from "./convert";
 import { db, newId } from "./db";
 import { eloDelta, START_ELO } from "./elo";
 import type { Duel, DuelSide, Material, Membership, Question, Quiz, UserProfile } from "./types";
@@ -34,25 +35,15 @@ export async function updateMaterial(id: string, patch: Pick<Material, "title" |
   await db.update("materials", id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 
-export async function generateQuiz(material: Material, uid: string, count = 8): Promise<Quiz> {
-  const res = await fetch("/api/generate-quiz", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title: material.title, topics: material.topics, text: material.text, fileUrl: material.fileUrl, mimeType: material.mimeType, count }),
-  });
-  // A platform timeout (e.g. Vercel 504) returns HTML/plain text, not JSON.
-  const raw = await res.text();
-  let data: { error?: string; questions?: Question[]; generator?: Quiz["generator"] };
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    throw new Error(
-      res.status === 504
-        ? "Server kehabisan waktu saat membuat kuis. Coba lagi, atau persingkat materinya."
-        : `Server mengembalikan respons tidak terduga (HTTP ${res.status}). Coba lagi sebentar lagi.`,
-    );
-  }
-  if (!res.ok || !data.questions) throw new Error(data.error || "Gagal membuat kuis");
+/** Asks the server for questions; waits and retries by itself on rate limits (see callAi). */
+export async function generateQuiz(material: Material, uid: string, count = 8, onWait?: (w: WaitInfo) => void): Promise<Quiz> {
+  const data = await callAi<Reply & { questions?: Question[]; generator?: Quiz["generator"] }>(
+    "/api/generate-quiz",
+    { title: material.title, topics: material.topics, text: material.text, fileUrl: material.fileUrl, mimeType: material.mimeType, count },
+    newAiState(),
+    onWait,
+  );
+  if (!data.questions?.length) throw new Error("Gagal membuat kuis");
   const quiz: Quiz = {
     id: `quiz_${material.id}`,
     materialId: material.id,

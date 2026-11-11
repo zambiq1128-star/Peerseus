@@ -7,13 +7,13 @@ import type { Question } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
-// All retries together stay well under maxDuration so the user gets a clear message, not a Vercel 504.
+// Stay well under maxDuration so the user gets a clear message, not a Vercel 504.
+// Waiting and retrying on 429/503 happens in the browser (one Gemini call per request here).
 const BUDGET_MS = 100_000;
-const ATTEMPT_MS = 55_000;
 const MAX_CONTEXT_CHARS = 15_000;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
-type Body = { title: string; topics: string[]; text?: string; fileUrl?: string; mimeType?: string; count?: number };
+type Body = { title: string; topics: string[]; text?: string; fileUrl?: string; mimeType?: string; count?: number; useFallback?: boolean };
 
 /** Old materials without text may only have an attached file (data: URL or Firebase Storage). */
 async function loadFile(url: string): Promise<{ data: string; mimeType: string } | null> {
@@ -76,7 +76,9 @@ ${text ? `\nMateri (Markdown + LaTeX):\n"""\n${text}\n"""` : ""}`,
 
     // A rare broken/truncated JSON answer gets one more try while there is time left.
     for (let round = 0; ; round++) {
-      const { text: out, model } = await generate({
+      const { text: out, model, usedFallback } = await generate({
+        task: "quiz",
+        useFallback: !!body.useFallback,
         contents: [{ role: "user", parts }],
         config: {
           temperature: 0.7,
@@ -98,7 +100,6 @@ ${text ? `\nMateri (Markdown + LaTeX):\n"""\n${text}\n"""` : ""}`,
           },
         },
         deadline: started + BUDGET_MS,
-        attemptMs: ATTEMPT_MS,
       });
 
       let raw: Omit<Question, "id">[] = [];
@@ -119,11 +120,11 @@ ${text ? `\nMateri (Markdown + LaTeX):\n"""\n${text}\n"""` : ""}`,
           topic: q.topic || topics[0] || "Umum",
         }));
       if (!questions.length) {
-        if (round === 0 && Date.now() - started < BUDGET_MS / 2) continue;
+        if (round === 0 && Date.now() - started < BUDGET_MS / 3) continue;
         throw new GeminiError(502, "no valid questions", "empty");
       }
       console.log(`[generate-quiz] ${questions.length} soal via ${model} dalam ${Date.now() - started} ms (konteks ${text.length}/${fullText.length} karakter)`);
-      return Response.json({ questions, generator: "gemini" });
+      return Response.json({ questions, generator: "gemini", model, usedFallback });
     }
   } catch (e) {
     return errorResponse(e);
