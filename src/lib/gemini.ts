@@ -10,12 +10,23 @@ export class GeminiError extends Error {
   }
 }
 
-/** Thinking makes these tasks slow without improving them, so keep it off or minimal. */
+/**
+ * Thinking makes these tasks slow without improving them, so use the lowest setting each model family accepts:
+ * - Gemini 2.5 uses `thinkingBudget` (0 = off; 2.5 Pro cannot turn it off, 128 is its minimum).
+ * - Gemini 3 and newer use `thinkingLevel`. Not every model accepts MINIMAL (gemini-3.8-flash rejects it), so use LOW.
+ * - Older models (2.0, 1.5) have no thinking settings.
+ */
 export function lowThinking(model: string): ThinkingConfig | undefined {
-  if (/gemini-2\.5-pro/.test(model)) return { thinkingBudget: 128 }; // 2.5 Pro cannot turn thinking off
-  if (/gemini-2\.5/.test(model)) return { thinkingBudget: 0 };
-  if (/gemini-[3-9]/.test(model)) return { thinkingLevel: /pro/.test(model) ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL };
-  return undefined; // older models have no thinking
+  const m = model.toLowerCase();
+  if (/gemini-2\.5-pro/.test(m)) return { thinkingBudget: 128 };
+  if (/gemini-2\.5/.test(m)) return { thinkingBudget: 0 };
+  if (/gemini-([3-9]|\d{2,})/.test(m)) return { thinkingLevel: ThinkingLevel.LOW };
+  return undefined;
+}
+
+/** A 400 caused by the thinking settings, e.g. "Thinking level MINIMAL is not supported for this model". */
+function isThinkingError(e: GeminiError) {
+  return e.status === 400 && /thinking/i.test(e.message);
 }
 
 const RETRYABLE = new Set([429, 500, 502, 503, 504]);
@@ -60,6 +71,8 @@ export async function generate({ contents, config, deadline, attemptMs }: Genera
     ? [PRIMARY_MODEL, PRIMARY_MODEL, FALLBACK_MODEL, FALLBACK_MODEL]
     : [PRIMARY_MODEL, PRIMARY_MODEL, PRIMARY_MODEL];
   let last: GeminiError | undefined;
+  // Models that rejected our thinking settings: call them again without any thinkingConfig.
+  const noThinking = new Set<string>();
 
   for (let i = 0; i < plan.length; i++) {
     const model = plan[i];
@@ -72,7 +85,7 @@ export async function generate({ contents, config, deadline, attemptMs }: Genera
       const res = await ai.models.generateContent({
         model,
         contents,
-        config: { ...config, thinkingConfig: lowThinking(model), abortSignal: ctrl.signal, httpOptions: { timeout } },
+        config: { ...config, thinkingConfig: noThinking.has(model) ? undefined : lowThinking(model), abortSignal: ctrl.signal, httpOptions: { timeout } },
       });
       const text = res.text ?? "";
       if (!text.trim()) throw new GeminiError(502, `empty response (${res.candidates?.[0]?.finishReason ?? "unknown"})`, "empty");
@@ -80,6 +93,12 @@ export async function generate({ contents, config, deadline, attemptMs }: Genera
     } catch (e) {
       last = toGeminiError(e, ctrl.signal.aborted);
       console.error(`[gemini] ${model} attempt ${i + 1} failed:`, last.status, last.message.slice(0, 300));
+      // Thinking settings rejected: retry this model once right away, without thinkingConfig.
+      if (isThinkingError(last) && !noThinking.has(model)) {
+        noThinking.add(model);
+        i--;
+        continue;
+      }
       // A wrong model name: go straight to the fallback model.
       if (last.status === 404) {
         while (plan[i + 1] === model) i++;
