@@ -27,7 +27,7 @@ Open http://localhost:3000.
 ### Modes
 
 - **Local demo mode** (no Firebase env vars): everything is stored in the browser's localStorage. Demo peers (marked "demo") are seeded so one person can show the full loop: their duel answers are simulated from their topic accuracy. To try a real 2-person duel, log out and log in with another name in the same browser.
-- **Firebase mode** (step-by-step in [docs/SETUP.md](docs/SETUP.md)): fill the `NEXT_PUBLIC_FIREBASE_*` vars. Enable **Authentication → Google**, **Firestore**, and **Storage**, then deploy `firestore.rules` and `storage.rules`. Seed data (courses, demo peers, sample quizzes and opportunities) is written on first login.
+- **Firebase mode** (step-by-step in [docs/SETUP.md](docs/SETUP.md)): fill the `NEXT_PUBLIC_FIREBASE_*` vars. Enable **Authentication → Google** and **Firestore**, then deploy `firestore.rules`. Firebase Storage is not used: files are processed in the browser and only the Markdown + LaTeX text is stored. Seed data (courses, demo peers, sample quizzes and opportunities) is written on first login.
 - **Gemini**: set `GEMINI_API_KEY` (from Google AI Studio). Without it, quiz generation falls back to a simple fill-in-the-blank generator so the flow still works.
 
 ## Code map
@@ -38,7 +38,10 @@ Open http://localhost:3000.
 | `src/lib/peerseus.ts` | Core logic: courses, quiz generation call, duels, Elo, partner recommendation |
 | `src/lib/elo.ts` | Elo rating (K = 32) |
 | `src/lib/seed.ts` | Seed courses, demo peers, sample materials/quizzes, sample opportunities |
-| `src/app/api/generate-quiz/route.ts` | Server route calling Gemini with a JSON schema |
+| `src/app/api/generate-quiz/route.ts` | Server route calling Gemini with a JSON schema (low thinking, retries, fallback model) |
+| `src/app/api/to-markdown/route.ts` | Transcribes one PDF page image (or one ~4,000-char text part) to Markdown + LaTeX |
+| `src/components/MaterialComposer.tsx` | Material input (PDF / .tex / .md / .txt / paste), per-page progress and retry, editor + KaTeX preview |
+| `src/lib/gemini.ts` | Shared Gemini call: retry with backoff on 429/5xx, fallback model, deadline, friendly errors |
 | `src/app/**/page.tsx` | Pages (UI in Bahasa Indonesia) |
 
 ### Partner recommendation score

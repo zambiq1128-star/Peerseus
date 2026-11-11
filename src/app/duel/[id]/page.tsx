@@ -8,6 +8,7 @@ import { missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
 import { Empty, Spinner, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
+import { MathText } from "@/components/Markdown";
 
 export default function DuelPage() {
   const { id } = useParams<{ id: string }>();
@@ -91,13 +92,13 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
         <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
       </div>
       <div className="card !p-6">
-        <h2 className="text-lg font-semibold leading-snug">{q.question}</h2>
+        <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
         <div className="mt-5 grid gap-2">
           {q.options.map((o, k) => {
             const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "border-good bg-green-50" : k === picked ? "border-bad bg-red-50" : "opacity-50";
             return (
               <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-lg border border-line p-3 text-left text-sm transition ${state}`}>
-                <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span>{o}
+                <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />
               </button>
             );
           })}
@@ -154,12 +155,12 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
             const ok = a === q.answerIndex;
             return (
               <li key={q.id} className="border-b border-line pb-3 text-sm last:border-0">
-                <div className="font-medium"><span className={ok ? "text-good" : "text-bad"}>{ok ? "Benar" : "Salah"}</span> · {q.question}</div>
+                <div className="font-medium"><span className={ok ? "text-good" : "text-bad"}>{ok ? "Benar" : "Salah"}</span> · <MathText text={q.question} /></div>
                 <div className="mt-1">
-                  Jawaban: <b>{q.options[q.answerIndex]}</b>
-                  {!ok && <span className="text-bad"> · kamu: {a === -1 ? "waktu habis" : q.options[a]}</span>}
+                  Jawaban: <b><MathText text={q.options[q.answerIndex]} /></b>
+                  {!ok && <span className="text-bad"> · kamu: {a === -1 ? "waktu habis" : <MathText text={q.options[a]} />}</span>}
                 </div>
-                <div className="text-xs text-muted">{q.explanation}</div>
+                <div className="text-xs text-muted"><MathText text={q.explanation} /></div>
               </li>
             );
           })}

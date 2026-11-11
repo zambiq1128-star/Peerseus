@@ -3,7 +3,6 @@ import {
   getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where,
   type QueryConstraint,
 } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { firebaseEnabled, getFirebaseApp } from "./firebase";
 
 export type Filter = [field: string, op: "==" | "array-contains", value: unknown];
@@ -13,7 +12,6 @@ export interface Db {
   list<T>(col: string, filters?: Filter[]): Promise<T[]>;
   set<T extends object>(col: string, id: string, data: T): Promise<void>;
   update(col: string, id: string, data: Record<string, unknown>): Promise<void>;
-  uploadFile(path: string, file: File): Promise<string>;
 }
 
 // ---------- Firestore implementation ----------
@@ -35,36 +33,7 @@ function firestoreDb(): Db {
     async update(col, id, data) {
       await updateDoc(doc(fs(), col, id), stripUndefined(data));
     },
-    async uploadFile(path, file) {
-      // Firebase Storage needs the paid Blaze plan on new projects. Without a bucket,
-      // small files are kept inline in the Firestore document (1 MB doc limit).
-      if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
-        if (file.size > 700 * 1024) throw new Error("File maks 700 KB selama Firebase Storage belum diaktifkan. Tempel ringkasannya sebagai teks saja.");
-        return readAsDataUrl(file);
-      }
-      // If Storage isn't enabled, uploadBytes keeps retrying for minutes; give up quickly instead.
-      const storage = getStorage(getFirebaseApp());
-      storage.maxUploadRetryTime = 15000;
-      const r = ref(storage, path);
-      return withTimeout((async () => {
-        await uploadBytes(r, file, { contentType: file.type });
-        return getDownloadURL(r);
-      })(), 20000, "Upload ke Firebase Storage gagal (Storage belum aktif?).");
-    },
   };
-}
-
-function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
-  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error(msg)), ms))]);
-}
-
-function readAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
 }
 
 function stripUndefined<T>(v: T): T {
@@ -125,12 +94,6 @@ function localDb(): Db {
       for (const [k, v] of Object.entries(stripUndefined(data))) setPath(cur, k, v);
       c[id] = cur;
       writeCol(col, c);
-    },
-    async uploadFile(_path, file) {
-      if (file.size > 1.5 * 1024 * 1024) {
-        throw new Error("Mode demo lokal hanya menerima file ≤ 1,5 MB. Sambungkan Firebase untuk file lebih besar.");
-      }
-      return readAsDataUrl(file);
     },
   };
 }

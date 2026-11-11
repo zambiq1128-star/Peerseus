@@ -6,7 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateQuiz } from "@/lib/peerseus";
 import type { Material, Question, Quiz } from "@/lib/types";
+import type { WaitInfo } from "@/lib/convert";
 import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { MarkdownView, MathText } from "@/components/Markdown";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +21,7 @@ export default function MaterialPage() {
   }, [id]);
   const [showText, setShowText] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState<WaitInfo>(null);
   const [err, setErr] = useState("");
   const [reported, setReported] = useState("");
 
@@ -31,11 +34,12 @@ export default function MaterialPage() {
     setBusy(true);
     setErr("");
     try {
-      await generateQuiz(material!, uid, 8);
+      await generateQuiz(material!, uid, 8, setWait);
       reload();
     } catch (e) {
       setErr((e as Error).message);
     }
+    setWait(null);
     setBusy(false);
   }
 
@@ -50,7 +54,10 @@ export default function MaterialPage() {
       <div>
         <Link href={`/courses/${material.courseId}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
         <h1 className="mt-2 text-xl font-bold">{material.title}</h1>
-        <p className="text-sm text-muted">{material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}</p>
+        <p className="text-sm text-muted">
+          {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
+          {isUploader && <> · <Link href={`/materials/${material.id}/edit`} className="font-medium text-accent">Edit materi</Link></>}
+        </p>
       </div>
 
       {/* Step 1: the quiz (the main action on this page) */}
@@ -71,7 +78,7 @@ export default function MaterialPage() {
             <div className="text-xs text-muted">AI membuat 8 soal pilihan ganda. Kamu cek dulu sebelum dipublikasikan.</div>
           </div>
           <button className="btn-primary" onClick={gen} disabled={busy}>{busy ? "Membuat soal…" : "Buat kuis"}</button>
-          {busy && <p className="w-full text-sm text-muted">Sedang membuat soal. Untuk materi panjang ini bisa makan waktu 1–2 menit, jangan tutup halaman ini.</p>}
+          {busy && <p className="w-full text-sm text-muted">{wait ? wait.message : "Sedang membuat soal. Biasanya kurang dari 1 menit, jangan tutup halaman ini."}</p>}
           {err && <p className="w-full text-sm text-bad">{err}</p>}
         </div>
       ) : (
@@ -79,7 +86,7 @@ export default function MaterialPage() {
       ))}
 
       {quiz?.status === "draft" && (isUploader
-        ? <Review key={quiz.createdAt} quiz={quiz} onDone={reload} onRegen={gen} busy={busy} />
+        ? <Review key={quiz.createdAt} quiz={quiz} onDone={reload} onRegen={gen} busy={busy} wait={wait} />
         : <Empty>Kuis sedang dicek oleh pengunggah.</Empty>)}
       {quiz && err && <p className="text-sm text-bad">{err}</p>}
 
@@ -90,7 +97,15 @@ export default function MaterialPage() {
         )}
         {material.text && (
           <>
-            <pre className={`whitespace-pre-wrap font-sans text-sm leading-relaxed ${showText ? "" : "line-clamp-6"}`}>{material.text}</pre>
+            {material.format === "markdown" ? (
+              <div className={showText ? "" : "relative max-h-72 overflow-hidden"}>
+                <MarkdownView text={material.text} />
+                {!showText && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white" />}
+              </div>
+            ) : (
+              // Old plain-text materials keep their original look.
+              <pre className={`whitespace-pre-wrap font-sans text-sm leading-relaxed ${showText ? "" : "line-clamp-6"}`}>{material.text}</pre>
+            )}
             <button className="mt-2 text-sm font-medium text-accent" onClick={() => setShowText(!showText)}>{showText ? "Tutup" : "Baca selengkapnya"}</button>
           </>
         )}
@@ -110,7 +125,7 @@ export default function MaterialPage() {
   );
 }
 
-function Review({ quiz, onDone, onRegen, busy }: { quiz: Quiz; onDone: () => void; onRegen: () => void; busy: boolean }) {
+function Review({ quiz, onDone, onRegen, busy, wait }: { quiz: Quiz; onDone: () => void; onRegen: () => void; busy: boolean; wait: WaitInfo }) {
   const [qs, setQs] = useState<Question[]>(quiz.questions);
   const [saving, setSaving] = useState(false);
   const set = (i: number, patch: Partial<Question>) => setQs(qs.map((q, j) => (j === i ? { ...q, ...patch } : q)));
@@ -134,19 +149,24 @@ function Review({ quiz, onDone, onRegen, busy }: { quiz: Quiz; onDone: () => voi
             <span className="text-xs font-semibold text-muted">Soal {i + 1} · {q.topic}</span>
             <button className="text-xs text-bad" onClick={() => setQs(qs.filter((_, j) => j !== i))}>Hapus</button>
           </div>
-          <textarea className="input" rows={2} value={q.question} onChange={(e) => set(i, { question: e.target.value })} />
+          <div className="text-sm font-medium"><MathText text={q.question} /></div>
+          <textarea className="input font-mono text-xs" rows={2} value={q.question} onChange={(e) => set(i, { question: e.target.value })} aria-label="Teks soal" />
           <div className="grid gap-2 sm:grid-cols-2">
             {q.options.map((o, k) => (
-              <label key={k} className={`flex items-center gap-2 rounded-lg border p-2 ${q.answerIndex === k ? "border-good bg-green-50" : "border-line"}`}>
-                <input type="radio" name={`ans-${q.id}`} checked={q.answerIndex === k} onChange={() => set(i, { answerIndex: k })} />
-                <input className="w-full bg-transparent text-sm outline-none" value={o} onChange={(e) => set(i, { options: q.options.map((x, z) => (z === k ? e.target.value : x)) })} />
+              <label key={k} className={`block rounded-lg border p-2 ${q.answerIndex === k ? "border-good bg-green-50" : "border-line"}`}>
+                <span className="flex items-center gap-2">
+                  <input type="radio" name={`ans-${q.id}`} checked={q.answerIndex === k} onChange={() => set(i, { answerIndex: k })} />
+                  <span className="text-sm"><MathText text={o} /></span>
+                </span>
+                <input className="mt-1 w-full bg-transparent font-mono text-xs text-muted outline-none" value={o} onChange={(e) => set(i, { options: q.options.map((x, z) => (z === k ? e.target.value : x)) })} aria-label={`Opsi ${"ABCD"[k]}`} />
               </label>
             ))}
           </div>
+          {q.explanation && <p className="text-xs text-muted">Pembahasan: <MathText text={q.explanation} /></p>}
         </div>
       ))}
       <div className="sticky bottom-4 flex justify-end gap-2 rounded-xl border border-line bg-white p-3">
-        {busy && <span className="mr-auto self-center text-xs text-muted">Bisa makan waktu 1–2 menit…</span>}
+        {busy && <span className="mr-auto self-center text-xs text-muted">{wait ? wait.message : "Membuat soal baru…"}</span>}
         <button className="btn-ghost" onClick={onRegen} disabled={busy || saving}>{busy ? "Membuat ulang…" : "Buat ulang"}</button>
         <button className="btn-primary" onClick={publish} disabled={saving || qs.length < 3}>Publikasikan {qs.length} soal</button>
       </div>

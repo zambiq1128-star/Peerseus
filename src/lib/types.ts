@@ -42,12 +42,15 @@ export type Material = {
   description: string;
   topics: string[];
   text: string;
+  /** "markdown" = Markdown + LaTeX (rendered with KaTeX). Missing = old plain-text material. */
+  format?: "markdown";
   fileUrl?: string;
   fileName?: string;
   mimeType?: string;
   uploaderId: string;
   uploaderName: string;
   createdAt: number;
+  updatedAt?: number;
   reports: number;
 };
 
