@@ -12,7 +12,7 @@ type AuthState = {
   profile: UserProfile | null;
   authName: string;
   signInGoogle: () => Promise<void>;
-  signInLocal: (name: string) => Promise<void>;
+  signInLocal: (name: string, major: string) => Promise<void>;
   saveProfile: (p: Partial<UserProfile>) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -59,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthName(cred.user.displayName ?? "");
       await load(cred.user.uid);
     },
-    async signInLocal(name: string) {
+    async signInLocal(name: string, major: string) {
       const id = newId("u_");
+      await ensureSeeded();
+      await db.set<UserProfile>("users", id, { id, name, major, year: 1, isPublic: true, courseIds: [], createdAt: Date.now() });
       localStorage.setItem(LOCAL_UID_KEY, id);
       setAuthName(name);
       await load(id);

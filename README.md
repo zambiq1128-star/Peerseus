@@ -2,13 +2,17 @@
 
 STACK 2026 (Case 1) project by team Schrodanger's Cat.
 
-Peerseus links course materials, practice and study partners in one loop:
+One simple loop:
 
-1. **Course repository**: join a course, browse or upload materials (text, PDF).
-2. **AI quiz**: Gemini generates multiple-choice questions from a material; the uploader reviews/edits them before publishing.
-3. **Quiz duel**: challenge a peer to a timed duel (6 random questions, 20 s each). Opponents are suggested by closest Elo; results update Elo and the course leaderboard.
-4. **After the duel**: see the topics you missed and get study-partner recommendations in the same course (people strong in your weak topics, at a similar level).
-5. **Opportunities hub** (supporting): scholarships, competitions and seminars, filterable by type, faculty and deadline.
+1. **Masuk**: name + faculty on one screen (Google sign-in when Firebase is set).
+2. **Mata kuliah**: join a course, open its materials, or upload your own (text or PDF).
+3. **Kuis**: AI (Gemini) makes 8 multiple-choice questions from a material; the uploader checks them and publishes.
+4. **Duel**: one click starts a timed duel (6 questions, 20 s each) against the closest-rated peer.
+5. **Hasil**: score, rating change, topics you missed, and study partners strong in those topics (with contact).
+
+Supporting: **Info** page with scholarships, competitions and seminars, filterable by type, faculty and deadline.
+
+Navigation has only three items: Mata Kuliah, Duel, Info. Profile and logout are under your name.
 
 ## Run locally
 

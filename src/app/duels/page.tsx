@@ -11,9 +11,9 @@ export default function Duels() {
   if (!data) return <Spinner />;
   return (
     <div>
-      <PageTitle title="Duel" sub="Tantangan masuk dan riwayat duelmu." action={<Link href="/courses" className="btn-gold">+ Duel baru</Link>} />
-      {data.length === 0 && <Empty>Belum ada duel. Buka materi yang punya kuis, lalu klik “Tantang teman”.</Empty>}
-      <div className="space-y-2">
+      <PageTitle title="Duel" sub="Tantangan masuk dan riwayat duelmu." />
+      {data.length === 0 && <Empty>Belum ada duel. Buka mata kuliah, lalu klik “Mulai duel”.</Empty>}
+      <div className="divide-y divide-line rounded-xl border border-line empty:hidden">
         {data.map((d) => {
           const meC = d.challengerId === uid;
           const opp = meC ? d.opponentName : d.challengerName;
@@ -21,11 +21,11 @@ export default function Duels() {
           const mine = meC ? d.challenger : d.opponent;
           const theirs = meC ? d.opponent : d.challenger;
           const label = myTurn ? "Giliranmu" : d.status === "pending" ? "Menunggu lawan" : d.winnerId === uid ? "Menang" : d.winnerId === null ? "Seri" : "Kalah";
-          const color = myTurn ? "bg-gold text-ink" : d.status === "pending" ? "bg-paper text-muted" : d.winnerId === uid ? "bg-sea/10 text-sea" : d.winnerId === null ? "bg-paper" : "bg-red-50 text-red-700";
+          const color = myTurn ? "!bg-accent !text-white" : d.status === "pending" ? "" : d.winnerId === uid ? "!bg-green-50 !text-good" : d.winnerId === null ? "" : "!bg-red-50 !text-bad";
           return (
-            <Link key={d.id} href={`/duel/${d.id}`} className="card flex items-center justify-between gap-3 !py-3 hover:border-ink">
+            <Link key={d.id} href={`/duel/${d.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
               <div>
-                <div className="font-semibold">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
+                <div className="font-medium">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
                 <div className="text-xs text-muted">{d.quizTitle} · {timeAgo(d.createdAt)}</div>
               </div>
               <div className="flex items-center gap-3">

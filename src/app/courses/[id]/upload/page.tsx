@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -10,7 +11,6 @@ export default function Upload() {
   const { profile } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -34,7 +34,7 @@ export default function Upload() {
         {
           courseId: id,
           title: title.trim(),
-          description: description.trim(),
+          description: "",
           topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
           text: text.trim(),
           uploaderId: profile!.id,
@@ -51,30 +51,28 @@ export default function Upload() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <PageTitle title="Upload materi" sub="Bagikan ringkasan atau catatan. Kuis akan dibuat dari materi ini." />
-      <form onSubmit={submit} className="card space-y-4">
+      <Link href={`/courses/${id}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
+      <PageTitle title="Upload materi" sub="Tempel ringkasan atau lampirkan PDF. Kuis dibuat otomatis dari materi ini." />
+      <form onSubmit={submit} className="card mt-2 space-y-4">
         <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Ringkasan Integral Tak Tentu" /></div>
-        <div><label className="label">Deskripsi singkat</label><input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Bab berapa, untuk persiapan apa" /></div>
         <div>
           <label className="label">Topik (pisahkan dengan koma)</label>
           <input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Integral, Substitusi, Parsial" />
-          <p className="mt-1 text-xs text-muted">Topik dipakai untuk memberi label soal dan melihat topik mana yang kamu lewatkan saat duel.</p>
         </div>
         <div>
-          <label className="label">Isi materi / ringkasan</label>
+          <label className="label">Isi materi</label>
           <textarea className="input min-h-48 font-mono text-xs" value={text} onChange={(e) => setText(e.target.value)} placeholder="Tempel ringkasan materi di sini…" />
         </div>
         <div>
-          <label className="label">Atau lampirkan file (PDF, TXT, MD)</label>
+          <label className="label">Atau lampirkan file (PDF/TXT)</label>
           <input type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown" onChange={(e) => onFile(e.target.files?.[0] ?? null)} className="text-sm" />
-          <p className="mt-1 text-xs text-muted">PDF dibaca langsung oleh Gemini saat membuat kuis.</p>
         </div>
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
-          <span>Materi ini buatan saya sendiri atau boleh dibagikan. Saya tidak mengunggah buku/soal berhak cipta tanpa izin. Materi yang dilaporkan melanggar akan diturunkan.</span>
+          <span className="text-muted">Materi ini buatan saya atau boleh dibagikan (bukan buku/soal berhak cipta tanpa izin).</span>
         </label>
-        {err && <p className="text-sm text-red-600">{err}</p>}
-        <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? "Mengunggah…" : "Upload"}</button>
+        {err && <p className="text-sm text-bad">{err}</p>}
+        <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? "Mengunggah…" : "Upload & lanjut buat kuis"}</button>
       </form>
     </div>
   );
