@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  --color-ink: #0f1b3d;        /* deep navy */
-  --color-ink-soft: #24335e;
-  --color-gold: #e0a526;       /* Perseus gold */
-  --color-gold-soft: #fbefd2;
-  --color-sea: #1f7a8c;
-  --color-paper: #f7f6f2;
-  --color-line: #e4e1d8;
-  --color-muted: #5f6680;
+  --color-ink: #111827;
+  --color-ink-soft: #374151;
+  --color-accent: #2563eb;
+  --color-accent-soft: #eff6ff;
+  --color-paper: #f9fafb;
+  --color-line: #e5e7eb;
+  --color-muted: #6b7280;
+  --color-good: #16a34a;
+  --color-bad: #dc2626;
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
-  background: var(--color-paper);
+  background: #fff;
   color: var(--color-ink);
 }
 
-@utility card { @apply rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(15,27,61,0.04)]; }
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-ink text-white hover:bg-ink-soft; }
-@utility btn-gold { @apply btn bg-gold text-ink hover:brightness-95; }
+@utility card { @apply rounded-xl border border-line bg-white p-5; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply btn bg-accent text-white hover:brightness-110; }
 @utility btn-ghost { @apply btn border border-line bg-white text-ink hover:bg-paper; }
-@utility input { @apply w-full rounded-xl border border-line bg-white px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10; }
+@utility input { @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15; }
 @utility label { @apply mb-1 block text-sm font-medium text-ink; }
-@utility badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+@utility badge { @apply inline-flex items-center rounded-full bg-paper px-2.5 py-0.5 text-xs font-medium text-ink-soft; }

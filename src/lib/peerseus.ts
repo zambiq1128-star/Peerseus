@@ -228,7 +228,7 @@ export async function recommendPartners(courseId: string, uid: string, focusTopi
     strengths.filter(([, a]) => a >= 0.75).forEach(([t, a]) => reasons.push(`Kuat di ${t} (${Math.round(a * 100)}%)`));
     const diff = Math.abs(m.elo - (me?.elo ?? START_ELO));
     const eloSim = 1 - Math.min(diff / 400, 1);
-    if (diff <= 100) reasons.push(`Level mirip (Elo ${m.elo})`);
+    if (diff <= 100) reasons.push("Level mirip");
     const sameMajor = myProfile?.major && myProfile.major === m.major ? 1 : 0;
     if (sameMajor) reasons.push(`Sama-sama ${m.major}`);
     recs.push({ member: m, profile, score: 0.6 * complement + 0.3 * eloSim + 0.1 * sameMajor, reasons });

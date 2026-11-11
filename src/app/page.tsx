@@ -1,73 +1,61 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { myDuels } from "@/lib/peerseus";
+import { joinCourse, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
-import { Empty, PageTitle, Spinner, useAsync } from "@/components/ui";
+import { PageTitle, Spinner, useAsync } from "@/components/ui";
 
 export default function Home() {
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const uid = profile!.id;
+  const [busy, setBusy] = useState("");
   const { data } = useAsync(async () => {
-    const courses = (await Promise.all(profile!.courseIds.map((id) => db.get<Course>("courses", id)))).filter(Boolean) as Course[];
-    const ms = (await Promise.all(profile!.courseIds.map((id) => db.get<Membership>("memberships", `${id}_${uid}`)))).filter(Boolean) as Membership[];
+    const courses = (await db.list<Course>("courses")).sort((a, b) => a.code.localeCompare(b.code));
+    const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
     const duels = await myDuels(uid);
     return { courses, ms, duels };
   }, [uid, profile?.courseIds.length]);
 
   if (!data) return <Spinner />;
-  const waiting = data.duels.filter((d) => d.status === "pending" && ((d.opponentId === uid && !d.opponent) || (d.challengerId === uid && !d.challenger)));
+  const myTurn = data.duels.filter((d) => d.status === "pending" && !(d.challengerId === uid ? d.challenger : d.opponent));
+  const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
+  const others = data.courses.filter((c) => !profile!.courseIds.includes(c.id));
+
+  async function join(id: string) {
+    setBusy(id);
+    await joinCourse(profile!, id);
+    await refresh();
+    setBusy("");
+  }
 
   return (
     <div className="space-y-8">
-      <PageTitle title={`Halo, ${profile!.name.split(" ")[0]} 👋`} sub="Lanjutkan perjalanan akademikmu hari ini." />
-
-      <ol className="grid gap-3 sm:grid-cols-4">
-        {[
-          ["1", "Buka / upload materi", "/courses"],
-          ["2", "Generate & ulas kuis", "/courses"],
-          ["3", "Tantang teman duel", "/duels"],
-          ["4", "Temukan teman belajar", "/partners"],
-        ].map(([n, t, href]) => (
-          <Link key={n} href={href} className="card flex items-center gap-3 !p-4 hover:border-ink">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gold font-bold">{n}</span>
-            <span className="text-sm font-semibold">{t}</span>
-          </Link>
-        ))}
-      </ol>
-
-      {waiting.length > 0 && (
-        <section className="card border-gold bg-gold-soft">
-          <h2 className="font-bold">⚔️ {waiting.length} duel menunggu giliranmu</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {waiting.map((d) => (
-              <Link key={d.id} href={`/duel/${d.id}`} className="btn-primary">
-                Lawan {d.challengerId === uid ? d.opponentName : d.challengerName} · {d.quizTitle}
-              </Link>
-            ))}
-          </div>
-        </section>
+      {myTurn.length > 0 && (
+        <div className="card flex flex-wrap items-center justify-between gap-3 border-accent bg-accent-soft">
+          <span className="text-sm font-medium">{myTurn.length} tantangan duel menunggu jawabanmu.</span>
+          <Link href={`/duel/${myTurn[0].id}`} className="btn-primary">Jawab sekarang</Link>
+        </div>
       )}
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold">Mata kuliahku</h2>
-          <Link href="/courses" className="text-sm font-semibold text-sea">+ Gabung mata kuliah</Link>
-        </div>
-        {data.courses.length === 0 ? (
-          <Empty>Kamu belum gabung mata kuliah. <Link className="font-semibold text-sea" href="/courses">Pilih mata kuliah</Link> untuk mulai.</Empty>
+        <PageTitle title="Mata kuliahku" sub="Pilih mata kuliah untuk buka materi dan mulai duel." />
+        {joined.length === 0 ? (
+          <p className="text-sm text-muted">Belum ada. Gabung salah satu mata kuliah di bawah.</p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.courses.map((c) => {
+          <div className="grid gap-3 sm:grid-cols-2">
+            {joined.map((c) => {
               const m = data.ms.find((x) => x.courseId === c.id);
               return (
-                <Link key={c.id} href={`/courses/${c.id}`} className="card hover:border-ink">
-                  <div className="text-xs font-bold text-sea">{c.code}</div>
-                  <div className="font-bold">{c.name}</div>
-                  <div className="mt-3 flex gap-4 text-sm">
-                    <span>Elo <b>{m?.elo ?? "-"}</b></span>
-                    <span className="text-muted">{m?.wins ?? 0}M · {m?.losses ?? 0}K · {m?.draws ?? 0}S</span>
+                <Link key={c.id} href={`/courses/${c.id}`} className="card flex items-center justify-between gap-3 hover:border-accent">
+                  <div>
+                    <div className="text-xs font-semibold text-muted">{c.code}</div>
+                    <div className="font-semibold">{c.name}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted">Rating</div>
+                    <div className="font-bold">{m?.elo ?? "-"}</div>
                   </div>
                 </Link>
               );
@@ -75,6 +63,25 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {others.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-muted">Mata kuliah lain</h2>
+          <div className="divide-y divide-line rounded-xl border border-line">
+            {others.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <div className="font-medium">{c.code} · {c.name}</div>
+                  <div className="text-xs text-muted">{c.description}</div>
+                </div>
+                <button className="btn-ghost shrink-0" disabled={busy === c.id} onClick={() => join(c.id)}>
+                  {busy === c.id ? "…" : "Gabung"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

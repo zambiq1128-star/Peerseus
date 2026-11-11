@@ -5,21 +5,21 @@ export const MAJORS = ["STEI", "FTI", "FMIPA", "SITH", "FTSL", "FTTM", "FITB", "
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
   return (
     <div className="flex items-center gap-2 py-8 text-sm text-muted">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-ink" />
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-accent" />
       {label}
     </div>
   );
 }
 
 export function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-dashed border-line p-6 text-center text-sm text-muted">{children}</div>;
+  return <div className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">{children}</div>;
 }
 
 export function PageTitle({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
+        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
         {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
       </div>
       {action}
@@ -29,7 +29,7 @@ export function PageTitle({ title, sub, action }: { title: string; sub?: string;
 
 export function TopicBar({ topic, correct, total }: { topic: string; correct: number; total: number }) {
   const p = total ? Math.round((correct / total) * 100) : 0;
-  const color = p >= 75 ? "bg-sea" : p >= 50 ? "bg-gold" : "bg-red-500";
+  const color = p >= 75 ? "bg-good" : p >= 50 ? "bg-amber-400" : "bg-bad";
   return (
     <div>
       <div className="flex justify-between text-xs"><span className="font-medium">{topic}</span><span className="text-muted">{correct}/{total} · {p}%</span></div>

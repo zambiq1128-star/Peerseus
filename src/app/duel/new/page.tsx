@@ -1,11 +1,12 @@
 "use client";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createDuel, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
-import type { Course, Membership, Quiz } from "@/lib/types";
-import { Empty, PageTitle, Spinner, useAsync } from "@/components/ui";
+import type { Course, Quiz } from "@/lib/types";
+import { Empty, Spinner, useAsync } from "@/components/ui";
 
 export default function Page() {
   return <Suspense fallback={<Spinner />}><NewDuel /></Suspense>;
@@ -19,8 +20,8 @@ function NewDuel() {
   const quizParam = sp.get("quiz");
   const courseParam = sp.get("course");
   const opponentParam = sp.get("opponent");
-  const [quizId, setQuizId] = useState(quizParam ?? "");
-  const [oppId, setOppId] = useState(opponentParam ?? "");
+  const [quizId, setQuizId] = useState("");
+  const [oppId, setOppId] = useState("");
   const [busy, setBusy] = useState(false);
 
   const { data } = useAsync(async () => {
@@ -35,58 +36,57 @@ function NewDuel() {
   }, [quizParam, courseParam, uid]);
 
   if (data === undefined) return <Spinner />;
-  if (!data || !data.course) return <Empty>Pilih kuis dari halaman materi untuk mulai duel.</Empty>;
-  const quiz = data.quizzes.find((q) => q.id === quizId);
-  const opp = data.opponents.find((o) => o.uid === oppId);
+  if (!data || !data.course) return <Empty>Pilih materi yang sudah punya kuis untuk mulai duel.</Empty>;
+  if (!data.quizzes.length) return <Empty>Belum ada kuis di mata kuliah ini. <Link className="text-accent" href={`/courses/${data.course.id}`}>Upload materi</Link> dulu.</Empty>;
+  if (!data.opponents.length) return <Empty>Belum ada lawan di mata kuliah ini.</Empty>;
+
+  // Sensible defaults so the user can start with one click.
+  const quiz = data.quizzes.find((q) => q.id === (quizId || quizParam)) ?? data.quizzes[0];
+  const opp = data.opponents.find((o) => o.uid === (oppId || opponentParam)) ?? data.opponents[0];
+  const myElo = data.me?.elo ?? 1000;
 
   async function start() {
-    if (!quiz || !opp) return;
     setBusy(true);
     if (!data!.me) { await joinCourse(profile!, data!.course!.id); await refresh(); }
     const d = await createDuel(quiz, profile!, opp);
     router.push(`/duel/${d.id}`);
   }
 
-  const myElo = data.me?.elo ?? 1000;
-  const fit = (o: Membership) => {
-    const d = Math.abs(o.elo - myElo);
-    return d <= 60 ? "Sangat seimbang" : d <= 150 ? "Seimbang" : o.elo > myElo ? "Lebih kuat" : "Lebih mudah";
-  };
-
   return (
-    <div className="mx-auto max-w-3xl">
-      <PageTitle title="Mulai duel" sub={`${data.course.code} · ${DUEL_QUESTIONS} soal acak · ${SECONDS_PER_QUESTION} detik per soal`} />
-      <section className="card mb-4">
-        <h2 className="mb-3 font-bold">1. Pilih kuis</h2>
-        {data.quizzes.length === 0 ? <Empty>Belum ada kuis yang dipublikasikan di mata kuliah ini.</Empty> : (
-          <div className="grid gap-2">
-            {data.quizzes.map((q) => (
-              <label key={q.id} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${quizId === q.id ? "border-ink bg-paper" : "border-line"}`}>
-                <span className="flex items-center gap-2"><input type="radio" checked={quizId === q.id} onChange={() => setQuizId(q.id)} /> <b>{q.title}</b></span>
-                <span className="text-xs text-muted">{q.questions.length} soal</span>
-              </label>
-            ))}
-          </div>
-        )}
-      </section>
-      <section className="card mb-4">
-        <h2 className="font-bold">2. Pilih lawan</h2>
-        <p className="mb-3 text-xs text-muted">Diurutkan dari Elo yang paling dekat dengan kamu ({myElo}), supaya duelnya seimbang.</p>
-        <div className="grid gap-2">
+    <div className="mx-auto max-w-xl space-y-5">
+      <div>
+        <h1 className="text-xl font-bold">Duel kuis</h1>
+        <p className="text-sm text-muted">{data.course.code} · {DUEL_QUESTIONS} soal · {SECONDS_PER_QUESTION} detik per soal. Skor sama, yang lebih cepat menang.</p>
+      </div>
+
+      {data.quizzes.length > 1 && (
+        <div>
+          <label className="label" htmlFor="qz">Kuis</label>
+          <select id="qz" className="input" value={quiz.id} onChange={(e) => setQuizId(e.target.value)}>
+            {data.quizzes.map((q) => <option key={q.id} value={q.id}>{q.title} ({q.questions.length} soal)</option>)}
+          </select>
+        </div>
+      )}
+      {data.quizzes.length === 1 && <p className="text-sm">Kuis: <b>{quiz.title}</b></p>}
+
+      <div>
+        <div className="label">Lawan <span className="font-normal text-muted">(urut dari rating terdekat denganmu, {myElo})</span></div>
+        <div className="divide-y divide-line rounded-xl border border-line">
           {data.opponents.map((o) => (
-            <label key={o.uid} className={`flex cursor-pointer items-center justify-between rounded-xl border p-3 ${oppId === o.uid ? "border-ink bg-paper" : "border-line"}`}>
-              <span className="flex items-center gap-2">
-                <input type="radio" checked={oppId === o.uid} onChange={() => setOppId(o.uid)} />
-                <b>{o.name}</b>{o.isBot && <span className="badge bg-paper text-muted">demo</span>}
-                <span className="text-xs text-muted">{o.major}</span>
+            <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-paper"}`}>
+              <span className="flex items-center gap-2 text-sm">
+                <input type="radio" checked={opp.uid === o.uid} onChange={() => setOppId(o.uid)} />
+                <span className="font-medium">{o.name}</span>
+                <span className="text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
               </span>
-              <span className="text-right text-xs"><b>{o.elo}</b> <span className="text-muted">· {fit(o)}</span></span>
+              <span className="text-sm font-semibold">{o.elo}</span>
             </label>
           ))}
         </div>
-      </section>
-      <button className="btn-gold w-full !py-3 text-base" disabled={!quiz || !opp || busy} onClick={start}>{busy ? "Menyiapkan…" : "⚔️ Mulai duel"}</button>
-      {opp && !opp.isBot && <p className="mt-2 text-center text-xs text-muted">Kamu main duluan. {opp.name} akan menjawab soal yang sama dan hasilnya dibandingkan.</p>}
+      </div>
+
+      <button className="btn-primary w-full !py-3" disabled={busy} onClick={start}>{busy ? "Menyiapkan…" : `Mulai duel vs ${opp.name.split(" ")[0]}`}</button>
+      {!opp.isBot && <p className="text-center text-xs text-muted">Kamu jawab duluan. {opp.name} menjawab soal yang sama nanti, lalu hasilnya dibandingkan.</p>}
     </div>
   );
 }

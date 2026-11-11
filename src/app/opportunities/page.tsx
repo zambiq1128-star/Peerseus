@@ -5,7 +5,7 @@ import { db, newId } from "@/lib/db";
 import type { Opportunity, OpportunityType } from "@/lib/types";
 import { Empty, MAJORS, PageTitle, Spinner, useAsync } from "@/components/ui";
 
-const TYPES: Record<OpportunityType, string> = { beasiswa: "🎓 Beasiswa", lomba: "🏅 Lomba", seminar: "🎤 Seminar" };
+const TYPES: Record<OpportunityType, string> = { beasiswa: "Beasiswa", lomba: "Lomba", seminar: "Seminar" };
 const daysLeft = (d: string) => Math.ceil((new Date(d + "T23:59:59").getTime() - Date.now()) / 86400000);
 
 export default function Opportunities() {
@@ -26,7 +26,7 @@ export default function Opportunities() {
 
   return (
     <div>
-      <PageTitle title="Info Akademik" sub="Beasiswa, lomba, dan seminar dalam satu tempat." action={<button className="btn-gold" onClick={() => setAdding(!adding)}>{adding ? "Tutup" : "+ Bagikan info"}</button>} />
+      <PageTitle title="Info akademik" sub="Beasiswa, lomba, dan seminar dalam satu tempat." action={<button className="btn-ghost" onClick={() => setAdding(!adding)}>{adding ? "Tutup" : "+ Bagikan info"}</button>} />
       {adding && <AddForm onDone={() => { setAdding(false); reload(); }} />}
       <div className="mb-4 flex flex-wrap gap-2">
         <select className="input !w-auto" value={type} onChange={(e) => setType(e.target.value as OpportunityType | "")}>
@@ -51,15 +51,15 @@ export default function Opportunities() {
           return (
             <div key={o.id} className="card flex flex-col">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold">{TYPES[o.type]}</span>
-                <span className={`badge ${d <= 7 ? "bg-red-100 text-red-700" : "bg-paper"}`}>{d === 0 ? "Hari ini" : `${d} hari lagi`}</span>
+                <span className="text-xs font-semibold text-muted">{TYPES[o.type]}</span>
+                <span className={`badge ${d <= 7 ? "!bg-red-50 !text-bad" : ""}`}>{d === 0 ? "Hari ini" : `${d} hari lagi`}</span>
               </div>
-              <div className="mt-1 font-bold">{o.title}</div>
+              <div className="mt-1 font-semibold">{o.title}</div>
               <div className="text-xs text-muted">{o.organizer} · deadline {new Date(o.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</div>
               <p className="mt-2 flex-1 text-sm">{o.description}</p>
               <div className="mt-3 flex items-center justify-between">
-                <div className="flex flex-wrap gap-1">{(o.majors.length ? o.majors : ["Semua fakultas"]).map((m) => <span key={m} className="badge bg-paper">{m}</span>)}</div>
-                <a href={o.link} target="_blank" rel="noreferrer" className="text-sm font-semibold text-sea">Detail →</a>
+                <div className="flex flex-wrap gap-1">{(o.majors.length ? o.majors : ["Semua fakultas"]).map((m) => <span key={m} className="badge">{m}</span>)}</div>
+                <a href={o.link} target="_blank" rel="noreferrer" className="text-sm font-semibold text-accent">Detail →</a>
               </div>
             </div>
           );
