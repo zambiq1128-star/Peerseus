@@ -71,6 +71,7 @@ export default function MaterialPage() {
             <div className="text-xs text-muted">AI membuat 8 soal pilihan ganda. Kamu cek dulu sebelum dipublikasikan.</div>
           </div>
           <button className="btn-primary" onClick={gen} disabled={busy}>{busy ? "Membuat soal…" : "Buat kuis"}</button>
+          {busy && <p className="w-full text-sm text-muted">Sedang membuat soal. Untuk materi panjang ini bisa makan waktu 1–2 menit, jangan tutup halaman ini.</p>}
           {err && <p className="w-full text-sm text-bad">{err}</p>}
         </div>
       ) : (
@@ -80,6 +81,7 @@ export default function MaterialPage() {
       {quiz?.status === "draft" && (isUploader
         ? <Review key={quiz.createdAt} quiz={quiz} onDone={reload} onRegen={gen} busy={busy} />
         : <Empty>Kuis sedang dicek oleh pengunggah.</Empty>)}
+      {quiz && err && <p className="text-sm text-bad">{err}</p>}
 
       {/* The material itself */}
       <section className="card">
@@ -144,6 +146,7 @@ function Review({ quiz, onDone, onRegen, busy }: { quiz: Quiz; onDone: () => voi
         </div>
       ))}
       <div className="sticky bottom-4 flex justify-end gap-2 rounded-xl border border-line bg-white p-3">
+        {busy && <span className="mr-auto self-center text-xs text-muted">Bisa makan waktu 1–2 menit…</span>}
         <button className="btn-ghost" onClick={onRegen} disabled={busy || saving}>{busy ? "Membuat ulang…" : "Buat ulang"}</button>
         <button className="btn-primary" onClick={publish} disabled={saving || qs.length < 3}>Publikasikan {qs.length} soal</button>
       </div>

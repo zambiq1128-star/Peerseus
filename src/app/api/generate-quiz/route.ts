@@ -4,10 +4,14 @@ import { fallbackQuiz } from "@/lib/fallbackQuiz";
 import type { Question } from "@/lib/types";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 300; // Vercel Hobby maximum
 
 const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
+// Long materials make Gemini slow; ~20k characters is plenty for 8 questions.
+const MAX_TEXT_CHARS = 20000;
+// Stop well before Vercel's 300 s limit so the user gets a clear error instead of a 504.
+const GEMINI_TIMEOUT_MS = 240_000;
 
 type Body = { title: string; topics: string[]; text?: string; fileUrl?: string; mimeType?: string; count?: number };
 
@@ -30,7 +34,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Body;
   const count = Math.min(Math.max(body.count ?? 8, 3), 15);
   const topics = (body.topics ?? []).filter(Boolean);
-  const text = (body.text ?? "").slice(0, 60000);
+  const text = (body.text ?? "").slice(0, MAX_TEXT_CHARS);
 
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
@@ -43,7 +47,8 @@ export async function POST(req: Request) {
 
   const parts: ({ text: string } | { inlineData: { data: string; mimeType: string } })[] = [];
   const isText = (t?: string) => !t || t.startsWith("text/");
-  if (body.fileUrl && !isText(body.mimeType)) {
+  // The PDF's text is already extracted in the browser; only send the file when there is no text.
+  if (!text.trim() && body.fileUrl && !isText(body.mimeType)) {
     const f = await loadFile(body.fileUrl);
     if (f) parts.push({ inlineData: f });
   }
@@ -59,12 +64,16 @@ Aturan:
 ${text ? `\nMateri:\n"""\n${text}\n"""` : ""}`,
   });
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
   try {
     const ai = new GoogleGenAI({ apiKey: key });
     const res = await ai.models.generateContent({
       model: MODEL,
       contents: [{ role: "user", parts }],
       config: {
+        abortSignal: controller.signal,
+        httpOptions: { timeout: GEMINI_TIMEOUT_MS },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.ARRAY,
@@ -90,6 +99,11 @@ ${text ? `\nMateri:\n"""\n${text}\n"""` : ""}`,
     return NextResponse.json({ questions, generator: "gemini" });
   } catch (e) {
     console.error(e);
+    if (controller.signal.aborted) {
+      return NextResponse.json({ error: "Gemini terlalu lama merespons (lebih dari 4 menit). Coba lagi, atau persingkat materinya." }, { status: 504 });
+    }
     return NextResponse.json({ error: `Gagal memanggil Gemini: ${(e as Error).message}` }, { status: 502 });
+  } finally {
+    clearTimeout(timer);
   }
 }

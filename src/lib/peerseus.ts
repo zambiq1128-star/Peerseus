@@ -46,8 +46,19 @@ export async function generateQuiz(material: Material, uid: string, count = 8): 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ title: material.title, topics: material.topics, text: material.text, fileUrl: material.fileUrl, mimeType: material.mimeType, count }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Gagal membuat kuis");
+  // A platform timeout (e.g. Vercel 504) returns HTML/plain text, not JSON.
+  const raw = await res.text();
+  let data: { error?: string; questions?: Question[]; generator?: Quiz["generator"] };
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      res.status === 504
+        ? "Server kehabisan waktu saat membuat kuis. Coba lagi, atau persingkat materinya."
+        : `Server mengembalikan respons tidak terduga (HTTP ${res.status}). Coba lagi sebentar lagi.`,
+    );
+  }
+  if (!res.ok || !data.questions) throw new Error(data.error || "Gagal membuat kuis");
   const quiz: Quiz = {
     id: `quiz_${material.id}`,
     materialId: material.id,
@@ -57,7 +68,7 @@ export async function generateQuiz(material: Material, uid: string, count = 8): 
     questions: data.questions as Question[],
     createdBy: uid,
     createdAt: Date.now(),
-    generator: data.generator,
+    generator: data.generator ?? "gemini",
     reports: 0,
   };
   await db.set("quizzes", quiz.id, quiz);
