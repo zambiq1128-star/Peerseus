@@ -1,5 +1,6 @@
 import { errorResponse, fallbackModel, generate, GeminiError, modelFor } from "@/lib/gemini";
 import { normalizeMath, stripFence } from "@/lib/latex";
+import { requireItbUser } from "@/lib/serverAuth";
 
 export const runtime = "nodejs";
 // One page or one ~4,000-character part per request, so a minute is plenty.
@@ -62,6 +63,8 @@ ${b.text}
 }
 
 export async function POST(req: Request) {
+  const denied = await requireItbUser(req);
+  if (denied) return denied;
   let b: Body;
   try {
     b = (await req.json()) as Body;

@@ -1,9 +1,16 @@
 rules_version = '2';
+// Storage is not used any more (see docs/SETUP.md); kept ITB-only like firestore.rules in case it is enabled.
 service firebase.storage {
   match /b/{bucket}/o {
+    function isItb() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$');
+    }
+
     match /materials/{courseId}/{materialId}/{file} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.resource.size < 15 * 1024 * 1024;
+      allow read: if isItb();
+      allow write: if isItb() && request.resource.size < 15 * 1024 * 1024;
     }
   }
 }

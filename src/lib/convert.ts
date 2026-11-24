@@ -1,4 +1,6 @@
 "use client";
+import { getAuth } from "firebase/auth";
+import { firebaseEnabled, getFirebaseApp } from "./firebase";
 
 /** Error from our AI routes, with whether trying again might help. */
 export class ConvertError extends Error {
@@ -33,11 +35,19 @@ export type Reply = { error?: string; code?: string; retryable?: boolean; hasFal
 /** When the last AI request was sent (retries included), so runPool can space the next one. */
 let lastRequestAt = 0;
 
+/** The AI routes only answer signed-in ITB accounts, so send the Firebase ID token (refreshed by Firebase when needed). */
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!firebaseEnabled) return {};
+  const token = await getAuth(getFirebaseApp()).currentUser?.getIdToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function postOnce<T extends Reply>(url: string, body: unknown): Promise<T> {
   let res: Response;
   lastRequestAt = Date.now();
   try {
-    res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const headers = { "Content-Type": "application/json", ...(await authHeaders()) };
+    res = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
   } catch {
     throw new ConvertError("Koneksi terputus. Periksa internet lalu coba lagi.", true, "network");
   }

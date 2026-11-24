@@ -45,7 +45,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
 /** One screen: sign in and fill the two profile fields we actually need. */
 function SignIn() {
-  const { uid, authName, profile, signInGoogle, signInLocal, saveProfile } = useAuth();
+  const { uid, authName, authError, profile, signInGoogle, signInLocal, saveProfile } = useAuth();
   const [name, setName] = useState(profile?.name || authName);
   const [major, setMajor] = useState(MAJORS[0]);
   const [busy, setBusy] = useState(false);
@@ -73,7 +73,20 @@ function SignIn() {
         <p className="mt-2 text-sm text-muted">Buka materi kuliah, latihan lewat duel kuis, lalu temukan teman belajar yang pas.</p>
         <div className="card mt-6">
           {needsGoogle ? (
-            <button className="btn-primary w-full" onClick={() => signInGoogle().catch((e) => setErr(e.message))}>Masuk dengan Google</button>
+            <>
+              <button
+                className="btn-primary w-full"
+                disabled={busy}
+                onClick={() => {
+                  setBusy(true);
+                  setErr("");
+                  signInGoogle().catch((e) => setErr(e.message)).finally(() => setBusy(false));
+                }}
+              >
+                {busy ? "Masuk…" : "Masuk dengan akun ITB"}
+              </button>
+              <p className="mt-3 text-center text-xs text-muted">Khusus mahasiswa ITB. Pakai akun Google @mahasiswa.itb.ac.id.</p>
+            </>
           ) : (
             <form onSubmit={submit} className="space-y-4">
               <div>
@@ -89,7 +102,7 @@ function SignIn() {
               <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Masuk…" : "Mulai"}</button>
             </form>
           )}
-          {err && <p className="mt-3 text-sm text-bad">{err}</p>}
+          {(err || (needsGoogle && authError)) && <p className="mt-3 text-sm text-bad">{err || authError}</p>}
         </div>
       </div>
     </div>
