@@ -1,7 +1,14 @@
 export type UserProfile = {
   id: string;
   name: string;
+  /** Faculty/school code (STEI, FTI, ...), not the study program. */
   major: string;
+  /** "tpb" = first year, no study program yet. Missing on profiles made before this field. */
+  stage?: "tpb" | "jurusan";
+  /** Confirmed study program (jurusan), e.g. "Teknik Kimia". */
+  program?: string;
+  /** TPB students: the program they hope to get into. Never set together with `program`. */
+  dreamProgram?: string;
   year: number;
   bio?: string;
   contact?: string;

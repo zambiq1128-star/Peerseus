@@ -12,13 +12,15 @@ type AuthState = {
   uid: string | null;
   profile: UserProfile | null;
   authName: string;
+  /** Email of the signed-in account (empty in local demo mode); ITB emails carry the NIM. */
+  authEmail: string;
   /** Why the last sign-in was refused (e.g. not an ITB account), shown on the sign-in screen. */
   authError: string;
   /** ITB accounts (Microsoft 365). */
   signInMicrosoft: () => Promise<void>;
   /** Guests on the list, e.g. judges with a Gmail account. */
   signInGoogle: () => Promise<void>;
-  signInLocal: (name: string, major: string) => Promise<void>;
+  signInLocal: (p: Pick<UserProfile, "name" | "major" | "stage" | "program" | "dreamProgram">) => Promise<void>;
   saveProfile: (p: Partial<UserProfile>) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -73,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [uid, setUid] = useState<string | null>(null);
   const [authName, setAuthName] = useState("");
+  const [authEmail, setAuthEmail] = useState("");
   const [authError, setAuthError] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
@@ -97,6 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           u = null;
         }
         setAuthName(u?.displayName ?? "");
+        setAuthEmail(u?.email ?? "");
         await load(u?.uid ?? null);
         setLoading(false);
       });
@@ -120,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(NOT_ALLOWED_MESSAGE);
     }
     setAuthName(user.displayName ?? "");
+    setAuthEmail(user.email ?? "");
     await load(user.uid);
   }
 
@@ -128,15 +133,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     uid,
     profile,
     authName,
+    authEmail,
     authError,
     signInMicrosoft: () => signInWith(microsoftProvider()),
     signInGoogle: () => signInWith(googleProvider()),
-    async signInLocal(name: string, major: string) {
+    async signInLocal(p) {
       const id = newId("u_");
       await ensureSeeded();
-      await db.set<UserProfile>("users", id, { id, name, major, year: 1, isPublic: true, courseIds: [], createdAt: Date.now() });
+      await db.set<UserProfile>("users", id, { ...p, id, year: 1, isPublic: true, courseIds: [], createdAt: Date.now() });
       localStorage.setItem(LOCAL_UID_KEY, id);
-      setAuthName(name);
+      setAuthName(p.name);
       await load(id);
     },
     async saveProfile(p) {
@@ -149,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async logout() {
       if (firebaseEnabled) await signOut(getAuth(getFirebaseApp()));
       else localStorage.removeItem(LOCAL_UID_KEY);
+      setAuthEmail("");
       setUid(null);
       setProfile(null);
     },

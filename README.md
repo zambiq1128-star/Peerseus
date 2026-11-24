@@ -4,7 +4,7 @@ STACK 2026 (Case 1) project by team Schrodanger's Cat.
 
 One simple loop:
 
-1. **Masuk**: name + faculty on one screen (ITB Microsoft account, or Google for listed guests, when Firebase is set).
+1. **Masuk**: name, faculty and program (or dream program while in TPB) on one screen (ITB Microsoft account, or Google for listed guests, when Firebase is set). For ITB accounts these are prefilled from the NIM in the email and stay editable; codes are in `src/lib/itb.ts`.
 2. **Mata kuliah**: join a course, open its materials, or upload your own (text or PDF).
 3. **Kuis**: AI (Gemini) makes 8 multiple-choice questions from a material; the uploader checks them and publishes.
 4. **Duel**: one click starts a timed duel (6 questions, 20 s each) against the closest-rated peer.

@@ -1,6 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-export const MAJORS = ["STEI", "FTI", "FMIPA", "SITH", "FTSL", "FTTM", "FITB", "FTMD", "SAPPK", "SBM", "FSRD"];
+import { FACULTIES } from "@/lib/itb";
+
+/** Faculty/school codes (the profile's `major` field). */
+export const MAJORS = FACULTIES;
 
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
   return (
