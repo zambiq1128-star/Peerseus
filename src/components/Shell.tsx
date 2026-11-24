@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { firebaseEnabled } from "@/lib/firebase";
-import { MAJORS } from "./ui";
+import { academicOf, academicPatch, FACULTIES, suggestAcademic, type Academic } from "@/lib/itb";
+import AcademicFields from "./AcademicFields";
 
 const NAV = [
   { href: "/", label: "Mata Kuliah", match: (p: string) => p === "/" || p.startsWith("/courses") || p.startsWith("/materials") },
@@ -43,11 +44,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** One screen: sign in and fill the two profile fields we actually need. */
+/** One screen: sign in, then fill the profile fields we actually need. */
 function SignIn() {
-  const { uid, authName, authError, profile, signInMicrosoft, signInGoogle, signInLocal, saveProfile } = useAuth();
-  const [name, setName] = useState(profile?.name || authName);
-  const [major, setMajor] = useState(MAJORS[0]);
+  const { uid, authError, signInMicrosoft, signInGoogle } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const needsLogin = firebaseEnabled && !uid;
@@ -56,19 +55,6 @@ function SignIn() {
     setBusy(true);
     setErr("");
     signIn().catch((e) => setErr(e.message)).finally(() => setBusy(false));
-  }
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setErr("");
-    try {
-      if (!uid) await signInLocal(name.trim(), major);
-      else await saveProfile({ name: name.trim(), major, year: 1, isPublic: true });
-    } catch (e) {
-      setErr((e as Error).message);
-      setBusy(false);
-    }
   }
 
   return (
@@ -90,25 +76,53 @@ function SignIn() {
                   Masuk dengan Google
                 </button>
               </div>
+              {(err || authError) && <p className="mt-3 text-sm text-bad">{err || authError}</p>}
             </>
           ) : (
-            <form onSubmit={submit} className="space-y-4">
-              <div>
-                <label className="label" htmlFor="nm">Nama</label>
-                <input id="nm" className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
-              </div>
-              <div>
-                <label className="label" htmlFor="mj">Fakultas / Sekolah</label>
-                <select id="mj" className="input" value={major} onChange={(e) => setMajor(e.target.value)}>
-                  {MAJORS.map((m) => <option key={m}>{m}</option>)}
-                </select>
-              </div>
-              <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Masuk…" : "Mulai"}</button>
-            </form>
+            // Mounted only once signed in (keyed by account), so the name and NIM of that account are known.
+            <ProfileSetup key={uid ?? "local"} />
           )}
-          {(err || (needsLogin && authError)) && <p className="mt-3 text-sm text-bad">{err || authError}</p>}
         </div>
       </div>
     </div>
+  );
+}
+
+/** First-run profile: name, faculty and (dream) program, prefilled from the NIM in the ITB email when we can. */
+function ProfileSetup() {
+  const { uid, authName, authEmail, profile, signInLocal, saveProfile } = useAuth();
+  const [name, setName] = useState(profile?.name || authName);
+  // Guests, staff and NIM codes not in the list get no suggestion and pick by hand.
+  const [suggestion] = useState(() => suggestAcademic(authEmail));
+  const [academic, setAcademic] = useState<Academic>(() =>
+    academicOf(profile, suggestion?.value ?? { faculty: FACULTIES[0], stage: "tpb", program: "" }),
+  );
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setErr("");
+    try {
+      const fields = { name: name.trim(), ...academicPatch(academic) };
+      if (!uid) await signInLocal(fields);
+      else await saveProfile({ ...fields, year: 1, isPublic: true });
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div>
+        <label className="label" htmlFor="nm">Nama</label>
+        <input id="nm" className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+      </div>
+      <AcademicFields value={academic} onChange={setAcademic} note={suggestion?.note} />
+      <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Masuk…" : "Mulai"}</button>
+      {err && <p className="text-sm text-bad">{err}</p>}
+    </form>
   );
 }

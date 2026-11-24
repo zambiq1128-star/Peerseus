@@ -234,7 +234,10 @@ export async function recommendPartners(courseId: string, uid: string, focusTopi
     const eloSim = 1 - Math.min(diff / 400, 1);
     if (diff <= 100) reasons.push("Level mirip");
     const sameMajor = myProfile?.major && myProfile.major === m.major ? 1 : 0;
-    if (sameMajor) reasons.push(`Sama-sama ${m.major}`);
+    const myProgram = myProfile?.program || myProfile?.dreamProgram;
+    if (myProgram && myProgram === (profile?.program || profile?.dreamProgram)) {
+      reasons.push(profile?.program && myProfile?.program ? `Sama-sama ${myProgram}` : `Sama-sama incar ${myProgram}`);
+    } else if (sameMajor) reasons.push(`Sama-sama ${m.major}`);
     recs.push({ member: m, profile, score: 0.6 * complement + 0.3 * eloSim + 0.1 * sameMajor, reasons });
   }
   return recs.sort((a, b) => b.score - a.score).slice(0, limit);
