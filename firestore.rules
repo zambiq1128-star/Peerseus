@@ -1,10 +1,19 @@
 rules_version = '2';
-// Hackathon rules: any signed-in user can read and write.
+// Peerseus is for ITB only: every read and write needs a signed-in Google account with a
+// verified email on itb.ac.id or one of its subdomains (mahasiswa.itb.ac.id, std.stei.itb.ac.id, ...).
+// Same rule as src/lib/access.ts; keep them in sync.
+// Hackathon rules otherwise: any ITB user can read and write everything.
 // Tighten before real users (e.g. only owners edit their profile/materials).
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isItb() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$');
+    }
+
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isItb();
     }
   }
 }

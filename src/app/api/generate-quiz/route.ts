@@ -3,6 +3,7 @@ import { fallbackQuiz } from "@/lib/fallbackQuiz";
 import { errorResponse, generate, GeminiError } from "@/lib/gemini";
 import { repairLatexEscapes } from "@/lib/latex";
 import { pickRelevant } from "@/lib/quizContext";
+import { requireItbUser } from "@/lib/serverAuth";
 import type { Question } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -32,6 +33,8 @@ async function loadFile(url: string): Promise<{ data: string; mimeType: string }
 
 export async function POST(req: Request) {
   const started = Date.now();
+  const denied = await requireItbUser(req);
+  if (denied) return denied;
   let body: Body;
   try {
     body = (await req.json()) as Body;
