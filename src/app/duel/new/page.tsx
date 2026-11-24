@@ -47,7 +47,7 @@ function NewDuel() {
 
   async function start() {
     setBusy(true);
-    if (!data!.me) { await joinCourse(profile!, data!.course!.id); await refresh(); }
+    if (!data!.me || data!.me.left) { await joinCourse(profile!, data!.course!.id); await refresh(); }
     const d = await createDuel(quiz, profile!, opp);
     router.push(`/duel/${d.id}`);
   }

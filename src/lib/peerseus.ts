@@ -10,45 +10,63 @@ export const DUEL_QUESTIONS = 6;
 export const SECONDS_PER_QUESTION = 20;
 
 // ---------- Courses ----------
+export const COURSES_PAGE = "/courses";
+
+/**
+ * New users pick their courses right after their personal data. Users from before the Mata Kuliah page
+ * who already joined courses aren't sent there.
+ */
+export const needsCourses = (p: UserProfile) => !p.isBot && p.semester === undefined && p.courseIds.length === 0;
+
+function newMembership(user: Pick<UserProfile, "id" | "name" | "major">, courseId: string): Membership {
+  return { id: `${courseId}_${user.id}`, courseId, uid: user.id, name: user.name, major: user.major, elo: START_ELO, wins: 0, losses: 0, draws: 0, topicStats: {} };
+}
+
+/** Creates the membership, or brings back one the user left (keeping its rating). */
+async function activateMembership(user: Pick<UserProfile, "id" | "name" | "major">, courseId: string) {
+  const existing = await db.get<Membership>("memberships", `${courseId}_${user.id}`);
+  if (!existing) await db.set("memberships", `${courseId}_${user.id}`, newMembership(user, courseId));
+  else if (existing.left) await db.update("memberships", existing.id, { left: false });
+}
+
 export async function joinCourse(profile: UserProfile, courseId: string) {
-  const id = `${courseId}_${profile.id}`;
-  const existing = await db.get<Membership>("memberships", id);
-  if (!existing) {
-    const m: Membership = { id, courseId, uid: profile.id, name: profile.name, major: profile.major, elo: START_ELO, wins: 0, losses: 0, draws: 0, topicStats: {} };
-    await db.set("memberships", id, m);
-  }
+  await activateMembership(profile, courseId);
   if (!profile.courseIds.includes(courseId)) {
     await db.update("users", profile.id, { courseIds: [...profile.courseIds, courseId] });
   }
 }
 
 /**
- * Joins the courses picked on the first-run form, creating any that aren't in the catalog yet.
- * Courses are matched by code. Returns their ids; the caller saves them in the profile.
+ * Applies the list from the Mata Kuliah page: creates courses missing from the catalog (matched by code),
+ * joins the picked ones and leaves the rest. Returns the course ids; the caller saves them in the profile.
  */
-export async function joinSuggestedCourses(user: Pick<UserProfile, "id" | "name" | "major">, picked: CourseInfo[]): Promise<string[]> {
-  if (!picked.length) return [];
+export async function setMyCourses(profile: UserProfile, picked: CourseInfo[]): Promise<string[]> {
   await ensureSeeded();
   const byCode = new Map((await db.list<Course>("courses")).map((c) => [c.code, c]));
   const ids: string[] = [];
   for (const info of picked) {
     let course = byCode.get(info.code);
     if (!course) {
-      course = { id: info.code.toLowerCase(), code: info.code, name: info.name, description: `Kurikulum ITB 2024 · ${info.sks} SKS` };
+      course = { id: courseIdFor(info.code), code: info.code, name: info.name, description: info.sks ? `Kurikulum ITB 2024 · ${info.sks} SKS` : "Ditambahkan mahasiswa", sks: info.sks };
       await db.set("courses", course.id, course);
+      byCode.set(course.code, course);
     }
-    const id = `${course.id}_${user.id}`;
-    if (!(await db.get<Membership>("memberships", id))) {
-      const m: Membership = { id, courseId: course.id, uid: user.id, name: user.name, major: user.major, elo: START_ELO, wins: 0, losses: 0, draws: 0, topicStats: {} };
-      await db.set("memberships", id, m);
-    }
-    ids.push(course.id);
+    await activateMembership(profile, course.id);
+    if (!ids.includes(course.id)) ids.push(course.id);
+  }
+  for (const id of profile.courseIds.filter((c) => !ids.includes(c))) {
+    if (await db.get<Membership>("memberships", `${id}_${profile.id}`)) await db.update("memberships", `${id}_${profile.id}`, { left: true });
   }
   return ids;
 }
 
+/** Document id for a new course code, e.g. "IF2110" → "if2110". Codes are letters and digits. */
+const courseIdFor = (code: string) => code.toLowerCase().replace(/[^a-z0-9]/g, "");
+
 export const getMembership = (courseId: string, uid: string) => db.get<Membership>("memberships", `${courseId}_${uid}`);
-export const courseMembers = (courseId: string) => db.list<Membership>("memberships", [["courseId", "==", courseId]]);
+/** Current members (not the ones who removed the course). */
+export const courseMembers = async (courseId: string) =>
+  (await db.list<Membership>("memberships", [["courseId", "==", courseId]])).filter((m) => !m.left);
 
 // ---------- Materials & quizzes ----------
 /** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */

@@ -40,9 +40,13 @@ export default function Home() {
       )}
 
       <section>
-        <PageTitle title="Mata kuliahku" sub="Pilih mata kuliah untuk buka materi dan mulai duel." />
+        <PageTitle
+          title="Mata kuliahku"
+          sub="Pilih mata kuliah untuk buka materi dan mulai duel."
+          action={<Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>}
+        />
         {joined.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada. Gabung salah satu mata kuliah di bawah.</p>
+          <p className="text-sm text-muted">Belum ada. <Link href="/courses" className="text-accent hover:underline">Atur mata kuliahmu</Link>, atau gabung salah satu di bawah.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {joined.map((c) => {

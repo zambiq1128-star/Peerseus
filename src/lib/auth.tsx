@@ -20,7 +20,7 @@ type AuthState = {
   signInMicrosoft: () => Promise<void>;
   /** Guests on the list, e.g. judges with a Gmail account. */
   signInGoogle: () => Promise<void>;
-  signInLocal: (p: Pick<UserProfile, "name" | "major" | "stage" | "program" | "dreamProgram"> & { id?: string; courseIds?: string[] }) => Promise<void>;
+  signInLocal: (p: Pick<UserProfile, "name" | "major" | "stage" | "program" | "dreamProgram">) => Promise<void>;
   saveProfile: (p: Partial<UserProfile>) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -137,9 +137,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     authError,
     signInMicrosoft: () => signInWith(microsoftProvider()),
     signInGoogle: () => signInWith(googleProvider()),
-    async signInLocal({ id = newId("u_"), courseIds = [], ...p }) {
+    async signInLocal(p) {
+      const id = newId("u_");
       await ensureSeeded();
-      await db.set<UserProfile>("users", id, { ...p, id, year: 1, isPublic: true, courseIds, createdAt: Date.now() });
+      await db.set<UserProfile>("users", id, { ...p, id, year: 1, isPublic: true, courseIds: [], createdAt: Date.now() });
       localStorage.setItem(LOCAL_UID_KEY, id);
       setAuthName(p.name);
       await load(id);

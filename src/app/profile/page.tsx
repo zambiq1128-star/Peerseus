@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { academicOf, academicPatch, type Academic } from "@/lib/itb";
@@ -16,6 +17,7 @@ export default function Profile() {
       <form className="card space-y-4" onSubmit={async (e) => { e.preventDefault(); await saveProfile({ ...p, ...academicPatch(academic) }); setSaved(true); }}>
         <div><label className="label">Nama</label><input className="input" required value={p.name} onChange={(e) => { setSaved(false); setP({ ...p, name: e.target.value }); }} /></div>
         <AcademicFields value={academic} onChange={(a) => { setSaved(false); setAcademic(a); }} />
+        <p className="text-xs text-muted">Ganti jurusan atau semester? <Link href="/courses" className="text-accent hover:underline">Atur mata kuliah</Link> setelah menyimpan.</p>
         <div><label className="label">Bio singkat</label><input className="input" value={p.bio ?? ""} onChange={(e) => { setSaved(false); setP({ ...p, bio: e.target.value }); }} placeholder="mis. Suka belajar malam, open diskusi kalkulus" /></div>
         <div><label className="label">Kontak</label><input className="input" value={p.contact ?? ""} onChange={(e) => { setSaved(false); setP({ ...p, contact: e.target.value }); }} placeholder="LINE / IG / WA" /></div>
         <label className="flex items-center gap-2 text-sm">
