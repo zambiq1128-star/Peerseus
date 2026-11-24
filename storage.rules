@@ -1,11 +1,12 @@
 rules_version = '2';
-// Storage is not used any more (see docs/SETUP.md); kept ITB-only like firestore.rules in case it is enabled.
+// Storage is not used any more (see docs/SETUP.md); kept ITB-only in case it is enabled.
+// Same ITB rule as firestore.rules. Guests are not included here, since nothing reads or writes Storage.
 service firebase.storage {
   match /b/{bucket}/o {
     function isItb() {
       return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$');
+        && request.auth.token.email.lower().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$')
+        && (request.auth.token.firebase.sign_in_provider == 'microsoft.com' || request.auth.token.email_verified == true);
     }
 
     match /materials/{courseId}/{materialId}/{file} {

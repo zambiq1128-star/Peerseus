@@ -4,7 +4,7 @@ STACK 2026 (Case 1) project by team Schrodanger's Cat.
 
 One simple loop:
 
-1. **Masuk**: name + faculty on one screen (Google sign-in with an ITB account when Firebase is set).
+1. **Masuk**: name + faculty on one screen (ITB Microsoft account, or Google for listed guests, when Firebase is set).
 2. **Mata kuliah**: join a course, open its materials, or upload your own (text or PDF).
 3. **Kuis**: AI (Gemini) makes 8 multiple-choice questions from a material; the uploader checks them and publishes.
 4. **Duel**: one click starts a timed duel (6 questions, 20 s each) against the closest-rated peer.
@@ -27,7 +27,7 @@ Open http://localhost:3000.
 ### Modes
 
 - **Local demo mode** (no Firebase env vars): everything is stored in the browser's localStorage. Demo peers (marked "demo") are seeded so one person can show the full loop: their duel answers are simulated from their topic accuracy. To try a real 2-person duel, log out and log in with another name in the same browser.
-- **Firebase mode** (step-by-step in [docs/SETUP.md](docs/SETUP.md)): fill the `NEXT_PUBLIC_FIREBASE_*` vars. Enable **Authentication → Google** and **Firestore**, then deploy `firestore.rules`. Only ITB Google accounts (verified email on `itb.ac.id` or a subdomain such as `mahasiswa.itb.ac.id`) can use the app: checked at sign-in, in `firestore.rules` for every read/write, and on the AI routes (Firebase ID token verified on the server). Firebase Storage is not used: files are processed in the browser and only the Markdown + LaTeX text is stored. Seed data (courses, demo peers, sample quizzes and opportunities) is written on first login.
+- **Firebase mode** (step-by-step in [docs/SETUP.md](docs/SETUP.md)): fill the `NEXT_PUBLIC_FIREBASE_*` vars. Enable **Authentication → Google** and **Firestore**, then deploy `firestore.rules`. Only ITB accounts (Microsoft sign-in, or a verified email, on `itb.ac.id` or a subdomain such as `mahasiswa.itb.ac.id`) and guests listed in Firestore `config/access.guestEmails` (Google sign-in) can use the app: checked at sign-in, in `firestore.rules` for every read/write, and on the AI routes (Firebase ID token verified on the server). Firebase Storage is not used: files are processed in the browser and only the Markdown + LaTeX text is stored. Seed data (courses, demo peers, sample quizzes and opportunities) is written on first login.
 - **Gemini**: set `GEMINI_API_KEY` (from Google AI Studio). Without it, quiz generation falls back to a simple fill-in-the-blank generator so the flow still works.
 
 ## Code map
@@ -42,8 +42,8 @@ Open http://localhost:3000.
 | `src/app/api/to-markdown/route.ts` | Transcribes one PDF page image (or one ~4,000-char text part) to Markdown + LaTeX |
 | `src/components/MaterialComposer.tsx` | Material input (PDF / .tex / .md / .txt / paste), per-page progress and retry, editor + KaTeX preview |
 | `src/lib/gemini.ts` | Shared Gemini call: retry with backoff on 429/5xx, fallback model, deadline, friendly errors |
-| `src/lib/access.ts` | ITB-only rule (`isItbEmail`); same regex as `firestore.rules` |
-| `src/lib/serverAuth.ts` | Verifies the Firebase ID token on the AI routes (Google public keys, no firebase-admin) and requires an ITB email |
+| `src/lib/access.ts` | Who can sign in: ITB accounts and listed guests; same rule as `firestore.rules` |
+| `src/lib/serverAuth.ts` | Verifies the Firebase ID token on the AI routes (Google public keys, no firebase-admin), then ITB account or guest list |
 | `src/app/**/page.tsx` | Pages (UI in Bahasa Indonesia) |
 
 ### Partner recommendation score

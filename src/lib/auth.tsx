@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
-import { isItbEmail, NOT_ITB_MESSAGE } from "./access";
+import { getAuth, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type AuthProvider as FirebaseAuthProvider, type User } from "firebase/auth";
+import { ACCESS_DOC, guestListIncludes, isItbAccount, ITB_MICROSOFT_TENANT, NOT_ALLOWED_MESSAGE } from "./access";
 import { firebaseEnabled, getFirebaseApp } from "./firebase";
 import { db, newId } from "./db";
 import { ensureSeeded } from "./seed";
@@ -12,8 +12,11 @@ type AuthState = {
   uid: string | null;
   profile: UserProfile | null;
   authName: string;
-  /** Why the last Google sign-in was refused (e.g. not an ITB account), shown on the sign-in screen. */
+  /** Why the last sign-in was refused (e.g. not an ITB account), shown on the sign-in screen. */
   authError: string;
+  /** ITB accounts (Microsoft 365). */
+  signInMicrosoft: () => Promise<void>;
+  /** Guests on the list, e.g. judges with a Gmail account. */
   signInGoogle: () => Promise<void>;
   signInLocal: (name: string, major: string) => Promise<void>;
   saveProfile: (p: Partial<UserProfile>) => Promise<void>;
@@ -24,13 +27,33 @@ type AuthState = {
 const Ctx = createContext<AuthState | null>(null);
 const LOCAL_UID_KEY = "peerseus:uid";
 
-/** Only verified ITB Google accounts get in. Firestore rules and the AI routes check the same on the server. */
-const allowed = (u: User) => u.emailVerified && isItbEmail(u.email);
+/**
+ * Only ITB accounts and listed guests get in (see access.ts).
+ * Firestore rules and the AI routes check the same on the server.
+ */
+async function allowed(u: User): Promise<boolean> {
+  const { signInProvider } = await u.getIdTokenResult();
+  if (isItbAccount({ email: u.email, emailVerified: u.emailVerified, signInProvider })) return true;
+  if (!u.emailVerified) return false;
+  try {
+    // firestore.rules only let allowed users read this document, so a refusal means "not a guest".
+    const access = await db.get<{ guestEmails?: unknown }>(ACCESS_DOC.col, ACCESS_DOC.id);
+    return guestListIncludes(access?.guestEmails, u.email);
+  } catch {
+    return false;
+  }
+}
+
+function microsoftProvider() {
+  const p = new OAuthProvider("microsoft.com");
+  // Sign in against ITB's own tenant: only ITB Microsoft accounts are offered and accepted.
+  p.setCustomParameters({ tenant: ITB_MICROSOFT_TENANT, prompt: "select_account" });
+  return p;
+}
 
 function googleProvider() {
   const p = new GoogleAuthProvider();
-  // hd=* asks Google's account chooser to prefer organisation (Workspace) accounts like ITB's over personal Gmail.
-  p.setCustomParameters({ hd: "*", prompt: "select_account" });
+  p.setCustomParameters({ prompt: "select_account" });
   return p;
 }
 
@@ -39,6 +62,8 @@ const SIGN_IN_ERRORS: Record<string, string> = {
   "auth/cancelled-popup-request": "Login dibatalkan.",
   "auth/popup-blocked": "Popup login diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.",
   "auth/unauthorized-domain": "Domain ini belum diizinkan di Firebase (Authentication, Settings, Authorized domains).",
+  "auth/operation-not-allowed": "Cara login ini belum diaktifkan di Firebase (Authentication, Sign-in method).",
+  "auth/account-exists-with-different-credential": "Email ini sudah pernah dipakai masuk dengan cara lain. Coba tombol login yang satunya.",
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,9 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (firebaseEnabled) {
       const auth = getAuth(getFirebaseApp());
       return onAuthStateChanged(auth, async (u) => {
-        if (u && !allowed(u)) {
-          // Also catches sessions that were signed in before the ITB-only rule.
-          setAuthError(NOT_ITB_MESSAGE);
+        if (u && !(await allowed(u))) {
+          // Also catches sessions that were signed in before the ITB-only rule, or guests removed from the list.
+          setAuthError(NOT_ALLOWED_MESSAGE);
           await signOut(auth);
           u = null;
         }
@@ -77,29 +102,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     load(id).finally(() => setLoading(false));
   }, [load]);
 
+  async function signInWith(provider: FirebaseAuthProvider) {
+    const auth = getAuth(getFirebaseApp());
+    setAuthError("");
+    let user: User;
+    try {
+      user = (await signInWithPopup(auth, provider)).user;
+    } catch (e) {
+      const code = (e as { code?: string }).code ?? "";
+      throw new Error(SIGN_IN_ERRORS[code] ?? (e as Error).message);
+    }
+    if (!(await allowed(user))) {
+      await signOut(auth);
+      throw new Error(NOT_ALLOWED_MESSAGE);
+    }
+    setAuthName(user.displayName ?? "");
+    await load(user.uid);
+  }
+
   const value: AuthState = {
     loading,
     uid,
     profile,
     authName,
     authError,
-    async signInGoogle() {
-      const auth = getAuth(getFirebaseApp());
-      setAuthError("");
-      let user: User;
-      try {
-        user = (await signInWithPopup(auth, googleProvider())).user;
-      } catch (e) {
-        const code = (e as { code?: string }).code ?? "";
-        throw new Error(SIGN_IN_ERRORS[code] ?? (e as Error).message);
-      }
-      if (!allowed(user)) {
-        await signOut(auth);
-        throw new Error(NOT_ITB_MESSAGE);
-      }
-      setAuthName(user.displayName ?? "");
-      await load(user.uid);
-    },
+    signInMicrosoft: () => signInWith(microsoftProvider()),
+    signInGoogle: () => signInWith(googleProvider()),
     async signInLocal(name: string, major: string) {
       const id = newId("u_");
       await ensureSeeded();
