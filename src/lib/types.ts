@@ -9,6 +9,8 @@ export type UserProfile = {
   program?: string;
   /** TPB students: the program they hope to get into. Never set together with `program`. */
   dreamProgram?: string;
+  /** Semester picked on the Mata Kuliah page (1 = first semester). Missing until that page is saved once. */
+  semester?: number;
   year: number;
   bio?: string;
   contact?: string;
@@ -23,6 +25,7 @@ export type Course = {
   code: string;
   name: string;
   description: string;
+  sks?: number;
 };
 
 export type TopicStat = { correct: number; total: number };
@@ -35,6 +38,8 @@ export type Membership = {
   name: string;
   major: string;
   isBot?: boolean;
+  /** Removed the course from their list. Kept (not deleted) so the rating is back if they add it again. */
+  left?: boolean;
   elo: number;
   wins: number;
   losses: number;
