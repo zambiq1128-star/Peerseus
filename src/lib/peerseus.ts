@@ -1,8 +1,10 @@
 "use client";
 import { callAi, newAiState, type Reply, type WaitInfo } from "./convert";
+import type { CourseInfo } from "./curriculum";
 import { db, newId } from "./db";
 import { eloDelta, START_ELO } from "./elo";
-import type { Duel, DuelSide, Material, Membership, Question, Quiz, UserProfile } from "./types";
+import { ensureSeeded } from "./seed";
+import type { Course, Duel, DuelSide, Material, Membership, Question, Quiz, UserProfile } from "./types";
 
 export const DUEL_QUESTIONS = 6;
 export const SECONDS_PER_QUESTION = 20;
@@ -18,6 +20,31 @@ export async function joinCourse(profile: UserProfile, courseId: string) {
   if (!profile.courseIds.includes(courseId)) {
     await db.update("users", profile.id, { courseIds: [...profile.courseIds, courseId] });
   }
+}
+
+/**
+ * Joins the courses picked on the first-run form, creating any that aren't in the catalog yet.
+ * Courses are matched by code. Returns their ids; the caller saves them in the profile.
+ */
+export async function joinSuggestedCourses(user: Pick<UserProfile, "id" | "name" | "major">, picked: CourseInfo[]): Promise<string[]> {
+  if (!picked.length) return [];
+  await ensureSeeded();
+  const byCode = new Map((await db.list<Course>("courses")).map((c) => [c.code, c]));
+  const ids: string[] = [];
+  for (const info of picked) {
+    let course = byCode.get(info.code);
+    if (!course) {
+      course = { id: info.code.toLowerCase(), code: info.code, name: info.name, description: `Kurikulum ITB 2024 · ${info.sks} SKS` };
+      await db.set("courses", course.id, course);
+    }
+    const id = `${course.id}_${user.id}`;
+    if (!(await db.get<Membership>("memberships", id))) {
+      const m: Membership = { id, courseId: course.id, uid: user.id, name: user.name, major: user.major, elo: START_ELO, wins: 0, losses: 0, draws: 0, topicStats: {} };
+      await db.set("memberships", id, m);
+    }
+    ids.push(course.id);
+  }
+  return ids;
 }
 
 export const getMembership = (courseId: string, uid: string) => db.get<Membership>("memberships", `${courseId}_${uid}`);

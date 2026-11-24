@@ -4,7 +4,10 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { firebaseEnabled } from "@/lib/firebase";
-import { academicOf, academicPatch, FACULTIES, suggestAcademic, type Academic } from "@/lib/itb";
+import { suggestCourses } from "@/lib/curriculum";
+import { newId } from "@/lib/db";
+import { academicOf, academicPatch, FACULTIES, readNim, suggestAcademic, type Academic } from "@/lib/itb";
+import { joinSuggestedCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 
 const NAV = [
@@ -94,9 +97,13 @@ function ProfileSetup() {
   const [name, setName] = useState(profile?.name || authName);
   // Guests, staff and NIM codes not in the list get no suggestion and pick by hand.
   const [suggestion] = useState(() => suggestAcademic(authEmail));
+  const [entryYear] = useState(() => readNim(authEmail)?.entryYear ?? null);
   const [academic, setAcademic] = useState<Academic>(() =>
     academicOf(profile, suggestion?.value ?? { faculty: FACULTIES[0], stage: "tpb", program: "" }),
   );
+  // This semester's courses (Kurikulum 2024), all ticked; codes the user unticks.
+  const courses = suggestCourses(academic, entryYear);
+  const [unticked, setUnticked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -106,8 +113,12 @@ function ProfileSetup() {
     setErr("");
     try {
       const fields = { name: name.trim(), ...academicPatch(academic) };
-      if (!uid) await signInLocal(fields);
-      else await saveProfile({ ...fields, year: 1, isPublic: true });
+      const id = uid ?? newId("u_");
+      // Join courses before saving the profile: saving it opens the app, which lists the joined courses.
+      const picked = courses?.courses.filter((c) => !unticked.includes(c.code)) ?? [];
+      const joined = await joinSuggestedCourses({ id, name: fields.name, major: fields.major }, picked);
+      if (!uid) await signInLocal({ ...fields, id, courseIds: joined });
+      else await saveProfile({ ...fields, year: 1, isPublic: true, courseIds: [...new Set([...(profile?.courseIds ?? []), ...joined])] });
     } catch (e) {
       setErr((e as Error).message);
       setBusy(false);
@@ -121,6 +132,25 @@ function ProfileSetup() {
         <input id="nm" className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
       </div>
       <AcademicFields value={academic} onChange={setAcademic} note={suggestion?.note} />
+      {courses && (
+        <fieldset>
+          <legend className="label">Mata kuliah semester {courses.semester}</legend>
+          <div className="space-y-2 rounded-lg border border-line p-3">
+            {courses.courses.map((c) => (
+              <label key={c.code} className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={!unticked.includes(c.code)}
+                  onChange={(e) => setUnticked(e.target.checked ? unticked.filter((x) => x !== c.code) : [...unticked, c.code])}
+                />
+                <span><span className="text-xs text-muted">{c.code}</span> {c.name}</span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">Dari Kurikulum ITB 2024. Hapus centang yang tidak kamu ambil.</p>
+        </fieldset>
+      )}
       <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Masuk…" : "Mulai"}</button>
       {err && <p className="text-sm text-bad">{err}</p>}
     </form>
