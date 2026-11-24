@@ -2,8 +2,8 @@ rules_version = '2';
 // Who can use Peerseus (same rule as src/lib/access.ts; keep them in sync):
 // 1. ITB accounts: email on itb.ac.id or a subdomain (mahasiswa.itb.ac.id, ...), signed in with
 //    Microsoft (ITB's Microsoft 365) or with a provider that verified the email (Google).
-//    Firebase never marks Microsoft emails as verified; Microsoft sign-ins are trusted because the
-//    Microsoft app registration only accepts ITB's tenant (see docs/SETUP.md).
+//    Firebase never marks Microsoft emails as verified; Microsoft sign-in is sent to ITB's tenant
+//    by the app (see docs/SETUP.md, "Login akun ITB (Microsoft)").
 // 2. Guests (e.g. judges): verified emails (Google sign-in) listed in the document config/access,
 //    field guestEmails (array of lowercase emails). Edit that list in the Firebase Console.
 // Hackathon rules otherwise: any allowed user can read and write all app data.
