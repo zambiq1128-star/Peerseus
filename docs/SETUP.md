@@ -14,7 +14,7 @@ Total sekitar 15 menit. Semua langkah gratis (Spark plan + Vercel Hobby).
 ## 2. Firebase
 1. Buka https://console.firebase.google.com → **Create a project** (mis. `peerseus`). Google Analytics boleh dimatikan.
 2. **Build → Authentication → Get started → Sign-in method**:
-   - **Microsoft**, untuk akun ITB (ITB memakai Microsoft 365). Butuh pendaftaran app di Microsoft Entra, lihat [Login akun ITB (Microsoft)](#login-akun-itb-microsoft).
+   - **Microsoft**, untuk akun ITB (ITB memakai Microsoft 365). Butuh pendaftaran app di tenant Microsoft milik sendiri, lihat [Login akun ITB (Microsoft)](#login-akun-itb-microsoft).
    - **Google → Enable**, pilih support email, Save. Dipakai tamu (mis. juri), lihat [Daftar email tamu](#daftar-email-tamu).
 3. **Build → Firestore Database → Create database** → lokasi `asia-southeast2 (Jakarta)` → **Start in production mode**.
    Lalu buka tab **Rules**, ganti isinya dengan isi file [`firestore.rules`](../firestore.rules), klik **Publish**.
@@ -59,25 +59,41 @@ Ada tiga lapis pengecekan, dengan aturan yang sama:
 3. **Route AI** (`/api/generate-quiz`, `/api/to-markdown`): server memeriksa token login Firebase (tanda tangan Google, project, masa berlaku), lalu akun ITB atau daftar tamu. Jadi kuota Gemini tidak bisa dipakai orang luar. Tidak perlu env var baru.
 
 ### Login akun ITB (Microsoft)
-Firebase menandai email dari Microsoft sebagai "belum terverifikasi". Karena itu, keamanan cek domain bergantung pada app Microsoft yang **hanya menerima tenant ITB**. Cara paling aman: daftarkan app di tenant ITB sendiri (single tenant).
+Mahasiswa ITB tidak bisa mendaftarkan app di tenant Microsoft ITB (halaman Entra menolak dengan "You don't have access", error 401). Jadi app didaftarkan di **tenant Microsoft milik sendiri** sebagai app *multi-tenant*, lalu Peerseus meminta login langsung ke tenant ITB (`ITB_MICROSOFT_TENANT` di `src/lib/access.ts`). Login hanya meminta izin dasar (`openid`, `email`, `profile`), tanpa akses ke email atau file.
 
-1. Di Firebase Console: **Authentication → Sign-in method → Add new provider → Microsoft**. Aktifkan, lalu salin **callback URL** yang tertera, bentuknya `https://<project>.firebaseapp.com/__/auth/handler`. Biarkan tab ini terbuka.
-2. Buka https://entra.microsoft.com, login dengan **akun ITB** kamu.
-3. **App registrations → New registration** (cari "App registrations" di kotak pencarian atas kalau menunya tidak terlihat):
+**A. Ambil callback URL dari Firebase**
+1. Firebase Console → **Authentication → Sign-in method → Add new provider → Microsoft**. Aktifkan, lalu salin **callback URL** yang tertera (bentuknya `https://<project>.firebaseapp.com/__/auth/handler`). Biarkan tab ini terbuka.
+
+**B. Buat tenant Microsoft sendiri** (sekali saja)
+
+Akun Microsoft pribadi saja belum cukup untuk mendaftarkan app; harus punya tenant (directory) sendiri. Tenant dibuat otomatis saat mendaftar Azure:
+1. Siapkan akun Microsoft **pribadi** (outlook.com/hotmail, atau buat baru di https://signup.live.com). Jangan pakai akun ITB di langkah ini, supaya tenantnya bukan tenant ITB.
+2. Buka jendela **incognito/private**, lalu https://azure.microsoft.com/free/students (Azure for Students, tanpa kartu kredit). Login dengan akun pribadi tadi, lalu verifikasi status mahasiswa dengan email ITB kalau diminta.
+   - Kalau Azure for Students menolak, pakai https://azure.microsoft.com/free (Azure free account). Ini meminta verifikasi kartu kredit/debit, tapi app registration sendiri gratis.
+3. Setelah selesai, buka https://entra.microsoft.com dengan akun pribadi itu. Di pojok kanan atas harus tertulis directory baru (mis. "Default Directory"), bukan "Institut Teknologi Bandung" atau "Microsoft Services".
+
+**C. Daftarkan app**
+1. Di Entra (tenant pribadi): **App registrations → New registration** (cari "App registrations" di kotak pencarian kalau menunya tidak terlihat).
    - Name: `Peerseus`
-   - Supported account types: **Accounts in this organizational directory only (Institut Teknologi Bandung only - Single tenant)**
-   - Redirect URI: platform **Web**, isi callback URL dari langkah 1.
+   - Supported account types: **Multiple Entra ID tenants** (di tampilan lama: *Accounts in any organizational directory - Multitenant*). Jangan pilih yang menyertakan *Personal Microsoft accounts*.
+   - Redirect URI: platform **Web**, isi callback URL dari langkah A.
    - Klik **Register**.
-4. Di halaman app: salin **Application (client) ID**.
-5. **Certificates & secrets → Client secrets → New client secret** (mis. berlaku 6 bulan) → salin kolom **Value** (bukan Secret ID). Nilai ini hanya muncul sekali.
-6. Kembali ke Firebase: isi **Application ID** dan **Application secret**, klik **Save**.
-7. Coba "Masuk dengan akun ITB" di situs.
+2. Salin **Application (client) ID**.
+3. **Certificates & secrets → Client secrets → New client secret** (mis. berlaku 12 bulan) → salin kolom **Value** (bukan Secret ID). Nilai ini hanya muncul sekali.
+4. (Opsional) **Branding & properties**: isi nama dan logo supaya layar izin Microsoft terlihat jelas.
 
-Kemungkinan hambatan dari pengaturan ITB:
-- **Tidak bisa membuat app registration** ("You do not have access" atau tombol New registration nonaktif): ITB mematikan pendaftaran app oleh pengguna. Pilihannya: minta Direktorat TI ITB mendaftarkannya, atau daftarkan app dari akun Microsoft pribadi dengan tipe **Accounts in any organizational directory (Multitenant)**. Cara kedua lebih lemah: aplikasi tetap meminta login di tenant ITB, tapi orang yang sengaja mengakali alur login dengan tenant Microsoft lain secara teori bisa memakai email palsu berdomain ITB.
-- **"Need admin approval" / "Perlu persetujuan admin"** saat login: ITB tidak mengizinkan mahasiswa menyetujui aplikasi sendiri. Ini hanya bisa dibuka oleh admin ITB (admin consent). Sambil menunggu, tim dan juri bisa masuk sebagai tamu lewat Google.
+**D. Sambungkan ke Firebase**
+1. Kembali ke tab Firebase: isi **Application ID** dan **Application secret**, klik **Save**.
+2. Buka situs, klik **Masuk dengan akun ITB**, login dengan akun `@mahasiswa.itb.ac.id`.
 
-Tenant ITB (`itb.ac.id` dan `mahasiswa.itb.ac.id`) sudah tertulis di kode sebagai `ITB_MICROSOFT_TENANT` di `src/lib/access.ts`. Akun `std.stei.itb.ac.id` ada di tenant Microsoft lain, jadi pemiliknya masuk dengan akun `@mahasiswa.itb.ac.id`.
+**E. Yang mungkin muncul saat login pertama**
+- **Layar izin ("Permissions requested")** dengan label *unverified*: klik **Accept**. Ini normal untuk app yang belum diverifikasi Microsoft.
+- **"Need admin approval" / "Approval required"**: ITB tidak mengizinkan mahasiswa menyetujui app dari luar ITB. Kalau ada kolom alasan dan tombol **Request approval**, isi dan kirim; permintaan masuk ke admin ITB. Kalau tidak, hanya admin ITB yang bisa membukanya. Sementara itu, tim dan juri tetap bisa masuk sebagai tamu lewat Google.
+- **`AADSTS50011` (redirect URI mismatch)**: redirect URI di app tidak sama persis dengan callback URL Firebase.
+- **`AADSTS700016` / `AADSTS50194`**: tipe akun app bukan multi-tenant. Ubah di **Authentication → Supported account types**.
+- **`AADSTS7000215` (invalid client secret)**: yang ditempel di Firebase adalah Secret ID, bukan Value, atau secret sudah kedaluwarsa.
+
+Catatan keamanan: karena app multi-tenant, pembatasan ke tenant ITB dilakukan oleh parameter login di browser, dan Firebase tidak menandai email Microsoft sebagai terverifikasi. Untuk demo hackathon ini cukup; untuk pemakaian sungguhan, app sebaiknya didaftarkan oleh admin ITB sebagai single tenant di tenant ITB. Akun `std.stei.itb.ac.id` ada di tenant Microsoft lain, jadi pemiliknya masuk dengan akun `@mahasiswa.itb.ac.id`.
 
 ### Daftar email tamu
 Untuk juri atau tamu tanpa akun ITB. Tidak perlu deploy ulang; perubahan langsung berlaku.
@@ -99,7 +115,7 @@ Catatan:
 - **Login popup langsung tertutup / `unauthorized-domain`**: langkah 4.4 belum dilakukan.
 - **"Akun ini belum punya akses..."** setelah login: akun yang dipilih bukan akun ITB dan emailnya tidak ada di daftar tamu (cek huruf kecil dan ejaannya).
 - **"Cara login ini belum diaktifkan di Firebase"**: provider Microsoft atau Google belum di-enable (langkah 2.2).
-- **Popup Microsoft menampilkan `AADSTS...`**: biasanya redirect URI di Entra tidak sama persis dengan callback URL Firebase, atau client secret salah/kedaluwarsa.
+- **Popup Microsoft menampilkan `AADSTS...`**: lihat daftar error di [Login akun ITB (Microsoft)](#login-akun-itb-microsoft), bagian E.
 - **Akun yang diizinkan tetap ditolak dengan `Missing or insufficient permissions`**: rules Firestore belum di-publish ulang dengan versi terbaru (langkah 2.3).
 - **`Missing or insufficient permissions`**: rules Firestore belum di-publish (langkah 2.3).
 - **Kuis jadi "isian kalimat"** atau **PDF tidak dirapikan AI**: `GEMINI_API_KEY` belum terisi di Vercel. Setelah menambah env, lakukan **Redeploy**.

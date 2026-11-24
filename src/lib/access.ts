@@ -2,8 +2,9 @@
  * Who can use Peerseus (when Firebase is on):
  * 1. ITB accounts: an email on itb.ac.id or one of its subdomains (mahasiswa.itb.ac.id for students,
  *    itb.ac.id for staff, ...), signed in either
- *    - with Microsoft (ITB runs Microsoft 365). Firebase never marks Microsoft emails as verified, so this
- *      relies on the Microsoft app registration accepting only ITB's tenant (see docs/SETUP.md), or
+ *    - with Microsoft (ITB runs Microsoft 365). Firebase never marks Microsoft emails as verified; sign-in
+ *      is sent to ITB's tenant (ITB_MICROSOFT_TENANT) from a multi-tenant app registration, since students
+ *      can't register apps in ITB's tenant (see docs/SETUP.md), or
  *    - with a provider that verified the email (e.g. a Google account made with an ITB address).
  * 2. Guests such as hackathon judges: a verified email (Google sign-in) listed in the Firestore document
  *    config/access, field `guestEmails` (array of lowercase emails). The list is edited in the

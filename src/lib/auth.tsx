@@ -46,7 +46,9 @@ async function allowed(u: User): Promise<boolean> {
 
 function microsoftProvider() {
   const p = new OAuthProvider("microsoft.com");
-  // Sign in against ITB's own tenant: only ITB Microsoft accounts are offered and accepted.
+  // Basic sign-in scopes only (no Graph/mail access), so ITB users have the best chance to consent themselves.
+  for (const scope of ["openid", "email", "profile"]) p.addScope(scope);
+  // Sign in against ITB's own tenant, even though the app registration is multi-tenant (see docs/SETUP.md).
   p.setCustomParameters({ tenant: ITB_MICROSOFT_TENANT, prompt: "select_account" });
   return p;
 }
@@ -63,6 +65,7 @@ const SIGN_IN_ERRORS: Record<string, string> = {
   "auth/popup-blocked": "Popup login diblokir browser. Izinkan popup untuk situs ini, lalu coba lagi.",
   "auth/unauthorized-domain": "Domain ini belum diizinkan di Firebase (Authentication, Settings, Authorized domains).",
   "auth/operation-not-allowed": "Cara login ini belum diaktifkan di Firebase (Authentication, Sign-in method).",
+  "auth/user-cancelled": "Login dibatalkan, atau izin aplikasi tidak diberikan di halaman Microsoft.",
   "auth/account-exists-with-different-credential": "Email ini sudah pernah dipakai masuk dengan cara lain. Coba tombol login yang satunya.",
 };
 
