@@ -45,12 +45,18 @@ export default function Shell({ children }: { children: React.ReactNode }) {
 
 /** One screen: sign in and fill the two profile fields we actually need. */
 function SignIn() {
-  const { uid, authName, authError, profile, signInGoogle, signInLocal, saveProfile } = useAuth();
+  const { uid, authName, authError, profile, signInMicrosoft, signInGoogle, signInLocal, saveProfile } = useAuth();
   const [name, setName] = useState(profile?.name || authName);
   const [major, setMajor] = useState(MAJORS[0]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const needsGoogle = firebaseEnabled && !uid;
+  const needsLogin = firebaseEnabled && !uid;
+
+  function run(signIn: () => Promise<void>) {
+    setBusy(true);
+    setErr("");
+    signIn().catch((e) => setErr(e.message)).finally(() => setBusy(false));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,20 +78,18 @@ function SignIn() {
         <h1 className="mt-6 text-2xl font-bold leading-snug">Belajar bareng teman seangkatan.</h1>
         <p className="mt-2 text-sm text-muted">Buka materi kuliah, latihan lewat duel kuis, lalu temukan teman belajar yang pas.</p>
         <div className="card mt-6">
-          {needsGoogle ? (
+          {needsLogin ? (
             <>
-              <button
-                className="btn-primary w-full"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  setErr("");
-                  signInGoogle().catch((e) => setErr(e.message)).finally(() => setBusy(false));
-                }}
-              >
+              <button className="btn-primary w-full" disabled={busy} onClick={() => run(signInMicrosoft)}>
                 {busy ? "Masuk…" : "Masuk dengan akun ITB"}
               </button>
-              <p className="mt-3 text-center text-xs text-muted">Khusus mahasiswa ITB. Pakai akun Google @mahasiswa.itb.ac.id.</p>
+              <p className="mt-2 text-center text-xs text-muted">Akun Microsoft ITB, mis. NIM@mahasiswa.itb.ac.id.</p>
+              <div className="mt-4 border-t border-line pt-4 text-center text-xs text-muted">
+                Tamu yang sudah didaftarkan?{" "}
+                <button className="font-medium text-ink underline disabled:opacity-50" disabled={busy} onClick={() => run(signInGoogle)}>
+                  Masuk dengan Google
+                </button>
+              </div>
             </>
           ) : (
             <form onSubmit={submit} className="space-y-4">
@@ -102,7 +106,7 @@ function SignIn() {
               <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Masuk…" : "Mulai"}</button>
             </form>
           )}
-          {(err || (needsGoogle && authError)) && <p className="mt-3 text-sm text-bad">{err || authError}</p>}
+          {(err || (needsLogin && authError)) && <p className="mt-3 text-sm text-bad">{err || authError}</p>}
         </div>
       </div>
     </div>

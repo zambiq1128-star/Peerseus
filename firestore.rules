@@ -1,19 +1,48 @@
 rules_version = '2';
-// Peerseus is for ITB only: every read and write needs a signed-in Google account with a
-// verified email on itb.ac.id or one of its subdomains (mahasiswa.itb.ac.id, std.stei.itb.ac.id, ...).
-// Same rule as src/lib/access.ts; keep them in sync.
-// Hackathon rules otherwise: any ITB user can read and write everything.
+// Who can use Peerseus (same rule as src/lib/access.ts; keep them in sync):
+// 1. ITB accounts: email on itb.ac.id or a subdomain (mahasiswa.itb.ac.id, ...), signed in with
+//    Microsoft (ITB's Microsoft 365) or with a provider that verified the email (Google).
+//    Firebase never marks Microsoft emails as verified; Microsoft sign-ins are trusted because the
+//    Microsoft app registration only accepts ITB's tenant (see docs/SETUP.md).
+// 2. Guests (e.g. judges): verified emails (Google sign-in) listed in the document config/access,
+//    field guestEmails (array of lowercase emails). Edit that list in the Firebase Console.
+// Hackathon rules otherwise: any allowed user can read and write all app data.
 // Tighten before real users (e.g. only owners edit their profile/materials).
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isItb() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$');
+    function userEmail() {
+      return request.auth.token.email.lower();
     }
 
-    match /{document=**} {
-      allow read, write: if isItb();
+    function emailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isItb() {
+      return userEmail().matches('^[^@]+@([a-z0-9-]+[.])*itb[.]ac[.]id$')
+        && (request.auth.token.firebase.sign_in_provider == 'microsoft.com' || emailVerified());
+    }
+
+    function isGuest() {
+      let access = /databases/$(database)/documents/config/access;
+      return emailVerified()
+        && exists(access)
+        && userEmail() in get(access).data.get('guestEmails', []);
+    }
+
+    function allowed() {
+      return request.auth != null && (isItb() || isGuest());
+    }
+
+    // The guest list: readable by allowed users (the app checks it at sign-in), editable only in the console.
+    match /config/{doc} {
+      allow read: if allowed();
+      allow write: if false;
+    }
+
+    // All app data.
+    match /{col}/{rest=**} {
+      allow read, write: if col != 'config' && allowed();
     }
   }
 }
