@@ -3,13 +3,15 @@ import { db } from "./db";
 import { START_ELO } from "./elo";
 import type { Course, Material, Membership, Opportunity, Quiz, UserProfile, Question } from "./types";
 
-const SEED_VERSION = 1;
+// 2: course names follow ITB Kurikulum 2024.
+const SEED_VERSION = 2;
 
 export const COURSES: Course[] = [
-  { id: "ma1101", code: "MA1101", name: "Matematika IA", description: "Limit, turunan, dan integral dasar untuk mahasiswa tahun pertama." },
-  { id: "fi1101", code: "FI1101", name: "Fisika Dasar IA", description: "Kinematika, dinamika, usaha dan energi." },
-  { id: "ki1101", code: "KI1101", name: "Kimia Dasar IA", description: "Struktur atom, ikatan kimia, stoikiometri." },
-  { id: "ku1102", code: "KU1102", name: "Pengenalan Komputasi", description: "Dasar pemrograman dan berpikir komputasional." },
+  { id: "ma1101", code: "MA1101", name: "Matematika I", description: "Limit, turunan, dan integral dasar untuk mahasiswa tahun pertama." },
+  { id: "fi1101", code: "FI1101", name: "Fisika Dasar I", description: "Kinematika, dinamika, usaha dan energi." },
+  { id: "ki1101", code: "KI1101", name: "Kimia Dasar I", description: "Struktur atom, ikatan kimia, stoikiometri." },
+  // Was KU1102 Pengenalan Komputasi; Kurikulum 2024 replaced it with WI1102. The id stays so its materials stay.
+  { id: "ku1102", code: "WI1102", name: "Berpikir Komputasional", description: "Dasar pemrograman dan berpikir komputasional." },
 ];
 
 type BotSeed = { id: string; name: string; major: string; elo: number; stats: Record<string, Record<string, [number, number]>>; contact: string; bio: string };
@@ -83,11 +85,16 @@ function toStats(s: Record<string, [number, number]> = {}) {
 }
 
 export async function ensureSeeded() {
-  const meta = await db.get<{ version: number }>("meta", "seed");
-  if (meta && meta.version >= SEED_VERSION) return;
+  const done = (await db.get<{ version: number }>("meta", "seed"))?.version ?? 0;
+  if (done >= SEED_VERSION) return;
   const now = Date.now();
 
   for (const c of COURSES) await db.set("courses", c.id, c);
+  if (done >= 1) {
+    // Already seeded once: only the courses changed, so keep demo peers' ratings and the samples.
+    await db.set("meta", "seed", { version: SEED_VERSION });
+    return;
+  }
 
   for (const b of BOTS) {
     const courseIds = Object.keys(b.stats);
