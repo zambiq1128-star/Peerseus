@@ -6,7 +6,7 @@ import { academicOf, academicPatch, currentIntakeYear, readNim, type Academic } 
 import { isShown } from "@/lib/privacy";
 import type { Privacy } from "@/lib/types";
 import AcademicFields from "@/components/AcademicFields";
-import { PageTitle } from "@/components/ui";
+import { AccountBadge, PageTitle } from "@/components/ui";
 
 const SHOW: Record<keyof Privacy, string> = {
   showProgram: "Tampilkan prodi (atau prodi incaran)",
@@ -24,7 +24,7 @@ export default function Profile() {
     <div className="mx-auto max-w-xl">
       <PageTitle title="Profil" sub="Kami hanya menyimpan data yang perlu. Kamu yang menentukan apa yang terlihat orang lain." />
       {p.isItbVerified !== undefined && (
-        <p className="mb-3 text-sm text-muted">{p.isItbVerified ? "Akun ITB terverifikasi." : <>Kamu masuk sebagai <span className="badge">Tamu</span></>}</p>
+        <p className="mb-3 flex items-center gap-2 text-sm text-muted">{p.isItbVerified ? "Akun ITB terverifikasi" : "Kamu masuk sebagai tamu"} <AccountBadge itb={p.isItbVerified} /></p>
       )}
       <form className="card space-y-4" onSubmit={async (e) => { e.preventDefault(); await saveProfile({ ...p, ...academicPatch(academic) }); setSaved(true); }}>
         <div><label className="label">Nama</label><input className="input" required value={p.name} onChange={(e) => { setSaved(false); setP({ ...p, name: e.target.value }); }} /></div>

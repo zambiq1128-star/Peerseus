@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
-import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { AccountBadge, Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
  * Someone's profile as other people see it. Reads only users/{id} (never the private part), so fields the
@@ -48,7 +48,7 @@ export default function UserPage() {
         <h1 className="text-xl font-bold">
           {user.name}
           {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
-          {user.isItbVerified === false && <span className="badge ml-2 align-middle">Tamu</span>}
+          <AccountBadge itb={user.isItbVerified} className="ml-2 align-middle" />
         </h1>
         <p className="text-sm text-muted">{[academicLabel(user), entryYearLabel(user), user.semester ? `semester ${user.semester}` : ""].filter(Boolean).join(" · ")}</p>
         {user.bio && <p className="mt-3 text-sm">{user.bio}</p>}

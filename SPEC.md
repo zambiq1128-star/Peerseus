@@ -96,7 +96,7 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
 
 5. ~~**Angkatan dan tanda akun ITB**~~ (sudah dibuat)
    - `UserProfile.entryYear?: number`, diisi dari NIM (`readNim(...).entryYear`) saat daftar, dan di `/profile` untuk profil lama. Bisa diubah dan disembunyikan (`showEntryYear`). Field `year` yang lama dibiarkan.
-   - `UserProfile.isItbVerified?: boolean`, ditulis app saat login dan saat menyimpan profil, dan divalidasi di rules (`honestItbFlag`: harus sama dengan `isItb()` dari token). Tamu diberi badge "Tamu" di `/users/[id]` dan daftar teman belajar.
+   - `UserProfile.isItbVerified?: boolean`, ditulis app saat login dan saat menyimpan profil, dan divalidasi di rules (`honestItbFlag`: harus sama dengan `isItb()` dari token). Akun ITB diberi badge "✓ ITB" dan tamu badge "Tamu" (`AccountBadge`) di Profil, `/users/[id]`, dan daftar teman belajar.
 
 6. **Kategori Info "lainnya"** (Kecil)
    - `OpportunityType` ditambah `"lainnya"`, beserta filter dan form "+ Bagikan info".
