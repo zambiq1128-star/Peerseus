@@ -95,7 +95,7 @@ function Feed({ items, courses, quizReady }: { items: Material[]; courses: Map<s
         {items.slice(0, count).map((m, i) => {
           const c = courses.get(m.courseId);
           return (
-            <article key={m.id} className={`card flex flex-col hover:border-accent ${i >= PAGE_SIZE ? "animate-row-in" : ""}`}>
+            <article key={m.id} className={`card flex flex-col hover:border-cyan ${i >= PAGE_SIZE ? "animate-row-in" : ""}`}>
               <div className="flex items-start justify-between gap-2">
                 <span className="eyebrow">{c?.code ?? m.courseId}{c ? ` · ${c.name}` : ""}</span>
                 <span className={materialType(m) === "paper" ? "badge-accent shrink-0" : "badge shrink-0"}>{MATERIAL_TYPES[materialType(m)]}</span>

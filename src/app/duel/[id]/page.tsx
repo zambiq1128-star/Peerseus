@@ -105,7 +105,7 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
           <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
           <div className="mt-5 grid gap-2">
             {q.options.map((o, k) => {
-              const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "animate-pop border-good bg-good-soft" : k === picked ? "animate-shake border-bad bg-bad-soft" : "opacity-50";
+              const state = picked === null ? "hover:border-cyan" : k === q.answerIndex ? "animate-pop border-good bg-good-soft" : k === picked ? "animate-shake border-bad bg-bad-soft" : "opacity-50";
               return (
                 <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-control border border-line p-3 text-left text-sm transition ${state}`}>
                   <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />

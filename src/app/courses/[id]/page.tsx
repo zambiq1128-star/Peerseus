@@ -77,9 +77,9 @@ export default function CoursePage() {
         </div>
       )}
 
-      <div role="tablist" className="flex gap-4 border-b border-line">
+      <div role="tablist" className="flex gap-1 border-b border-line">
         {(Object.keys(TABS) as Tab[]).map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px border-b-2 pb-2 text-sm font-medium transition-colors ${tab === t ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={tab === t ? "tab-active" : "tab"}>
             {TABS[t]}
           </button>
         ))}

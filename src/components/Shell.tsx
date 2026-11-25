@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- a small static logo; next/image adds nothing here */
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ const NAV = [
 ];
 
 export function Logo() {
-  return <span className="font-display text-xl font-bold sm:text-2xl uppercase leading-none tracking-tight">Peer<span className="text-cyan">seus</span></span>;
+  return <img src="/peerseus-logo.png" alt="Peerseus" width={281} height={253} className="h-9 w-auto brightness-150 drop-shadow-[0_0_8px_rgb(62_240_255/0.35)] sm:h-10" />;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {

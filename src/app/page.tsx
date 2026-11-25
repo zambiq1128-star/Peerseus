@@ -98,7 +98,7 @@ function HomeBody() {
             {joined.map((c) => {
               const m = data.ms.find((x) => x.courseId === c.id);
               return (
-                <Link key={c.id} href={`/courses/${c.id}`} className="card flex items-center justify-between gap-3 hover:border-accent">
+                <Link key={c.id} href={`/courses/${c.id}`} className="card flex items-center justify-between gap-3 hover:border-cyan">
                   <div>
                     <div className="eyebrow">{c.code}</div>
                     <div className="font-semibold">{c.name}</div>

@@ -18,7 +18,7 @@ export function Spinner({ label = "Memuat…" }: { label?: string }) {
 /** Empty state: nothing to show yet, ideally with the next step as `action`. */
 export function Empty({ title, action, children }: { title?: string; action?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="rounded-card border border-dashed border-line p-6 text-center text-sm text-muted">
+    <div className="rounded-card border border-dashed border-cyan/60 p-6 text-center text-sm text-muted">
       {title && <div className="font-semibold text-ink">{title}</div>}
       {children && <div className={title ? "mt-1" : ""}>{children}</div>}
       {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
@@ -95,7 +95,7 @@ export function PageHeader({ title, sub, eyebrow, back, action }: {
       <div className={`flex flex-wrap items-end justify-between gap-3 ${back ? "mt-2" : ""}`}>
         <div className="min-w-0">
           {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-          <h1 className="text-xl font-bold tracking-tight">{title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
           {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
         </div>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}
@@ -157,7 +157,7 @@ export function CollapsibleRows<T>({ items, children, pinned, limit = LIST_LIMIT
 export function ShowMoreButton({ open, total, onClick }: { open: boolean; total: number; onClick: () => void }) {
   return (
     <button type="button" aria-expanded={open} onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-b-card px-4 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-paper">
+      className="flex w-full items-center justify-center gap-1.5 rounded-b-card px-4 py-2.5 text-sm font-medium text-cyan transition-colors hover:bg-navy-3">
       {open ? "Tampilkan lebih sedikit" : `Lihat semua (${total})`}
       <span aria-hidden className={`inline-block transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
     </button>
