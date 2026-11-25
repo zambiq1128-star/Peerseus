@@ -87,15 +87,16 @@ function SignIn() {
   }
 
   return (
-    <LoginScreen compact>
-      <button className={ls.button} disabled={busy} onClick={() => run(signInMicrosoft)}>
-        {busy ? "Masuk…" : "Masuk dengan Akun ITB"}
-      </button>
+    <LoginScreen>
+      <div className={ls.btnWrap}>
+        <button className="jrpg-btn-cyan w-full !py-4 !text-xl" disabled={busy} onClick={() => run(signInMicrosoft)}>
+          {busy ? "Masuk…" : "Masuk dengan Akun ITB"}
+        </button>
+      </div>
+      <p className="mt-3 text-center text-xs text-muted">Pakai email ITB, mis. nama@mahasiswa.itb.ac.id</p>
       <hr className={ls.divider} />
-      <p className={ls.guest}>
-        Tamu yang sudah didaftarkan?{" "}
-        <button className={ls.guestLink} disabled={busy} onClick={() => run(signInGoogle)}>Masuk dengan Google</button>
-      </p>
+      <p className="mb-3 text-center text-sm text-ink-soft">Tamu yang sudah didaftarkan?</p>
+      <button className="btn-ghost w-full" disabled={busy} onClick={() => run(signInGoogle)}>Masuk dengan Google</button>
       {(err || authError) && <p className="mt-3 text-center text-sm text-bad">{err || authError}</p>}
     </LoginScreen>
   );
@@ -130,12 +131,13 @@ function ProfileSetup() {
 
   return (
     <form onSubmit={submit} className="space-y-4">
+      <h2 className="font-display text-3xl font-bold uppercase leading-none tracking-tight">Isi profil <span className="text-cyan">pertama kali</span></h2>
       <div>
         <label className="label" htmlFor="nm">Nama</label>
         <input id="nm" className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
       </div>
       <AcademicFields value={academic} onChange={setAcademic} note={suggestion?.note} />
-      <button className="btn-primary w-full" disabled={busy || !name.trim()}>{busy ? "Menyimpan…" : "Lanjut pilih mata kuliah"}</button>
+      <button className="btn-primary w-full !py-3" disabled={busy || !name.trim()}>{busy ? "Menyimpan…" : "Lanjut pilih mata kuliah"}</button>
       {err && <p className="text-sm text-bad">{err}</p>}
     </form>
   );
