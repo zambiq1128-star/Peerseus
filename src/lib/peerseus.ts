@@ -64,9 +64,22 @@ export async function setMyCourses(profile: UserProfile, picked: CourseInfo[]): 
 const courseIdFor = (code: string) => code.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 export const getMembership = (courseId: string, uid: string) => db.get<Membership>("memberships", `${courseId}_${uid}`);
-/** Current members (not the ones who removed the course). */
-export const courseMembers = async (courseId: string) =>
-  (await db.list<Membership>("memberships", [["courseId", "==", courseId]])).filter((m) => !m.left);
+/**
+ * Current members (not the ones who removed the course), each with their user document.
+ * A membership keeps a copy of the name and faculty from when the course was joined, so both are
+ * taken from the profile instead, which follows renames. Members whose user document is gone
+ * (deleted in the console) are left out; signing in again brings them back with their rating.
+ */
+async function membersWithProfiles(courseId: string): Promise<{ member: Membership; profile: UserProfile }[]> {
+  const members = (await db.list<Membership>("memberships", [["courseId", "==", courseId]])).filter((m) => !m.left);
+  const profiles = await Promise.all(members.map((m) => db.get<UserProfile>("users", m.uid)));
+  return members.flatMap((m, i) => {
+    const p = profiles[i];
+    return p ? [{ member: { ...m, name: p.name || m.name, major: p.major || m.major }, profile: p }] : [];
+  });
+}
+
+export const courseMembers = async (courseId: string) => (await membersWithProfiles(courseId)).map((x) => x.member);
 
 // ---------- Materials & quizzes ----------
 /** Labels in display order. "paper" = past exam questions (soal ujian tahun lalu). */
@@ -328,11 +341,10 @@ export async function recommendPartners(courseId: string, uid: string, focusTopi
   const me = await getMembership(courseId, uid);
   const myProfile = await db.get<UserProfile>("users", uid);
   const weak = focusTopics?.length ? focusTopics : weakTopicsOf(me);
-  const others = (await courseMembers(courseId)).filter((m) => m.uid !== uid);
+  const others = (await membersWithProfiles(courseId)).filter((x) => x.member.uid !== uid);
   const recs: PartnerRec[] = [];
-  for (const m of others) {
-    const profile = await db.get<UserProfile>("users", m.uid);
-    if (profile && !profile.isPublic) continue;
+  for (const { member: m, profile } of others) {
+    if (!profile.isPublic) continue;
     const reasons: string[] = [];
     const strengths = weak.map((t) => [t, acc(m, t)] as const).filter(([, a]) => a !== null) as [string, number][];
     const complement = strengths.length ? strengths.reduce((s, [, a]) => s + a, 0) / weak.length : 0.4;
