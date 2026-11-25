@@ -8,17 +8,54 @@ import type { MaterialType } from "@/lib/types";
 /** Faculty/school codes (the profile's `major` field). */
 export const MAJORS = FACULTIES;
 
+/** Loading state: shown while a page or block fetches its data. */
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 py-8 text-sm text-muted">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-accent" />
+    <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted">
+      <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-accent" />
       {label}
     </div>
   );
 }
 
-export function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-card border border-dashed border-line p-6 text-center text-sm text-muted">{children}</div>;
+/** Empty state: nothing to show yet, ideally with the next step as `action`. */
+export function Empty({ title, action, children }: { title?: string; action?: React.ReactNode; children?: React.ReactNode }) {
+  return (
+    <div className="rounded-card border border-dashed border-line p-6 text-center text-sm text-muted">
+      {title && <div className="font-semibold text-ink">{title}</div>}
+      {children && <div className={title ? "mt-1" : ""}>{children}</div>}
+      {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
+    </div>
+  );
+}
+
+/** Error state: a load failed. Offers a retry when the caller can reload. */
+export function ErrorState({ message, onRetry, title = "Gagal memuat data", hint = "Cek koneksi internetmu, lalu coba lagi." }: {
+  message?: string;
+  onRetry?: () => void;
+  title?: string;
+  hint?: string;
+}) {
+  return (
+    <div role="alert" className="rounded-card border border-bad bg-bad-soft p-6 text-center text-sm">
+      <div className="font-semibold text-bad">{title}</div>
+      <p className="mt-1 text-muted">{hint}{message && <span className="mt-2 block break-words text-xs">{message}</span>}</p>
+      {onRetry && <button type="button" className="btn-ghost mt-4" onClick={onRetry}>Coba lagi</button>}
+    </div>
+  );
+}
+
+/** A missing or off-limits item (material, course, duel, user) and the way back. Also used by the 404 page. */
+export function NotFound({ title, back = { href: "/", label: "Ke beranda" }, children }: {
+  title: string;
+  back?: { href: string; label: string };
+  children?: React.ReactNode;
+}) {
+  return (
+    <Page width="narrow">
+      <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
+    </Page>
+  );
 }
 
 const WIDTHS = { narrow: "max-w-narrow", page: "max-w-page", wide: "max-w-wide" } as const;
@@ -114,7 +151,7 @@ export function timeAgo(ts: number) {
 }
 
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
-  // tiny helper: re-runs fn when deps change; returns [data, reload]
+  // tiny helper: re-runs fn when deps change; returns { data, error, reload }. Pages show ErrorState on error.
   const [data, setData] = useState<T | undefined>(undefined);
   const [error, setError] = useState<string>("");
   const [tick, setTick] = useState(0);

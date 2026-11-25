@@ -6,13 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { getMaterial, materialType, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
-import { Empty, MaterialTypeField, Page, PageHeader, PrivateField, Spinner, useAsync } from "@/components/ui";
+import { ErrorState, MaterialTypeField, NotFound, Page, PageHeader, PrivateField, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
-  const { data: material } = useAsync(() => getMaterial(id), [id]);
+  const { data: material, error, reload } = useAsync(() => getMaterial(id), [id]);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MaterialType>("materi");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -30,9 +30,10 @@ export default function EditMaterial() {
     setText(material.text);
   }, [material]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (material === undefined) return <Spinner />;
-  if (!material) return <Empty>Materi tidak ditemukan.</Empty>;
-  if (material.uploaderId !== profile!.id) return <Empty>Hanya pengunggah yang bisa mengedit materi ini.</Empty>;
+  if (!material) return <NotFound title="Materi tidak ditemukan" />;
+  if (material.uploaderId !== profile!.id) return <NotFound title="Tidak bisa mengedit materi ini" back={{ href: `/materials/${id}`, label: "Lihat materi" }}>Hanya pengunggah yang bisa mengedit materi ini.</NotFound>;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();

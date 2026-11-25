@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createDuel, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
 import type { Course, Quiz } from "@/lib/types";
-import { Empty, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
 export default function NewDuelPage() {
   return <Suspense fallback={<Spinner />}><NewDuel /></Suspense>;
@@ -24,7 +24,7 @@ function NewDuel() {
   const [oppId, setOppId] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const { data } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     let courseId = courseParam;
     if (quizParam) courseId = (await db.get<Quiz>("quizzes", quizParam))?.courseId ?? null;
     if (!courseId) return null;
@@ -35,10 +35,14 @@ function NewDuel() {
     return { course, quizzes, opponents, me };
   }, [quizParam, courseParam, uid]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (data === undefined) return <Spinner />;
-  if (!data || !data.course) return <Empty>Pilih materi yang sudah punya kuis untuk mulai duel.</Empty>;
-  if (!data.quizzes.length) return <Empty>Belum ada kuis di mata kuliah ini. <Link className="link" href={`/courses/${data.course.id}`}>Upload materi</Link> dulu.</Empty>;
-  if (!data.opponents.length) return <Empty>Belum ada lawan di mata kuliah ini.</Empty>;
+  if (!data || !data.course) {
+    return <NoDuel title="Pilih kuis dulu" back={{ href: "/", label: "Ke mata kuliahku" }}>Buka materi yang sudah punya kuis, lalu klik “Mulai duel”.</NoDuel>;
+  }
+  const back = { href: `/courses/${data.course.id}`, label: `Ke ${data.course.code}` };
+  if (!data.quizzes.length) return <NoDuel title="Belum ada kuis di mata kuliah ini" back={back}>Upload materi lalu buat kuisnya dulu.</NoDuel>;
+  if (!data.opponents.length) return <NoDuel title="Belum ada lawan" back={back}>Belum ada mahasiswa lain di mata kuliah ini.</NoDuel>;
 
   // Sensible defaults so the user can start with one click.
   const quiz = data.quizzes.find((q) => q.id === (quizId || quizParam)) ?? data.quizzes[0];
@@ -88,6 +92,16 @@ function NewDuel() {
 
       <button className="btn-primary w-full !py-3" disabled={busy} onClick={start}>{busy ? "Menyiapkan…" : `Mulai duel vs ${opp.name.split(" ")[0]}`}</button>
       {!opp.isBot && <p className="text-center text-xs text-muted">Kamu jawab duluan. {opp.name} menjawab soal yang sama nanti, lalu hasilnya dibandingkan.</p>}
+    </Page>
+  );
+}
+
+/** Why a duel can't start yet, with the way back. */
+function NoDuel({ title, back, children }: { title: string; back: { href: string; label: string }; children: React.ReactNode }) {
+  return (
+    <Page width="narrow">
+      <PageHeader title="Duel kuis" />
+      <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
     </Page>
   );
 }

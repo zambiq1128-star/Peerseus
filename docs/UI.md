@@ -31,3 +31,15 @@ Page widths (`Page width=...`):
 | `narrow` | `--container-narrow` | `/courses`, `/profile`, `/users/[id]`, `/duel/new`, `/duel/[id]` |
 | `page` (default) | `--container-page` | `/`, `/courses/[id]`, `/materials`, `/materials/[id]`, `/duels`, `/opportunities` |
 | `wide` | `--container-wide` | `/courses/[id]/upload`, `/materials/[id]/edit` (editor + preview) |
+
+## States
+
+Every page that loads data handles three states with the shared blocks in `src/components/ui.tsx`:
+
+| State | Block | Notes |
+| --- | --- | --- |
+| Loading | `Spinner` | Also the full-screen gate while signing in |
+| Empty | `Empty` (`title`, text, `action`) | Says what is missing and offers the next step |
+| Error | `ErrorState` (`onRetry`) | Load failed; "Coba lagi" re-runs the load |
+| Missing item | `NotFound` | Unknown material, course, duel or user, with a way back; also `src/app/not-found.tsx` |
+| Crash | `src/app/error.tsx` | Render error on a page; the top bar stays |

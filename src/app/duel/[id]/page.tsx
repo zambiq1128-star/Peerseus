@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
-import { Empty, Page, Section, Spinner, useAsync } from "@/components/ui";
+import { ErrorState, NotFound, Page, Section, Spinner, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
 
@@ -14,12 +14,13 @@ export default function DuelPage() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const uid = profile!.id;
-  const { data: duel, reload } = useAsync(() => db.get<Duel>("duels", id), [id]);
+  const { data: duel, error, reload } = useAsync(() => db.get<Duel>("duels", id), [id]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (duel === undefined) return <Spinner />;
-  if (!duel) return <Empty>Duel tidak ditemukan.</Empty>;
+  if (!duel) return <NotFound title="Duel tidak ditemukan" back={{ href: "/duels", label: "Ke daftar duel" }} />;
   const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
-  if (!role) return <Empty>Kamu bukan peserta duel ini.</Empty>;
+  if (!role) return <NotFound title="Kamu bukan peserta duel ini" back={{ href: "/duels", label: "Ke daftar duel" }} />;
   if (!duel[role]) return <Play duel={duel} uid={uid} onDone={reload} />;
   return <Result duel={duel} uid={uid} />;
 }

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType, myMaterials } from "@/lib/peerseus";
 import type { Course, MaterialType, Quiz } from "@/lib/types";
-import { Empty, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 type Show = "" | "publik" | "privat" | MaterialType;
 
@@ -14,7 +14,7 @@ export default function MyMaterials() {
   const { profile } = useAuth();
   const uid = profile!.id;
   const [show, setShow] = useState<Show>("");
-  const { data } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const [materials, courses, quizzes] = await Promise.all([
       myMaterials(uid),
       db.list<Course>("courses"),
@@ -23,6 +23,7 @@ export default function MyMaterials() {
     return { materials, courses: new Map(courses.map((c) => [c.id, c])), quizzes: new Map(quizzes.map((q) => [q.materialId, q])) };
   }, [uid]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   const isPrivate = (m: { isPublic?: boolean }) => m.isPublic === false;
   const filters: [Show, string][] = [["", "Semua"], ["publik", "Publik"], ["privat", "Privat"], ...(Object.entries(MATERIAL_TYPES) as [MaterialType, string][])];
@@ -43,7 +44,7 @@ export default function MyMaterials() {
         sub="Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah."
       />
       {data.materials.length === 0 ? (
-        <Empty>Belum ada materi. Buka <Link href="/" className="link">mata kuliahmu</Link>, lalu klik “Upload materi”.</Empty>
+        <Empty title="Belum ada materi" action={<Link href="/" className="btn-primary">Ke mata kuliahku</Link>}>Buka salah satu mata kuliahmu, lalu klik “Upload materi”.</Empty>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">

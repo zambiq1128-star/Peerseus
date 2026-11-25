@@ -5,13 +5,13 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
-import { Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
   const { profile, refresh } = useAuth();
   const uid = profile!.id;
   const [busy, setBusy] = useState("");
-  const { data } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const courses = (await db.list<Course>("courses")).sort((a, b) => a.code.localeCompare(b.code));
     const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
     const duels = await myDuels(uid);
@@ -19,6 +19,7 @@ export default function Home() {
     return { courses, ms, duels, latest };
   }, [uid, profile?.courseIds.length]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   const myTurn = data.duels.filter((d) => d.status === "pending" && !(d.challengerId === uid ? d.challenger : d.opponent));
   const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
@@ -51,7 +52,9 @@ export default function Home() {
 
       <Section>
         {joined.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada. <Link href="/courses" className="link">Atur mata kuliahmu</Link>, atau gabung salah satu di bawah.</p>
+          <Empty title="Belum ada mata kuliah" action={<Link href="/courses" className="btn-primary">Atur mata kuliah</Link>}>
+            Pilih mata kuliah semester ini, atau gabung salah satu di bawah.
+          </Empty>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {joined.map((c) => {

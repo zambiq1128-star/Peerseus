@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
-import { AccountBadge, Empty, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { AccountBadge, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
  * Someone's profile as other people see it. Reads only users/{id} (never the private part), so fields the
@@ -15,7 +15,7 @@ import { AccountBadge, Empty, Page, PageHeader, Section, Spinner, timeAgo, useAs
 export default function UserPage() {
   const { id } = useParams<{ id: string }>();
   const { profile: me } = useAuth();
-  const { data } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const [user, memberships, materials, courses] = await Promise.all([
       db.get<UserProfile>("users", id),
       db.list<Membership>("memberships", [["uid", "==", id]]),
@@ -30,9 +30,10 @@ export default function UserPage() {
     };
   }, [id]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   const { user } = data;
-  if (!user) return <Empty>Pengguna tidak ditemukan.</Empty>;
+  if (!user) return <NotFound title="Pengguna tidak ditemukan" />;
   const isMe = me?.id === user.id;
 
   return (

@@ -2,17 +2,18 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { myDuels } from "@/lib/peerseus";
-import { Empty, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Duels() {
   const { profile } = useAuth();
   const uid = profile!.id;
-  const { data } = useAsync(() => myDuels(uid), [uid]);
+  const { data, error, reload } = useAsync(() => myDuels(uid), [uid]);
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   return (
     <Page>
       <PageHeader title="Duel" sub="Tantangan masuk dan riwayat duelmu." />
-      {data.length === 0 && <Empty>Belum ada duel. Buka mata kuliah, lalu klik “Mulai duel”.</Empty>}
+      {data.length === 0 && <Empty title="Belum ada duel" action={<Link href="/" className="btn-primary">Ke mata kuliahku</Link>}>Buka mata kuliah, lalu klik “Mulai duel”.</Empty>}
       <div className="rows empty:hidden">
         {data.map((d) => {
           const meC = d.challengerId === uid;
