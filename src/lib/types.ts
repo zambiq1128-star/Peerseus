@@ -131,7 +131,8 @@ export type Duel = {
   createdAt: number;
 };
 
-export type OpportunityType = "beasiswa" | "lomba" | "seminar";
+/** "lainnya" = anything else worth sharing, e.g. open recruitment, internships, campus events. */
+export type OpportunityType = "beasiswa" | "lomba" | "seminar" | "lainnya";
 
 export type Opportunity = {
   id: string;
