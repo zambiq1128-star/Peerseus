@@ -5,6 +5,30 @@ import { useEffect, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
 
+/**
+ * Counts from 0 up to `target` (eased) so a result number can "roll in".
+ * Anyone who asked for reduced motion gets the final number at once.
+ */
+export function useCountUp(target: number, ms = 1100, delay = 0) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setV(target);
+      return;
+    }
+    let raf = 0;
+    const t0 = performance.now() + delay;
+    const step = (now: number) => {
+      const p = Math.min(Math.max((now - t0) / ms, 0), 1);
+      setV(Math.round(target * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, ms, delay]);
+  return v;
+}
+
 /** Loading state: shown while a page or block fetches its data. */
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
   return (

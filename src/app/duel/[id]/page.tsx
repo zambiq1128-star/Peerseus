@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canDecline, missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
-import { ErrorState, NotFound, Page, Section, Spinner, useAsync } from "@/components/ui";
+import { ErrorState, NotFound, Page, Section, Spinner, useAsync, useCountUp } from "@/components/ui";
 import DeclineDuel from "@/components/DeclineDuel";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
@@ -74,11 +74,15 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
   if (!started) {
     return (
       <Page width="narrow">
-        <div className="card space-y-4 text-center !p-8">
-          <div className="text-sm text-muted">Duel melawan</div>
-          <h1 className="text-2xl font-bold">{opp}</h1>
+        <div className="card space-y-5 text-center !p-8">
+          <div className="eyebrow">{duel.challengerId === uid ? "Kamu menantang" : "Kamu ditantang"}</div>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+            <span className="animate-slide-left font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">Kamu</span>
+            <span className="animate-slam font-display text-6xl font-bold italic text-cyan [animation-delay:200ms] sm:text-7xl">VS</span>
+            <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold uppercase tracking-tight text-bad sm:text-5xl">{opp}</h1>
+          </div>
           <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
-          <button className="btn-primary w-full !py-3" onClick={() => setStarted(true)}>Mulai</button>
+          <button className="btn-primary w-full !py-3 !text-lg" onClick={() => setStarted(true)}>Mulai duel</button>
           {canDecline(duel, uid) && (
             <div className="border-t border-line pt-4">
               <p className="mb-2 text-xs text-muted">Tidak ingin menjawab? Menolak tidak mengubah rating siapa pun.</p>
@@ -96,16 +100,16 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
       <div>
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium">Soal {i + 1} dari {duel.questions.length} <span className="text-muted">· {q.topic}</span></span>
-          <span className={`font-semibold tabular-nums ${left <= 5 ? "text-bad" : ""}`}>{Math.max(left, 0)} detik</span>
+          <span className={`font-display text-3xl font-bold tabular-nums ${left <= 5 ? "inline-block animate-tick text-bad" : "text-cyan"}`}>{Math.max(left, 0)}<span className="ml-1 text-sm font-medium uppercase tracking-wider text-muted">detik</span></span>
         </div>
-        <div className="mb-4 h-1 rounded-full bg-line">
-          <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
+        <div className="mb-4 h-1.5 bg-line">
+          <div className={`h-1.5 transition-all ${left <= 5 ? "bg-bad" : "bg-cyan"}`} style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
         </div>
         <div key={i} className="card animate-page-in !p-6">
           <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
           <div className="mt-5 grid gap-2">
             {q.options.map((o, k) => {
-              const state = picked === null ? "hover:border-cyan" : k === q.answerIndex ? "animate-pop border-good bg-good-soft" : k === picked ? "animate-shake border-bad bg-bad-soft" : "opacity-50";
+              const state = picked === null ? "hover:border-cyan" : k === q.answerIndex ? "animate-pop border-good bg-good-soft font-semibold text-good" : k === picked ? "animate-shake border-bad bg-bad-soft font-semibold text-bad" : "opacity-50";
               return (
                 <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-control border border-line p-3 text-left text-sm transition ${state}`}>
                   <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />
@@ -127,7 +131,7 @@ function Declined({ duel, uid }: { duel: Duel; uid: string }) {
     <Page width="narrow">
       <div className="card space-y-3 text-center !p-8">
         <span className="badge">Ditolak</span>
-        <h1 className="text-2xl font-bold">{meC ? `${duel.opponentName} menolak duel ini` : `Kamu menolak tantangan ${duel.challengerName}`}</h1>
+        <h1 className="text-3xl font-bold">{meC ? `${duel.opponentName} menolak duel ini` : `Kamu menolak tantangan ${duel.challengerName}`}</h1>
         <p className="text-sm text-muted">{duel.quizTitle} · rating tidak berubah.</p>
         <div className="flex justify-center gap-2 pt-2">
           {meC && <Link href={`/duel/new?quiz=${duel.quizId}`} className="btn-primary">Cari lawan lain</Link>}
@@ -150,18 +154,39 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const draw = done && duel.winnerId === null;
   const delta = done ? (meC ? duel.eloChange!.challenger : duel.eloChange!.opponent) : 0;
 
+  const tone = !done ? "text-ink-soft" : won ? "text-cyan" : draw ? "text-ink" : "text-bad";
+  const edge = !done ? "!border-line" : won ? "!border-cyan" : draw ? "!border-line" : "!border-bad";
+  const myScore = useCountUp(mine.score, 700, 300);
+  const theirScore = useCountUp(theirs ? theirs.score : 0, 700, 450);
+  const shownDelta = useCountUp(delta, 1400, 800);
+  const verdict = declined ? "Ditolak" : !done ? "Menunggu" : won ? "Menang" : draw ? "Seri" : "Kalah";
+
   return (
     <Page width="narrow">
-      <div className="card text-center !p-8">
-        <h1 className="text-2xl font-bold">{declined ? `${oppName} menolak duel ini` : !done ? `Menunggu ${oppName}` : won ? "Kamu menang" : draw ? "Seri" : `${oppName} menang`}</h1>
-        <div className="mt-4 flex items-center justify-center gap-8">
-          <div><div className="text-xs text-muted">Kamu</div><div className="text-4xl font-bold">{mine.score}</div><div className="text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div></div>
-          <div className="text-muted">vs</div>
-          <div><div className="text-xs text-muted">{oppName}</div><div className="text-4xl font-bold">{theirs ? theirs.score : "?"}</div><div className="text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : "belum main"}</div></div>
+      <div className={`card overflow-hidden border-2 text-center !p-8 ${edge}`}>
+        <div className="eyebrow">{declined ? `${oppName} menolak duel ini` : !done ? `Menunggu ${oppName}` : `Duel melawan ${oppName}`}</div>
+        <h1 className={`mt-1 animate-slam text-7xl sm:text-8xl ${tone} ${done && won ? "animate-glow" : ""}`}>{verdict}</h1>
+        <div className="mt-6 flex items-end justify-center gap-5 sm:gap-10">
+          <div className="animate-slide-left [animation-delay:150ms]">
+            <div className="text-xs font-semibold uppercase tracking-widest text-muted">Kamu</div>
+            <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-cyan" : "text-bad") : ""}`}>{myScore}</div>
+            <div className="mt-1 text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div>
+          </div>
+          <div className="pb-8 font-display text-3xl italic text-muted">VS</div>
+          <div className="animate-slide-right [animation-delay:150ms]">
+            <div className="max-w-[8rem] truncate text-xs font-semibold uppercase tracking-widest text-muted">{oppName}</div>
+            <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-bad" : "text-cyan") : "text-ink-soft"}`}>{theirs ? theirScore : "?"}</div>
+            <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : "belum main"}</div>
+          </div>
         </div>
-        {done && <div className={`mt-4 text-sm font-semibold ${delta >= 0 ? "text-good" : "text-bad"}`}>Rating {delta >= 0 ? "+" : ""}{delta}</div>}
-        {declined && <p className="mt-3 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
-        {!done && !declined && <p className="mt-3 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
+        {done && (
+          <div className={`mx-auto mt-6 inline-block animate-slam bg-navy-3 px-6 py-2 [animation-delay:700ms] [clip-path:polygon(14px_0,100%_0,calc(100%-14px)_100%,0_100%)] ${delta >= 0 ? "text-cyan" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
+            <span className="mr-3 text-xs font-semibold uppercase tracking-widest text-muted">Rating</span>
+            <span aria-hidden className="font-display text-5xl font-bold tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
+          </div>
+        )}
+        {declined && <p className="mt-4 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
+        {!done && !declined && <p className="mt-4 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
       </div>
 
       <Section title="Topik yang perlu diperkuat">
