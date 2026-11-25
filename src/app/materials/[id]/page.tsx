@@ -64,12 +64,12 @@ export default function MaterialPage() {
   return (
     <Page>
       <PageHeader
-        back={{ href: `/courses/${material.courseId}`, label: "Kembali" }}
+        back={{ href: `/courses/${material.courseId}`, label: "Kembali", history: true }}
         title={material.title}
         sub={<>
           {isPrivate && <span className="badge mr-2">Privat</span>}
           {MATERIAL_TYPES[materialType(material)]} · {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
-          {isUploader && <> · <Link href={`/materials/${material.id}/edit`} className="link">Edit materi</Link></>}
+          {isUploader && <> · <Link href={`/materials/${material.id}/edit`} replace className="link">Edit materi</Link></>}
         </>}
       />
 
@@ -97,7 +97,7 @@ export default function MaterialPage() {
           </>)}
 
       {isPrivate && (
-        <Empty>Materi privat hanya bisa kamu lihat. Untuk membuat kuis dan dipakai duel, jadikan publik lewat <Link href={`/materials/${material.id}/edit`} className="link">Edit materi</Link>.</Empty>
+        <Empty>Materi privat hanya bisa kamu lihat. Untuk membuat kuis dan dipakai duel, jadikan publik lewat <Link href={`/materials/${material.id}/edit`} replace className="link">Edit materi</Link>.</Empty>
       )}
 
       {!quiz && !isPrivate && (isUploader ? (

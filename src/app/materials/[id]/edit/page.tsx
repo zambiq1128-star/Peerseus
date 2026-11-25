@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -50,7 +49,8 @@ export default function EditMaterial() {
       const m = await setMaterialPublic({ ...material!, attachment: file }, !isPrivate);
       await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim(), attachment: file });
       await cleanUpAttachment(material!.attachment, file);
-      router.push(`/materials/${id}`);
+      // replace: the edit page leaves the history, so "Kembali" on the material goes to where the user came from.
+      router.replace(`/materials/${id}`);
     } catch (e) {
       setErr((e as Error).message);
       setBusy(false);
@@ -60,7 +60,7 @@ export default function EditMaterial() {
   return (
     <Page width="wide">
       <PageHeader
-        back={{ href: `/materials/${id}`, label: "Kembali" }}
+        back={{ href: `/materials/${id}`, label: "Kembali", history: true }}
         title="Edit materi"
         sub="Perbaiki teks dan rumus, rapikan dengan AI, atau ganti isinya dari file baru."
       />
@@ -76,7 +76,7 @@ export default function EditMaterial() {
         <p className="text-xs text-muted">Kuis yang sudah ada tidak berubah otomatis setelah materi diedit.</p>
         {err && <p className="text-sm text-bad">{err}</p>}
         <div className="flex justify-end gap-2">
-          <Link href={`/materials/${id}`} className="btn-ghost">Batal</Link>
+          <button type="button" className="btn-ghost" onClick={() => router.replace(`/materials/${id}`)}>Batal</button>
           <button className="btn-primary" disabled={busy}>{busy ? "Menyimpan…" : "Simpan perubahan"}</button>
         </div>
       </form>
