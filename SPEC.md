@@ -8,7 +8,7 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 
 - **Akun ITB**: login Microsoft (Microsoft 365 ITB, tenant ITB) dengan email `itb.ac.id` atau subdomainnya, mis. `NIM@mahasiswa.itb.ac.id`.
 - **Tamu** (mis. juri): login Google dengan email terverifikasi yang ada di `config/access.guestEmails`. Daftar ini diubah di Firebase Console.
-- Selain itu ditolak. Aturan yang sama dicek di app (`src/lib/access.ts`), di `firestore.rules` untuk setiap baca/tulis, dan di route AI (`src/lib/serverAuth.ts`).
+- Selain itu ditolak. Aturan yang sama dicek di app (`src/lib/access.ts`), di `firestore.rules` untuk setiap baca/tulis, dan di route server AI dan lampiran (`src/lib/serverAuth.ts`).
 - Tanpa env Firebase, app jalan di **mode demo lokal** (localStorage + teman demo).
 
 ## 2. Model data (Firestore)
@@ -19,15 +19,15 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `entryYear`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}`. `name` dan `major` hanya salinan saat bergabung; peringkat, lawan duel, dan teman belajar memakai nama dan fakultas terbaru dari `users`, dan anggota yang dokumen `users`-nya sudah dihapus tidak ditampilkan (`courseMembers`). |
-| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
-| `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
+| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `attachment` (file asli di Google Drive tim: `driveFileId`, `name`, `mimeType`, `size`; kosong/`null` = tanpa lampiran), `fileUrl`, `fileName`, `mimeType` (lama, tidak diisi lagi), `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
+| `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`, tanpa `attachment`. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
 | `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
 | `opportunities/{id}` (tidak dipakai halaman mana pun sejak Info dihapus) | `title`, `type` (`beasiswa`, `lomba`, `seminar`, `lainnya`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
 | `config/access` | `guestEmails[]`. Hanya bisa diubah di console |
 | `meta/seed` | Versi data contoh |
 
-File tidak disimpan di Firebase Storage. PDF dan file lain diubah jadi teks Markdown + LaTeX di browser, lalu hanya teksnya yang disimpan.
+File tidak disimpan di Firebase Storage. PDF dan file lain diubah jadi teks Markdown + LaTeX di browser, dan teks itu yang disimpan (dipakai untuk kuis). File asli (PDF atau gambar, maks. 10 MB) bisa ikut disimpan sebagai **lampiran** di satu folder Google Drive akun Gmail tim lewat `/api/attachments` (`src/lib/drive.ts`): browser mengirim file langsung ke Drive, server memeriksa akun ITB/tamu, tipe, dan ukuran, lalu membagikan file "siapa pun yang punya link". Karena itu materi privat tidak boleh punya lampiran. Setup di `docs/SETUP.md`.
 
 ### Daftar awal → nama di app
 
@@ -50,9 +50,9 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Jelajah** (`/
 3. `/courses`: **Mata Kuliah**. Pengguna baru diarahkan ke sini. Semester ditebak dari NIM, mata kuliah semester ini diisi dari Kurikulum 2024, bisa dihapus, dan ada pencarian untuk menambah. Mata kuliah yang dihapus menyimpan ratingnya.
 4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, 5 materi terbaru dari mata kuliahku (dengan tanda kuis siap duel), dan mata kuliah lain untuk digabung.
 5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
-6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini.
+6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini. Lampiran file asli opsional (PDF/gambar ke Google Drive tim); PDF yang dipilih di tab "Upload PDF" otomatis jadi lampiran dan bisa dihapus.
 7. `/materials`: **Materiku**, semua materi yang aku upload (publik dan privat) dari semua mata kuliah, dengan filter dan tombol edit. Jadi tab kedua di Jelajah ("Semua materi" | "Materiku"), dan menu Jelajah aktif di sini.
-8. `/materials/[id]`: baca materi. Materi privat hanya terbuka untuk pengunggahnya dan tidak bisa dibuat kuis. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
+8. `/materials/[id]`: baca materi, dengan pratinjau lampiran (iframe Google Drive) di atas teksnya. Materi privat hanya terbuka untuk pengunggahnya dan tidak bisa dibuat kuis. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
 9. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
 10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
 11. `/duels`: tantangan masuk dan riwayat duel.

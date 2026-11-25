@@ -9,6 +9,7 @@ import type { Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
 import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
+import { AttachmentPreview } from "@/components/AttachmentField";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -97,7 +98,8 @@ export default function MaterialPage() {
         : <Empty>Kuis sedang dicek oleh pengunggah.</Empty>)}
       {quiz && err && <p className="text-sm text-bad">{err}</p>}
 
-      {/* The material itself */}
+      {/* The material itself: the original file (if attached), then the text */}
+      {material.attachment && <AttachmentPreview attachment={material.attachment} />}
       <section className="card">
         {material.fileUrl && (
           <a href={material.fileUrl} target="_blank" rel="noreferrer" download={material.fileName} className="btn-ghost mb-3">Unduh {material.fileName}</a>

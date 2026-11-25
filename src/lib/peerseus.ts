@@ -130,15 +130,16 @@ export async function latestMaterials(courseIds: string[], limit = 5): Promise<{
   return perCourse.flat().sort((a, b) => b.material.createdAt - a.material.createdAt).slice(0, limit);
 }
 
-/** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */
+/** Files are processed in the browser into text (no Firebase Storage); an original file can go along as an attachment in Google Drive. */
 export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">) {
   const m: Material = { ...input, id: newId("mat_"), createdAt: Date.now(), reports: 0 };
   if (m.isPublic !== false) delete m.isPublic;
+  if (!m.attachment) delete m.attachment;
   await db.set(colOf(m), m.id, m);
   return m;
 }
 
-export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text">) {
+export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text" | "attachment">) {
   await db.update(colOf(m), m.id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 

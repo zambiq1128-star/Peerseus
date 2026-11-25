@@ -71,15 +71,21 @@ export type Material = {
   text: string;
   /** "markdown" = Markdown + LaTeX (rendered with KaTeX). Missing = old plain-text material. */
   format?: "markdown";
+  /** Old materials only: a link to download the original file. New files go in `attachment`. */
   fileUrl?: string;
   fileName?: string;
   mimeType?: string;
+  /** Original PDF or image in the team's Google Drive (public materials only). null = removed. */
+  attachment?: Attachment | null;
   uploaderId: string;
   uploaderName: string;
   createdAt: number;
   updatedAt?: number;
   reports: number;
 };
+
+/** A file in the team's Google Drive folder, shared "anyone with the link can view" (src/lib/drive.ts). */
+export type Attachment = { driveFileId: string; name: string; mimeType: string; size: number };
 
 export type Question = {
   id: string;
