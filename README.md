@@ -5,7 +5,7 @@ STACK 2026 (Case 1) project by team Schrodanger's Cat.
 One simple loop:
 
 1. **Masuk**: name, faculty and program (or dream program while in TPB) on one screen (ITB Microsoft account, or Google for listed guests, when Firebase is set). For ITB accounts these are prefilled from the NIM in the email and stay editable; codes are in `src/lib/itb.ts`. Then new users land on the **Mata Kuliah** page (`/courses`, also under "Atur mata kuliah" on the home page): semester guessed from the NIM, this semester's courses filled from ITB Kurikulum 2024 (`src/lib/curriculum.ts`), removable, plus search to add any course. Removing a course keeps its rating for when it's added again.
-2. **Mata kuliah**: join a course, open its materials, or upload your own (text or PDF).
+2. **Mata kuliah**: join a course, open its materials, or upload your own (text or PDF) as materi, catatan or past paper; the course's Materi tab filters by type.
 3. **Kuis**: AI (Gemini) makes 8 multiple-choice questions from a material; the uploader checks them and publishes.
 4. **Duel**: one click starts a timed duel (6 questions, 20 s each) against the closest-rated peer.
 5. **Hasil**: score, rating change, topics you missed, and study partners strong in those topics (with contact).

@@ -5,13 +5,15 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { createMaterial } from "@/lib/peerseus";
 import MaterialComposer from "@/components/MaterialComposer";
-import { PageTitle } from "@/components/ui";
+import { MaterialTypeField, PageTitle } from "@/components/ui";
+import type { MaterialType } from "@/lib/types";
 
 export default function Upload() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
   const [title, setTitle] = useState("");
+  const [type, setType] = useState<MaterialType>("materi");
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
   const [agree, setAgree] = useState(false);
@@ -27,6 +29,7 @@ export default function Upload() {
       const m = await createMaterial({
         courseId: id,
         title: title.trim(),
+        type,
         description: "",
         topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
         text: text.trim(),
@@ -46,12 +49,13 @@ export default function Upload() {
       <Link href={`/courses/${id}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
       <PageTitle title="Upload materi" sub="Upload PDF, file .tex/.md/.txt, atau tempel teks. Cek hasilnya di editor, lalu simpan. Kuis dibuat dari materi ini." />
       <form onSubmit={submit} className="card mt-2 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Tutorial Fisika Dasar: Vektor" /></div>
           <div>
             <label className="label">Topik (pisahkan dengan koma)</label>
             <input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Vektor, Kinematika, Gaya" />
           </div>
+          <MaterialTypeField value={type} onChange={setType} />
         </div>
         <MaterialComposer value={text} onChange={setText} />
         <label className="flex items-start gap-2 text-sm">

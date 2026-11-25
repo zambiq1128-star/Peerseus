@@ -108,7 +108,7 @@ export async function ensureSeeded() {
 
   const mats: [Material, Question[]][] = [
     [{ id: "mat_ma_limit", courseId: "ma1101", title: "Ringkasan Limit, Kontinuitas & Turunan", description: "Rangkuman Bab 1–3 untuk persiapan UTS.", topics: ["Limit", "Kontinuitas", "Turunan"], text: MA_TEXT, uploaderId: "bot_dimas", uploaderName: "Dimas Haryanto", createdAt: now - 86400000 * 2, reports: 0 }, MA_QUESTIONS],
-    [{ id: "mat_fi_newton", courseId: "fi1101", title: "Kinematika & Hukum Newton", description: "Catatan kuliah minggu 2–4.", topics: ["Kinematika", "Hukum Newton"], text: FI_TEXT, uploaderId: "bot_bima", uploaderName: "Bima Pratama", createdAt: now - 86400000, reports: 0 }, FI_QUESTIONS],
+    [{ id: "mat_fi_newton", courseId: "fi1101", title: "Kinematika & Hukum Newton", type: "catatan", description: "Catatan kuliah minggu 2–4.", topics: ["Kinematika", "Hukum Newton"], text: FI_TEXT, uploaderId: "bot_bima", uploaderName: "Bima Pratama", createdAt: now - 86400000, reports: 0 }, FI_QUESTIONS],
   ];
   for (const [m, qs] of mats) {
     await db.set("materials", m.id, m);

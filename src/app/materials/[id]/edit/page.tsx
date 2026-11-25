@@ -4,10 +4,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { updateMaterial } from "@/lib/peerseus";
-import type { Material } from "@/lib/types";
+import { materialType, updateMaterial } from "@/lib/peerseus";
+import type { Material, MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
-import { Empty, PageTitle, Spinner, useAsync } from "@/components/ui";
+import { Empty, MaterialTypeField, PageTitle, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +15,7 @@ export default function EditMaterial() {
   const router = useRouter();
   const { data: material } = useAsync(() => db.get<Material>("materials", id), [id]);
   const [title, setTitle] = useState("");
+  const [type, setType] = useState<MaterialType>("materi");
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -23,6 +24,7 @@ export default function EditMaterial() {
   useEffect(() => {
     if (!material) return;
     setTitle(material.title);
+    setType(materialType(material));
     setTopics(material.topics.join(", "));
     setText(material.text);
   }, [material]);
@@ -37,7 +39,7 @@ export default function EditMaterial() {
     if (!text.trim()) return setErr("Isi materi tidak boleh kosong.");
     setBusy(true);
     try {
-      await updateMaterial(id, { title: title.trim(), topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim() });
+      await updateMaterial(id, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim() });
       router.push(`/materials/${id}`);
     } catch (e) {
       setErr((e as Error).message);
@@ -50,9 +52,10 @@ export default function EditMaterial() {
       <Link href={`/materials/${id}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
       <PageTitle title="Edit materi" sub="Perbaiki teks dan rumus, rapikan dengan AI, atau ganti isinya dari file baru." />
       <form onSubmit={save} className="card mt-2 space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div><label className="label">Topik (pisahkan dengan koma)</label><input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} /></div>
+          <MaterialTypeField value={type} onChange={setType} />
         </div>
         <MaterialComposer value={text} onChange={setText} />
         <p className="text-xs text-muted">Kuis yang sudah ada tidak berubah otomatis setelah materi diedit.</p>

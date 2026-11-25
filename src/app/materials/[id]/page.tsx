@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generateQuiz } from "@/lib/peerseus";
+import { generateQuiz, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Material, Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
 import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -55,7 +55,7 @@ export default function MaterialPage() {
         <Link href={`/courses/${material.courseId}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
         <h1 className="mt-2 text-xl font-bold">{material.title}</h1>
         <p className="text-sm text-muted">
-          {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
+          {MATERIAL_TYPES[materialType(material)]} · {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
           {isUploader && <> · <Link href={`/materials/${material.id}/edit`} className="font-medium text-accent">Edit materi</Link></>}
         </p>
       </div>

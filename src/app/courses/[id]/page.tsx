@@ -4,8 +4,8 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { courseMembers, joinCourse } from "@/lib/peerseus";
-import type { Course, Material, Quiz } from "@/lib/types";
+import { courseMembers, joinCourse, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
 import { Empty, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
 
@@ -17,6 +17,7 @@ export default function CoursePage() {
   const { profile, refresh } = useAuth();
   const uid = profile!.id;
   const [tab, setTab] = useState<Tab>("materi");
+  const [kind, setKind] = useState<"" | MaterialType>("");
   const joined = profile!.courseIds.includes(id);
 
   const { data, reload } = useAsync(async () => {
@@ -33,6 +34,11 @@ export default function CoursePage() {
   if (!data.course) return <Empty>Mata kuliah tidak ditemukan.</Empty>;
   const me = data.members.find((m) => m.uid === uid);
   const published = data.quizzes.filter((q) => q.status === "published");
+  const shown = data.materials.filter((m) => !kind || materialType(m) === kind);
+  const kinds: ["" | MaterialType, string, number][] = [
+    ["", "Semua", data.materials.length],
+    ...(Object.entries(MATERIAL_TYPES) as [MaterialType, string][]).map(([k, v]) => [k, v, data.materials.filter((m) => materialType(m) === k).length] as ["" | MaterialType, string, number]),
+  ];
 
   return (
     <div className="space-y-6">
@@ -81,21 +87,32 @@ export default function CoursePage() {
 
       {tab === "materi" && (
         data.materials.length === 0 ? <Empty>Belum ada materi. Jadilah yang pertama upload.</Empty> : (
-          <div className="divide-y divide-line rounded-xl border border-line">
-            {data.materials.map((m) => {
-              const quiz = data.quizzes.find((x) => x.materialId === m.id);
-              return (
-                <Link key={m.id} href={`/materials/${m.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
-                  <div>
-                    <div className="font-medium">{m.title}</div>
-                    <div className="text-xs text-muted">{m.topics.join(", ")} · oleh {m.uploaderName}</div>
-                  </div>
-                  <span className="badge shrink-0">
-                    {quiz?.status === "published" ? `Kuis ${quiz.questions.length} soal` : quiz?.status === "draft" ? "Kuis diulas" : "Belum ada kuis"}
-                  </span>
-                </Link>
-              );
-            })}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {kinds.map(([k, label, n]) => (
+                <button key={k || "all"} onClick={() => setKind(k)} className={`rounded-full border px-3 py-1 text-xs font-medium ${kind === k ? "border-accent bg-accent-soft text-ink" : "border-line text-muted hover:text-ink"}`}>
+                  {label} ({n})
+                </button>
+              ))}
+            </div>
+            {shown.length === 0 ? <Empty>Belum ada {MATERIAL_TYPES[kind as MaterialType].toLowerCase()} di mata kuliah ini.</Empty> : (
+              <div className="divide-y divide-line rounded-xl border border-line">
+                {shown.map((m) => {
+                  const quiz = data.quizzes.find((x) => x.materialId === m.id);
+                  return (
+                    <Link key={m.id} href={`/materials/${m.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
+                      <div>
+                        <div className="font-medium">{m.title}</div>
+                        <div className="text-xs text-muted">{MATERIAL_TYPES[materialType(m)]} · {m.topics.join(", ")} · oleh {m.uploaderName}</div>
+                      </div>
+                      <span className="badge shrink-0">
+                        {quiz?.status === "published" ? `Kuis ${quiz.questions.length} soal` : quiz?.status === "draft" ? "Kuis diulas" : "Belum ada kuis"}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )
       )}

@@ -47,10 +47,14 @@ export type Membership = {
   topicStats: Record<string, TopicStat>;
 };
 
+/** Kind of material. Missing on materials from before this field: treat as "materi" (see materialType). */
+export type MaterialType = "materi" | "catatan" | "paper";
+
 export type Material = {
   id: string;
   courseId: string;
   title: string;
+  type?: MaterialType;
   description: string;
   topics: string[];
   text: string;
