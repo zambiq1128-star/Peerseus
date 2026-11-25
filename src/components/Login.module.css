@@ -1,0 +1,236 @@
+/*
+ * Sign-in screen, from the Figma design (one 1440 x 1024 frame: 923 px hero on the left, 517 px panel on the right).
+ * Every size in the design is written as `n * var(--u)`, so the screen scales as one picture.
+ * Desktop (lg and up): side by side, --u fits the whole frame in the window.
+ * Mobile: the hero (cropped to y 60..900) on top, the panel below at normal sizes.
+ */
+.root {
+  --login-navy: #0c3252;
+  --login-mist: #9aabb3;   /* where the hero gradient ends */
+  --login-line: #d9d9d9;   /* thin lines on the hero */
+  --login-ink: #000000;    /* tagline, its lines, card border */
+  --login-button: #2c2c2c;
+  --login-link: #0c0fde;
+  --login-panel: #f7f7f7;
+  --login-panel-blue: #c5d5dd;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--login-panel);
+  color: var(--login-ink);
+}
+
+/* ---------- Hero: gradient, colored blocks, "Welcome. To. Peerseus." ---------- */
+
+.hero {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  /* Each side of the frame continues in its own color when the window is wider than the frame. */
+  background: linear-gradient(90deg, var(--login-navy) 50%, var(--login-mist) 50%);
+}
+
+.stage {
+  position: relative;
+  flex: none;
+  width: calc(923 * var(--u));
+  height: calc(1024 * var(--u));
+  background:
+    radial-gradient(ellipse 30% 22% at 62% 12%, rgb(170 190 205 / 0.35), transparent),
+    radial-gradient(ellipse 28% 30% at 92% 70%, rgb(220 225 228 / 0.45), transparent),
+    linear-gradient(90deg, var(--login-navy) 0%, var(--login-navy) 26%, #304e67 36%, #536d82 52%, #6f8999 72%, #87a0ab 88%, var(--login-mist) 100%);
+}
+
+/* Film grain over the whole hero, as in the design. */
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.word,
+.tag {
+  /* Roboto Mono from next/font (variable set in layout.tsx). */
+  font-family: var(--font-roboto-mono), ui-monospace, monospace;
+}
+
+.block,
+.line,
+.word {
+  position: absolute;
+}
+
+.line {
+  height: 1px;
+  background: var(--login-line);
+}
+
+.word {
+  margin: 0;
+  color: #ffffff;
+  font-size: calc(60 * var(--u));
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ---------- Right panel: logo, "Engage Your: Academic Odyssey", card ---------- */
+
+.side {
+  position: relative;
+  flex: 1 1 auto;
+  overflow: hidden;
+  background:
+    linear-gradient(118deg, transparent 18%, rgb(255 255 255 / 0.55) 24%, transparent 32%),
+    linear-gradient(118deg, transparent 42%, rgb(255 255 255 / 0.4) 48%, transparent 56%),
+    linear-gradient(172deg, var(--login-panel-blue) 0%, var(--login-panel-blue) 44%, var(--login-panel) 56%, var(--login-panel) 84%, #dfe7eb 100%);
+}
+
+.sideInner {
+  position: relative;
+  padding: 1rem 0 2rem;
+}
+
+.logo {
+  display: block;
+  width: 5.5rem;
+  height: 5rem;
+  object-fit: contain;
+  margin-left: 31%;
+  filter: drop-shadow(0 6px 3px rgb(0 0 0 / 0.3));
+}
+
+.tag {
+  display: flex;
+  align-items: flex-end;
+  margin: 0;
+  border-bottom: 1px solid var(--login-ink);
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.tagTop {
+  width: 60.5%;   /* 313 / 517 */
+  height: 2.5rem;
+  padding: 0 0 0.5rem 8.9%;
+}
+
+.tagBottom {
+  width: 93.6%;   /* 484 / 517 */
+  height: 2.5rem;
+  padding: 0 0 0.6rem 30.5%;
+}
+
+.card {
+  margin: 1.25rem 1.25rem 0;
+  border: 1px solid var(--login-ink);
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 1.25rem;
+}
+
+.cardLogin {
+  padding: 1.75rem 1rem 1.25rem;
+}
+@media (min-width: 1024px) {
+  .cardLogin { padding: 2.5rem 1rem 1.6rem; }
+}
+
+.button {
+  display: flex;
+  width: calc(100% - 1.5rem);
+  height: 2.75rem;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--login-button);
+  color: #ffffff;
+  font-size: 0.95rem;
+  transition: filter 160ms;
+}
+.button:hover { filter: brightness(1.35); }
+.button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.divider {
+  margin: 1.1rem 0 1.2rem;
+  border: 0;
+  border-top: 1px solid var(--login-ink);
+}
+
+.guest {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.guestLink {
+  color: var(--login-link);
+}
+.guestLink:hover { text-decoration: underline; }
+.guestLink:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* ---------- Mobile: hero on top ---------- */
+
+@media (max-width: 1023.98px) {
+  .hero {
+    --u: min(calc(100vw / 923), calc(40dvh / 840));
+    justify-content: center;
+    height: calc(840 * var(--u));
+  }
+  .stage { margin-top: calc(-60 * var(--u)); }
+}
+
+/* ---------- Desktop: the frame side by side ---------- */
+
+@media (min-width: 1024px) {
+  .root {
+    --u: min(calc(100dvh / 1024), calc(100vw / 1440));
+    /* Both halves start at the same height, so the lines across the middle meet. */
+    --top: max(0px, calc((100dvh - 1024 * var(--u)) / 2));
+    flex-direction: row;
+  }
+
+  .hero {
+    flex: 1 1 calc(923 * var(--u));
+    justify-content: flex-end;
+    align-items: flex-start;
+    padding-top: var(--top);
+    background: var(--login-navy);
+  }
+
+  .side {
+    flex: 1 1 calc(517 * var(--u));
+    padding-top: var(--top);
+  }
+
+  .sideInner {
+    width: calc(517 * var(--u));
+    min-height: calc(1024 * var(--u));
+    padding: calc(92 * var(--u)) 0 calc(48 * var(--u));
+  }
+
+  .logo {
+    width: calc(222 * var(--u));
+    height: calc(212 * var(--u));
+    object-fit: contain;
+    margin-left: calc(160 * var(--u));
+    filter: drop-shadow(0 calc(10 * var(--u)) calc(4 * var(--u)) rgb(0 0 0 / 0.3));
+  }
+
+  .tag { font-size: calc(30 * var(--u)); }
+  /* Heights put each line at the design's y: 417 and 498 (the logo ends at 304). */
+  .tagTop { height: calc(113 * var(--u)); padding-bottom: calc(9.6 * var(--u)); }
+  .tagBottom { height: calc(81 * var(--u)); padding-bottom: calc(14.6 * var(--u)); }
+
+  .card {
+    width: max(20rem, calc(431 * var(--u)));
+    margin: calc(60 * var(--u)) 0 0 calc(48 * var(--u));
+  }
+}

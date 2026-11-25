@@ -9,7 +9,8 @@ The current look is a plain skeleton. A new visual design should mostly change v
 | Colors, radius, page widths, font | `@theme` tokens at the top of `src/app/globals.css` |
 | Component classes (`card`, `callout`, `btn-primary`, `btn-ghost`, `input`, `label`, `link`, `badge*`, `chip`, `chip-active`, `rows`, `row-link`, `section-title`, `eyebrow`) | `@utility` rules in `src/app/globals.css` |
 | Page building blocks (`Page`, `PageHeader`, `Section`, `Spinner`, `Empty`) | `src/components/ui.tsx` |
-| Top bar and sign-in screen | `src/components/Shell.tsx` |
+| Top bar, sign-in logic | `src/components/Shell.tsx` |
+| Sign-in screen look (Figma design: hero, logo, tagline, card) | `src/components/Login.tsx` + `Login.module.css` (own colors at the top of the CSS file; sizes are Figma pixels times `--u`) |
 
 Pages use token names only (`bg-surface`, `text-muted`, `rounded-card`, `max-w-page`, ...), never raw colors such as `bg-white` or `bg-red-50`.
 
