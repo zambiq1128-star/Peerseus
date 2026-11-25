@@ -11,6 +11,8 @@ rules_version = '2';
 // so a hidden field must not be in users/{uid} at all, and the rules refuse a profile that still has one.
 // Private materials (Materiku) live in privateMaterials, readable and writable only by their uploader;
 // public ones stay in materials, which must not hold a private one.
+// Duels: only the opponent can decline (status "declined"), only a pending duel they haven't played,
+// and a declined duel can't change again.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -94,9 +96,29 @@ service cloud.firestore {
       allow update: if mine() && staysMine();
     }
 
+    // Duels stay writable by any allowed user (both players' results land in one document), except
+    // "declined": only the opponent sets it, from "pending" with their side unplayed, and nothing else changes.
+    match /duels/{id} {
+      function declines() {
+        return request.resource.data.get('status', '') == 'declined';
+      }
+      function validDecline() {
+        return resource.data.status == 'pending'
+          && request.auth.uid == resource.data.opponentId
+          && !resource.data.keys().hasAny(['opponent'])
+          && resource.data.get('opponentIsBot', false) != true
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'declinedAt']);
+      }
+      allow read, delete: if allowed();
+      allow create: if allowed() && !declines();
+      allow update: if allowed()
+        && resource.data.get('status', '') != 'declined'
+        && (!declines() || validDecline());
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels']) && allowed();
     }
   }
 }

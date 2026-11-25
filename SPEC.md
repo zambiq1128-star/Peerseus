@@ -22,7 +22,7 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `attachment` (file asli di Google Drive tim: `driveFileId`, `name`, `mimeType`, `size`; kosong/`null` = tanpa lampiran), `fileUrl`, `fileName`, `mimeType` (lama, tidak diisi lagi), `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
 | `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`. `attachment` di sini hanya link ke Drive pribadi pengunggah (`ownDrive: true`, hanya `driveFileId`), tidak pernah file di Drive tim. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
-| `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
+| `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `declinedAt`, `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
 | `opportunities/{id}` (tidak dipakai halaman mana pun sejak Info dihapus) | `title`, `type` (`beasiswa`, `lomba`, `seminar`, `lainnya`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
 | `config/access` | `guestEmails[]`. Hanya bisa diubah di console |
 | `meta/seed` | Versi data contoh |
@@ -54,8 +54,8 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Jelajah** (`/
 7. `/materials`: **Materiku**, semua materi yang aku upload (publik dan privat) dari semua mata kuliah, dengan filter dan tombol edit. Jadi tab kedua di Jelajah ("Semua materi" | "Materiku"), dan menu Jelajah aktif di sini.
 8. `/materials/[id]`: baca materi, dengan pratinjau lampiran (iframe Google Drive) di atas teksnya. Materi privat hanya terbuka untuk pengunggahnya dan tidak bisa dibuat kuis. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
 9. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
-10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
-11. `/duels`: tantangan masuk dan riwayat duel.
+10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu. Lawan yang belum menjawab bisa menekan **Tolak** di layar mulai. Duel yang ditolak menampilkan "… menolak duel ini" tanpa perubahan rating.
+11. `/duels`: tantangan masuk dan riwayat duel. Tantangan masuk yang belum dijawab punya tombol **Tolak** (dengan konfirmasi "Ya, tolak"). Duel yang ditolak memakai badge "Ditolak" bagi kedua pemain.
 12. `/explore`: **Jelajah materi**. Semua materi publik dari semua mata kuliah (hanya koleksi `materials`, tidak pernah `privateMaterials`), terbaru dulu. Cari berdasarkan judul, topik, mata kuliah, atau pengunggah, filter jenis (Materi, Catatan, Past paper), dan feed kartu yang bisa di-scroll dengan "Muat lebih banyak". Tab "Materiku" di atasnya membuka `/materials`. Menggantikan halaman Info (`/opportunities`), yang dihapus; koleksi `opportunities` dan seed-nya dibiarkan tapi tidak dipakai halaman mana pun.
 13. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
 14. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
@@ -63,10 +63,11 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Jelajah** (`/
 ## 4. Aturan yang berlaku sekarang
 
 - **Duel** berjalan bergantian: penantang menjawab dulu, lawan menjawab soal yang sama nanti. Teman demo menjawab otomatis sesuai akurasi topiknya.
+- **Tolak duel**: hanya lawan yang bisa menolak, selama duel masih `pending` dan dia belum menjawab. Status menjadi `declined` (dengan `declinedAt`), rating dan menang/kalah tidak berubah, dan duel itu tidak bisa dimainkan atau diubah lagi. Duel melawan teman demo tidak bisa ditolak. Tantangan yang ditolak tidak dihitung di "tantangan duel menunggu jawabanmu" (`isMyTurn`).
 - **Pemenang duel**: skor lebih tinggi menang. Skor sama, total waktu lebih cepat menang (selisih > 0,5 detik). Selain itu seri.
 - **Elo** per mata kuliah, K = 32, mulai dari 1000 (`src/lib/elo.ts`).
 - **Skor teman belajar**: `0,6 × akurasi dia di topik lemahku + 0,3 × kedekatan Elo + 0,1 × fakultas sama`. Pengguna dengan `isPublic = false` tidak direkomendasikan.
-- **firestore.rules**: profil (`users/{uid}`) hanya bisa ditulis pemiliknya, dan bagian privatnya hanya bisa dibaca pemiliknya (bagian 6). Data lain bisa dibaca dan ditulis semua pengguna yang diizinkan, kecuali `config`.
+- **firestore.rules**: profil (`users/{uid}`) hanya bisa ditulis pemiliknya, dan bagian privatnya hanya bisa dibaca pemiliknya (bagian 6). Status `declined` di `duels` hanya bisa diisi lawan duel itu, dari `pending` dan sebelum sisinya terisi, tanpa mengubah field lain, dan duel yang sudah `declined` tidak bisa diubah lagi. Data lain bisa dibaca dan ditulis semua pengguna yang diizinkan, kecuali `config`.
 
 ## 5. Belum ada
 
@@ -137,4 +138,4 @@ Cara menerapkannya di app ini (sudah berlaku untuk profil, lihat `src/lib/privac
 - Nanti: `achievements` bisa dibaca jika pemiliknya, atau `get(users/{uid}).data.privacy.showAchievements == true`.
 - Materi privat: `privateMaterials/{id}` hanya bisa dibaca dan ditulis pengunggahnya, dan `materials` menolak dokumen dengan `isPublic == false`.
 - `major` (fakultas) tetap terlihat, karena disalin ke `memberships` untuk peringkat dan dulu dipakai filter Info (halaman Info sudah dihapus). Jika prodi disembunyikan, rekomendasi teman belajar tidak memakai kecocokan prodi untuk orang itu.
-- `memberships` dan `duels` tetap bisa ditulis peserta lain, karena hasil duel memperbarui Elo kedua pemain.
+- `memberships` dan `duels` tetap bisa ditulis peserta lain, karena hasil duel memperbarui Elo kedua pemain. Pengecualian: hanya lawan yang bisa menolak duel (`declined`).

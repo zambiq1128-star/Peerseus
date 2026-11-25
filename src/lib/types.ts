@@ -137,6 +137,7 @@ export type Duel = {
   opponent?: DuelSide;
   winnerId?: string | null; // null = draw
   eloChange?: { challenger: number; opponent: number };
+  declinedAt?: number; // set when the opponent declines a pending challenge (no rating change)
   participants: string[];
   createdAt: number;
 };

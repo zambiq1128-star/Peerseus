@@ -4,9 +4,10 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
+import { canDecline, missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
 import { ErrorState, NotFound, Page, Section, Spinner, useAsync } from "@/components/ui";
+import DeclineDuel from "@/components/DeclineDuel";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
 
@@ -21,7 +22,7 @@ export default function DuelPage() {
   if (!duel) return <NotFound title="Duel tidak ditemukan" back={{ href: "/duels", label: "Ke daftar duel" }} />;
   const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
   if (!role) return <NotFound title="Kamu bukan peserta duel ini" back={{ href: "/duels", label: "Ke daftar duel" }} />;
-  if (!duel[role]) return <Play duel={duel} uid={uid} onDone={reload} />;
+  if (!duel[role]) return duel.status === "declined" ? <Declined duel={duel} uid={uid} /> : <Play duel={duel} uid={uid} onDone={reload} />;
   return <Result duel={duel} uid={uid} />;
 }
 
@@ -63,7 +64,8 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
         setPicked(null);
       } else {
         setSubmitting(true);
-        await submitDuel(duel.id, uid, a, t);
+        // A failed submit (e.g. the opponent declined meanwhile) reloads the duel to show its current state.
+        await submitDuel(duel.id, uid, a, t).catch(() => {});
         onDone();
       }
     }, 1100);
@@ -77,6 +79,12 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
           <h1 className="text-2xl font-bold">{opp}</h1>
           <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
           <button className="btn-primary w-full !py-3" onClick={() => setStarted(true)}>Mulai</button>
+          {canDecline(duel, uid) && (
+            <div className="border-t border-line pt-4">
+              <p className="mb-2 text-xs text-muted">Tidak ingin menjawab? Menolak tidak mengubah rating siapa pun.</p>
+              <DeclineDuel duelId={duel.id} uid={uid} onDone={onDone} className="justify-center" />
+            </div>
+          )}
         </div>
       </Page>
     );
@@ -112,6 +120,24 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
   );
 }
 
+/** A declined duel seen by someone who never played it. */
+function Declined({ duel, uid }: { duel: Duel; uid: string }) {
+  const meC = duel.challengerId === uid;
+  return (
+    <Page width="narrow">
+      <div className="card space-y-3 text-center !p-8">
+        <span className="badge">Ditolak</span>
+        <h1 className="text-2xl font-bold">{meC ? `${duel.opponentName} menolak duel ini` : `Kamu menolak tantangan ${duel.challengerName}`}</h1>
+        <p className="text-sm text-muted">{duel.quizTitle} · rating tidak berubah.</p>
+        <div className="flex justify-center gap-2 pt-2">
+          {meC && <Link href={`/duel/new?quiz=${duel.quizId}`} className="btn-primary">Cari lawan lain</Link>}
+          <Link href="/duels" className="btn-ghost">Ke daftar duel</Link>
+        </div>
+      </div>
+    </Page>
+  );
+}
+
 function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const meC = duel.challengerId === uid;
   const mine = meC ? duel.challenger! : duel.opponent!;
@@ -119,6 +145,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const oppName = meC ? duel.opponentName : duel.challengerName;
   const missed = missedTopics(duel, uid);
   const done = duel.status === "completed";
+  const declined = duel.status === "declined";
   const won = done && duel.winnerId === uid;
   const draw = done && duel.winnerId === null;
   const delta = done ? (meC ? duel.eloChange!.challenger : duel.eloChange!.opponent) : 0;
@@ -126,14 +153,15 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   return (
     <Page width="narrow">
       <div className="card text-center !p-8">
-        <h1 className="text-2xl font-bold">{!done ? `Menunggu ${oppName}` : won ? "Kamu menang" : draw ? "Seri" : `${oppName} menang`}</h1>
+        <h1 className="text-2xl font-bold">{declined ? `${oppName} menolak duel ini` : !done ? `Menunggu ${oppName}` : won ? "Kamu menang" : draw ? "Seri" : `${oppName} menang`}</h1>
         <div className="mt-4 flex items-center justify-center gap-8">
           <div><div className="text-xs text-muted">Kamu</div><div className="text-4xl font-bold">{mine.score}</div><div className="text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div></div>
           <div className="text-muted">vs</div>
-          <div><div className="text-xs text-muted">{oppName}</div><div className="text-4xl font-bold">{theirs ? theirs.score : "?"}</div><div className="text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : "belum main"}</div></div>
+          <div><div className="text-xs text-muted">{oppName}</div><div className="text-4xl font-bold">{theirs ? theirs.score : "?"}</div><div className="text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : "belum main"}</div></div>
         </div>
         {done && <div className={`mt-4 text-sm font-semibold ${delta >= 0 ? "text-good" : "text-bad"}`}>Rating {delta >= 0 ? "+" : ""}{delta}</div>}
-        {!done && <p className="mt-3 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
+        {declined && <p className="mt-3 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
+        {!done && !declined && <p className="mt-3 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
       </div>
 
       <Section title="Topik yang perlu diperkuat">
