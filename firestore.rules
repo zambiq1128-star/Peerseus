@@ -14,6 +14,8 @@ rules_version = '2';
 // Duels: only the opponent can decline (status "declined"), only a pending duel they haven't played,
 // and a declined duel can't change again.
 // Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
+// Proposed questions (questionProposals): readable by the proposer and the material's uploader; only that
+// uploader accepts or rejects them, and the proposer can withdraw one while it is pending.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -124,9 +126,28 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Usul soal. uploaderId must be the material's uploader, so a proposal can't be routed to someone else.
+    match /questionProposals/{id} {
+      function proposer(d) {
+        return d.proposerId == request.auth.uid;
+      }
+      function reviewer(d) {
+        return d.uploaderId == request.auth.uid;
+      }
+      allow read: if allowed() && (proposer(resource.data) || reviewer(resource.data));
+      allow create: if allowed() && proposer(request.resource.data)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.uploaderId == get(/databases/$(database)/documents/materials/$(request.resource.data.materialId)).data.uploaderId;
+      allow update: if allowed() && reviewer(resource.data)
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'rejected']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'question', 'rejectReason', 'reviewedAt']);
+      allow delete: if allowed() && proposer(resource.data) && resource.data.status == 'pending';
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals']) && allowed();
     }
   }
 }

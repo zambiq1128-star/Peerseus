@@ -251,6 +251,7 @@ function Result({ quiz, run, attempt, timedOut, onAgain }: { quiz: Quiz; run: Pr
                   {!ok && a !== -1 && <span className="text-bad"> · kamu: <MathText text={q.options[a]} /></span>}
                 </div>
                 {q.explanation && <div className="text-xs text-muted"><MathText text={q.explanation} /></div>}
+                {q.proposedBy && <div className="text-xs text-muted">Diusulkan oleh {q.proposedBy.name}</div>}
               </li>
             );
           })}
