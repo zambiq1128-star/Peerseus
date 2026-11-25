@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { recommendPartners, weakTopicsOf, getMembership } from "@/lib/peerseus";
-import { Empty, Spinner, useAsync } from "./ui";
+import { AccountBadge, Empty, Spinner, useAsync } from "./ui";
 
 export default function PartnerList({ courseId, focusTopics, limit = 5 }: { courseId: string; focusTopics?: string[]; limit?: number }) {
   const { profile } = useAuth();
@@ -25,7 +25,7 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
         {data.recs.map(({ member, profile: p, reasons }) => (
           <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
-              <div className="font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span>{p?.isItbVerified === false && <span className="badge ml-2">Tamu</span>}</div>
+              <div className="font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span><AccountBadge itb={p?.isItbVerified} className="ml-2" /></div>
               {reasons.length > 0 && <div className="text-xs text-good">{reasons.join(" · ")}</div>}
               {p?.contact && <div className="mt-1 text-xs text-muted">Kontak: <span className="text-ink">{p.contact}</span></div>}
             </div>

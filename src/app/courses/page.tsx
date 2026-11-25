@@ -1,13 +1,13 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { courseInfo, currentSemester, curriculumCourses, curriculumFor, termLabel, type CourseInfo } from "@/lib/curriculum";
 import { db } from "@/lib/db";
-import { academicLabel, academicOf, readNim } from "@/lib/itb";
+import { academicLabel, academicOf, academicPatch, readNim, type Academic } from "@/lib/itb";
 import { needsCourses, setMyCourses } from "@/lib/peerseus";
 import type { Course } from "@/lib/types";
+import AcademicFields from "@/components/AcademicFields";
 import { Empty, PageTitle, Spinner, useAsync } from "@/components/ui";
 
 const SEMESTERS = Array.from({ length: 14 }, (_, i) => i + 1);
@@ -34,7 +34,10 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
   const p = profile!;
   const router = useRouter();
   const [firstRun] = useState(() => needsCourses(p));
-  const academic = academicOf(p, { faculty: p.major, stage: "tpb", program: "" });
+  const [academic, setAcademic] = useState<Academic>(() => academicOf(p, { faculty: p.major, stage: "tpb", program: "" }));
+  const [editAcademic, setEditAcademic] = useState(false);
+  /** Courses added from the search box on this visit; they stay when the semester or jurusan changes. */
+  const [added, setAdded] = useState<Set<string>>(() => new Set());
   const toInfo = (c: Course): CourseInfo => ({ code: c.code, name: c.name, sks: c.sks ?? courseInfo(c.code)?.sks });
 
   const [semester, setSemester] = useState<number | null>(() => p.semester ?? currentSemester(academic, readNim(authEmail)?.entryYear ?? null));
@@ -63,11 +66,24 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
     setPicked(next);
   }
 
-  /** Swaps the old semester's curriculum for the new one; courses added by hand stay. */
+  /**
+   * A new semester or jurusan starts from its own curriculum. Every curriculum course goes, whichever
+   * jurusan or semester it came from (the jurusan may have been changed on Profil since the last save);
+   * courses added from the search box on this visit, and ones that are in no curriculum, stay.
+   */
+  function recompute(a: Academic, n: number | null) {
+    const keep = picked.filter((c) => added.has(c.code) || !courseInfo(c.code));
+    change(merge(curriculumFor(a, n), keep));
+  }
+
   function changeSemester(n: number | null) {
-    const old = new Set(curriculumFor(academic, semester).map((c) => c.code));
-    change(merge(curriculumFor(academic, n), picked.filter((c) => !old.has(c.code))));
+    recompute(academic, n);
     setSemester(n);
+  }
+
+  function changeAcademic(a: Academic) {
+    recompute(a, semester);
+    setAcademic(a);
   }
 
   function search(value: string) {
@@ -77,6 +93,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
   }
 
   function add(c: CourseInfo) {
+    setAdded(new Set(added).add(c.code));
     change([...picked, c]);
     search("");
   }
@@ -86,8 +103,9 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
     setBusy(true);
     setErr("");
     try {
-      const courseIds = await setMyCourses(p, picked);
-      await saveProfile({ courseIds, semester });
+      const patch = academicPatch(academic);
+      const courseIds = await setMyCourses({ ...p, ...patch }, picked);
+      await saveProfile({ courseIds, semester, ...patch });
       if (firstRun) router.push("/");
       else {
         setSaved(true);
@@ -105,8 +123,10 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
 
       <div className="card flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <div className="font-semibold">{academicLabel(p)}</div>
-          <Link href="/profile" className="text-sm text-accent hover:underline">Ubah jurusan</Link>
+          <div className="font-semibold">{academicLabel(academicPatch(academic))}</div>
+          <button type="button" className="text-sm text-accent hover:underline" aria-expanded={editAcademic} onClick={() => setEditAcademic(!editAcademic)}>
+            {editAcademic ? "Selesai ubah jurusan" : "Ubah jurusan"}
+          </button>
         </div>
         <div>
           <label className="label" htmlFor="sem">Semester <span className="font-normal text-muted">· {termLabel()}</span></label>
@@ -115,6 +135,11 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
             {SEMESTERS.map((n) => <option key={n} value={n}>Semester {n}</option>)}
           </select>
         </div>
+        {editAcademic && (
+          <div className="w-full space-y-4 border-t border-line pt-4">
+            <AcademicFields value={academic} onChange={changeAcademic} note="Daftar mata kuliah di bawah ikut berganti. Tersimpan saat kamu menekan Simpan." />
+          </div>
+        )}
       </div>
 
       <section>

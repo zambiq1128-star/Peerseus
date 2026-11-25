@@ -90,3 +90,13 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
   }, [...deps, tick]);
   return { data, error, reload: () => setTick((t) => t + 1) };
 }
+
+/** "ITB" for a verified ITB account, "Tamu" for a listed guest; nothing for demo users and local mode. */
+export function AccountBadge({ itb, className = "" }: { itb?: boolean; className?: string }) {
+  if (itb === undefined) return null;
+  return itb ? (
+    <span className={`badge !bg-accent-soft !text-accent ${className}`} title="Masuk dengan akun Microsoft ITB">✓ ITB</span>
+  ) : (
+    <span className={`badge ${className}`} title="Tamu yang didaftarkan tim, bukan akun ITB">Tamu</span>
+  );
+}
