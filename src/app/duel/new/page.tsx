@@ -78,7 +78,7 @@ function NewDuel() {
         <div className="label">Lawan <span className="font-normal text-muted">(urut dari rating terdekat denganmu, {myElo})</span></div>
         <div className="rows">
           {data.opponents.map((o) => (
-            <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-paper"}`}>
+            <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-navy-3"}`}>
               <span className="flex items-center gap-2 text-sm">
                 <input type="radio" checked={opp.uid === o.uid} onChange={() => setOppId(o.uid)} />
                 <span className="font-medium">{o.name}</span>

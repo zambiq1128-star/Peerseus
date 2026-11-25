@@ -7,32 +7,32 @@
  */
 @theme {
   /* Text */
-  --color-ink: #111827;        /* main text */
-  --color-ink-soft: #374151;   /* secondary text that still needs contrast */
-  --color-muted: #6b7280;      /* hints, meta lines, inactive nav */
+  --color-ink: #f4f8ff;        /* main text */
+  --color-ink-soft: #c5d2ee;   /* secondary text that still needs contrast */
+  --color-muted: #93a6d1;      /* hints, meta lines, inactive nav (>= 6:1 on the panels) */
 
-  /* Surfaces */
-  --color-canvas: #ffffff;     /* page background */
-  --color-surface: #ffffff;    /* cards, inputs, header */
-  --color-paper: #f9fafb;      /* subtle fill: hover, table head, sign-in background */
-  --color-line: #e5e7eb;       /* borders and dividers */
+  /* Surfaces (dark navy, JRPG menu look) */
+  --color-canvas: #050b1f;     /* page background */
+  --color-surface: #0b1633;    /* cards, inputs, panels */
+  --color-paper: #08112a;      /* subtle fill: table head, quiet blocks */
+  --color-line: #1c2f5e;       /* borders and dividers */
 
   /* Brand */
-  --color-accent: #2563eb;
-  --color-accent-soft: #eff6ff;
+  --color-accent: #1e6bff;     /* fills only; use cyan for accent-coloured text on dark */
+  --color-accent-soft: rgb(30 107 255 / 0.18);
   --color-on-accent: #ffffff;  /* text on accent */
 
-  /* Status */
-  --color-good: #16a34a;
-  --color-good-soft: #f0fdf4;
-  --color-bad: #dc2626;
-  --color-bad-soft: #fef2f2;
+  /* Status (lightened so they read on navy) */
+  --color-good: #3ddc97;
+  --color-good-soft: rgb(61 220 151 / 0.14);
+  --color-bad: #ff7a90;
+  --color-bad-soft: rgb(255 122 144 / 0.14);
   --color-warn: #fbbf24;
-  --color-warn-ink: #b45309;   /* warning text */
+  --color-warn-ink: #fcd34d;   /* warning text */
 
   /* Shape */
-  --radius-card: 0.75rem;      /* cards, lists, empty boxes */
-  --radius-control: 0.5rem;    /* buttons, inputs */
+  --radius-card: 0.25rem;      /* cards, lists, empty boxes (corners are also cut by clip-path) */
+  --radius-control: 0.125rem;  /* buttons, inputs */
 
   /* Page widths (max-w-narrow / max-w-page / max-w-wide) */
   --container-narrow: 36rem;   /* forms and focused screens */
@@ -113,28 +113,63 @@ body {
 @utility jrpg-tag { @apply inline-block bg-navy-3 px-4 py-1 font-display text-sm uppercase tracking-widest text-cyan; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
 
 /* Component classes. Change the look here, not in the pages. */
-@utility card { @apply rounded-card border border-line bg-surface p-5 transition-colors; }
-@utility callout { @apply rounded-card border border-accent bg-accent-soft p-5; }
-@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-control px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50; }
-@utility btn-primary { @apply btn bg-accent text-on-accent hover:brightness-110; }
-@utility btn-ghost { @apply btn border border-line bg-surface text-ink hover:bg-paper; }
-@utility input { @apply w-full rounded-control border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/15 transition; }
-@utility label { @apply mb-1 block text-sm font-medium text-ink; }
-@utility link { @apply font-medium text-accent transition-colors hover:underline; }
-@utility badge { @apply inline-flex items-center rounded-full bg-paper px-2.5 py-0.5 text-xs font-medium text-ink-soft; }
+:root { color-scheme: dark; } /* native selects, scrollbars and date pickers follow the dark theme */
+@layer base {
+  h1 { font-family: var(--font-display); text-transform: uppercase; letter-spacing: -0.005em; }
+  ::placeholder { color: var(--color-muted); opacity: 0.7; }
+  :focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+}
+
+@utility card {
+  @apply border border-line bg-surface p-5 transition duration-200 hover:border-cyan;
+  border-radius: var(--radius-card);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+@utility callout {
+  @apply border border-accent bg-accent-soft p-5;
+  border-radius: var(--radius-card);
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+/* Buttons: parallelogram via clip-path (so the focus ring is the cyan outline-free colour swap below). */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-2 font-display text-sm font-semibold uppercase tracking-wider transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  transition-timing-function: var(--ease-overshoot);
+}
+@utility btn-primary { @apply btn bg-accent text-on-accent hover:-skew-x-6 hover:translate-x-1 hover:bg-cyan hover:text-navy focus-visible:bg-white focus-visible:text-navy; }
+/* Ghost: thin cyan edge drawn by a slightly smaller parallelogram laid on a cyan one; transparent look on navy. */
+@utility btn-ghost {
+  @apply btn relative isolate bg-cyan text-cyan hover:-skew-x-6 hover:translate-x-1 hover:text-navy focus-visible:text-navy;
+  &::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--color-canvas); clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: background-color 200ms; }
+  &:hover::before, &:focus-visible::before { background: var(--color-cyan); }
+  &:disabled::before { background: var(--color-canvas); }
+}
+@utility input {
+  @apply w-full border border-accent/50 bg-canvas px-3 py-2 text-sm text-ink outline-none transition;
+  border-radius: var(--radius-control);
+  &:focus { border-color: var(--color-cyan); box-shadow: 0 0 0 3px rgb(62 240 255 / 0.22), 0 0 14px rgb(62 240 255 / 0.25); }
+}
+@utility label { @apply mb-1 block text-sm font-medium text-ink-soft; }
+@utility link { @apply font-medium text-cyan transition-colors hover:underline; }
+@utility badge { @apply inline-flex items-center bg-navy-3 px-3 py-0.5 text-xs font-semibold text-ink-soft; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 /* Colored badges repeat the shape on purpose: composing `badge` would fight over the colors. */
-@utility badge-accent { @apply inline-flex items-center rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent; }
-@utility badge-strong { @apply inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-on-accent; }
-@utility badge-good { @apply inline-flex items-center rounded-full bg-good-soft px-2.5 py-0.5 text-xs font-medium text-good; }
-@utility badge-bad { @apply inline-flex items-center rounded-full bg-bad-soft px-2.5 py-0.5 text-xs font-medium text-bad; }
+@utility badge-accent { @apply inline-flex items-center bg-accent-soft px-3 py-0.5 text-xs font-semibold text-cyan; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+@utility badge-strong { @apply inline-flex items-center bg-accent px-3 py-0.5 text-xs font-semibold text-on-accent; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+@utility badge-good { @apply inline-flex items-center bg-good-soft px-3 py-0.5 text-xs font-semibold text-good; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+@utility badge-bad { @apply inline-flex items-center bg-bad-soft px-3 py-0.5 text-xs font-semibold text-bad; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 /* Filter pills (material type, Materiku filters) */
-@utility chip { @apply rounded-full border border-line px-3 py-1 text-xs font-medium text-muted transition-colors hover:text-ink; }
-@utility chip-active { @apply rounded-full border border-accent bg-accent-soft px-3 py-1 text-xs font-medium text-ink transition-colors; }
-/* Bordered list with dividers between rows */
-@utility rows { @apply divide-y divide-line rounded-card border border-line; }
-@utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-colors hover:bg-paper; }
-@utility section-title { @apply text-sm font-semibold text-muted; }
-@utility eyebrow { @apply text-xs font-semibold text-muted; }
+@utility chip { @apply inline-block bg-navy-3 px-4 py-1 text-xs font-semibold text-muted transition duration-200 hover:text-cyan; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+@utility chip-active { @apply inline-block bg-cyan px-4 py-1 text-xs font-bold text-navy transition duration-200; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+/* Segmented control (two to three options in one row) and underlined tabs */
+@utility seg { @apply px-4 py-1.5 font-display text-sm font-semibold uppercase tracking-wider text-ink-soft transition duration-200 hover:bg-navy-3 hover:text-cyan disabled:opacity-50; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+@utility seg-active { @apply px-4 py-1.5 font-display text-sm font-semibold uppercase tracking-wider bg-cyan text-navy; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
+@utility tab { @apply -mb-px px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-wider text-muted transition duration-200 hover:text-cyan; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+@utility tab-active { @apply -mb-px bg-accent px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-wider text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); box-shadow: inset 0 -3px 0 var(--color-cyan); }
+/* Bordered list with dividers between rows; a cyan strip slides in on the left of the hovered row. */
+@utility rows { @apply divide-y divide-line border border-line bg-surface; border-radius: var(--radius-card); }
+@utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-navy-3; box-shadow: inset 0 0 0 0 var(--color-cyan); &:hover { box-shadow: inset 4px 0 0 0 var(--color-cyan); } }
+@utility section-title { @apply font-display text-lg font-semibold uppercase tracking-wider text-ink; }
+@utility eyebrow { @apply text-xs font-semibold uppercase tracking-[0.2em] text-cyan; }
 
 /*
  * Collapsible rows: extra rows sit in .expand and slide open by animating the grid row from 0fr to 1fr.
@@ -147,6 +182,7 @@ body {
 /* Rendered Markdown + LaTeX materials */
 .md { font-size: 0.9rem; line-height: 1.7; overflow-wrap: anywhere; }
 .md > * + * { margin-top: 0.75em; }
+.md h1, .md h2, .md h3, .md h4 { font-family: inherit; text-transform: none; letter-spacing: normal; }
 .md h1 { font-size: 1.35rem; font-weight: 700; margin-top: 1.2em; }
 .md h2 { font-size: 1.15rem; font-weight: 700; margin-top: 1.1em; }
 .md h3, .md h4 { font-size: 1rem; font-weight: 600; margin-top: 1em; }
@@ -155,16 +191,16 @@ body {
 .md ol { list-style: decimal; padding-left: 1.4em; }
 .md li + li { margin-top: 0.25em; }
 .md li > ul, .md li > ol { margin-top: 0.25em; }
-.md a { color: var(--color-accent); text-decoration: underline; }
+.md a { color: var(--color-cyan); text-decoration: underline; }
 .md blockquote { border-left: 3px solid var(--color-line); padding-left: 0.9em; color: var(--color-ink-soft); }
-.md code { background: var(--color-paper); border-radius: 4px; padding: 0.1em 0.3em; font-size: 0.85em; }
-.md pre { background: var(--color-paper); border-radius: 8px; padding: 0.8em; overflow-x: auto; }
+.md code { background: var(--color-navy-3); border-radius: 4px; padding: 0.1em 0.3em; font-size: 0.85em; }
+.md pre { background: var(--color-canvas); border: 1px solid var(--color-line); border-radius: 8px; padding: 0.8em; overflow-x: auto; }
 .md pre code { padding: 0; background: none; }
 .md hr { border-color: var(--color-line); }
 .md-table { overflow-x: auto; }
 .md table { border-collapse: collapse; font-size: 0.85rem; }
 .md th, .md td { border: 1px solid var(--color-line); padding: 0.35em 0.6em; text-align: left; }
-.md th { background: var(--color-paper); font-weight: 600; }
+.md th { background: var(--color-navy-3); font-weight: 600; }
 .md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2em 0; }
 .md .katex, .md-inline .katex { font-size: 1.05em; }
 .md-inline ol, .md-inline ul { display: inline; padding: 0; }

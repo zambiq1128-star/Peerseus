@@ -65,7 +65,7 @@ export default function UserPage() {
             {(m) => {
               const c = data.courses.get(m.courseId);
               return (
-                <Link key={m.id} href={`/courses/${m.courseId}`} className="flex items-center justify-between gap-3 p-3 hover:bg-paper">
+                <Link key={m.id} href={`/courses/${m.courseId}`} className="flex items-center justify-between gap-3 p-3 hover:bg-navy-3">
                   <span className="text-sm"><span className="font-medium">{c?.code ?? m.courseId}</span> · {c?.name ?? ""}</span>
                   <span className="text-sm"><span className="text-xs text-muted">rating </span><b>{m.elo}</b></span>
                 </Link>
@@ -79,7 +79,7 @@ export default function UserPage() {
         {data.materials.length === 0 ? <Empty>Belum ada materi.</Empty> : (
           <CollapsibleRows items={data.materials}>
             {(m) => (
-              <Link key={m.id} href={`/materials/${m.id}`} className="block p-3 hover:bg-paper">
+              <Link key={m.id} href={`/materials/${m.id}`} className="block p-3 hover:bg-navy-3">
                 <div className="text-sm font-medium">{m.title}</div>
                 <div className="text-xs text-muted">{MATERIAL_TYPES[materialType(m)]} · {data.courses.get(m.courseId)?.code ?? m.courseId} · {timeAgo(m.createdAt)}</div>
               </Link>

@@ -215,7 +215,7 @@ export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, 
         <div className="mb-3 flex flex-wrap gap-1 text-sm">
           {([["pdf", "Upload PDF"], ["file", "File .tex / .md / .txt"], ["paste", "Tempel teks"]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setTab(k)} disabled={running}
-              className={`rounded-md px-3 py-1.5 font-medium transition-colors ${tab === k ? "bg-ink text-surface" : "text-ink-soft hover:bg-paper"}`}>{l}</button>
+              className={tab === k ? "seg-active" : "seg"}>{l}</button>
           ))}
         </div>
 
@@ -264,7 +264,7 @@ export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, 
               {job.units.map((u) => (
                 <button key={u.n} type="button" title={u.error ?? ""} disabled={u.status !== "failed" || running} onClick={() => retryOne(u.n)}
                   className={`min-w-8 rounded border px-1.5 py-0.5 text-xs tabular-nums ${
-                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-bad-soft" : u.status === "working" ? "border-accent text-accent" : "border-line text-muted"}`}>
+                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-bad-soft" : u.status === "working" ? "border-accent text-cyan" : "border-line text-muted"}`}>
                   {u.n}{u.status === "failed" ? " ↻" : ""}
                 </button>
               ))}
@@ -293,7 +293,7 @@ export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, 
       <div>
         <div className="mb-1 flex items-center justify-between gap-2">
           <label className="label !mb-0">Isi materi (Markdown + LaTeX)</label>
-          <button type="button" className="text-xs font-medium text-accent disabled:opacity-50" disabled={running || !value.trim()}
+          <button type="button" className="text-xs font-medium text-cyan disabled:opacity-50" disabled={running || !value.trim()}
             onClick={() => void tidyText(value)}>
             Rapikan isi editor dengan AI
           </button>
@@ -312,7 +312,7 @@ export function MarkdownEditor({ value, onChange }: { value: string; onChange: (
     <div>
       <div className="mb-2 flex gap-1 text-sm md:hidden">
         {(["edit", "preview"] as const).map((k) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1 font-medium transition-colors ${tab === k ? "bg-ink text-surface" : "text-ink-soft"}`}>
+          <button key={k} type="button" onClick={() => setTab(k)} className={tab === k ? "seg-active" : "seg"}>
             {k === "edit" ? "Edit" : "Pratinjau"}
           </button>
         ))}

@@ -167,7 +167,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
                   <button
                     type="button"
                     aria-label={`Hapus ${c.name}`}
-                    className="shrink-0 rounded-control px-2.5 py-1.5 text-muted hover:bg-paper hover:text-bad"
+                    className="shrink-0 rounded-control px-2.5 py-1.5 text-muted hover:bg-navy-3 hover:text-bad"
                     onClick={() => change(picked.filter((x) => x.code !== c.code))}
                   >
                     ✕
