@@ -10,9 +10,9 @@ import AcademicFields from "./AcademicFields";
 import { Spinner } from "./ui";
 
 const NAV = [
-  { href: "/", label: "Mata Kuliah", match: (p: string) => p === "/" || p.startsWith("/courses") || p.startsWith("/materials") },
+  { href: "/", label: "Mata Kuliah", match: (p: string) => p === "/" || p.startsWith("/courses") || p.startsWith("/materials/") },
   { href: "/duels", label: "Duel", match: (p: string) => p.startsWith("/duel") },
-  { href: "/explore", label: "Jelajah", match: (p: string) => p.startsWith("/explore") },
+  { href: "/explore", label: "Jelajah", match: (p: string) => p.startsWith("/explore") || p === "/materials" },
 ];
 
 export function Logo() {

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType, myMaterials } from "@/lib/peerseus";
 import type { Course, MaterialType, Quiz } from "@/lib/types";
+import MaterialsTabs from "@/components/MaterialsTabs";
 import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 type Show = "" | "publik" | "privat" | MaterialType;
@@ -38,11 +39,9 @@ export default function MyMaterials() {
 
   return (
     <Page>
-      <PageHeader
-        back={{ href: "/", label: "Mata kuliah" }}
-        title="Materiku"
-        sub="Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah."
-      />
+      <PageHeader title="Jelajah materi" sub="Materi, catatan, dan past paper dari semua mata kuliah." />
+      <MaterialsTabs active="/materials" />
+      <p className="text-sm text-muted">Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah.</p>
       {data.materials.length === 0 ? (
         <Empty title="Belum ada materi" action={<Link href="/" className="btn-primary">Ke mata kuliahku</Link>}>Buka salah satu mata kuliahmu, lalu klik “Upload materi”.</Empty>
       ) : (

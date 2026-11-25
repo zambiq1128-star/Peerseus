@@ -38,15 +38,9 @@ export default function UserPage() {
 
   return (
     <Page width="narrow">
-      {isMe && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 !bg-paper text-sm">
-          <span>Ini profilmu seperti dilihat orang lain.</span>
-          <Link href="/profile" className="btn-ghost">Atur profil</Link>
-        </div>
-      )}
-
       <div>
         <PageHeader
+          back={{ label: "Kembali" }}
           title={<>
             {user.name}
             {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
@@ -57,6 +51,13 @@ export default function UserPage() {
         {user.bio && <p className="mt-3 text-sm">{user.bio}</p>}
         {user.contact && <p className="mt-2 text-sm text-muted">Kontak: <span className="text-ink">{user.contact}</span></p>}
       </div>
+
+      {isMe && (
+        <div className="card flex flex-wrap items-center justify-between gap-3 !bg-paper text-sm">
+          <span>Ini profilmu seperti dilihat orang lain.</span>
+          <Link href="/profile" className="btn-ghost">Atur profil</Link>
+        </div>
+      )}
 
       <Section title="Mata kuliah">
         {data.memberships.length === 0 ? <Empty>Belum ikut mata kuliah.</Empty> : (

@@ -44,10 +44,7 @@ export default function Home() {
       <PageHeader
         title="Mata kuliahku"
         sub="Pilih mata kuliah untuk buka materi dan mulai duel."
-        action={<>
-          <Link href="/materials" className="btn-ghost">Materiku</Link>
-          <Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>
-        </>}
+        action={<Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>}
       />
 
       <Section>
