@@ -1,17 +1,15 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { isMyTurn, joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
+import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, QuestionProposal } from "@/lib/types";
-import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
-  const { profile, refresh } = useAuth();
+  const { profile } = useAuth();
   const uid = profile!.id;
-  const [busy, setBusy] = useState("");
   const { data, error, reload } = useAsync(async () => {
     const courses = (await db.list<Course>("courses")).sort((a, b) => a.code.localeCompare(b.code));
     const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
@@ -26,16 +24,8 @@ export default function Home() {
   if (!data) return <Spinner />;
   const myTurn = data.duels.filter((d) => isMyTurn(d, uid));
   const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
-  const others = data.courses.filter((c) => !profile!.courseIds.includes(c.id));
   // Pending proposals grouped by material, in the order they arrived (newest first).
   const reviewByMaterial = [...new Map(data.toReview.map((p) => [p.materialId, { id: p.materialId, title: p.materialTitle, n: data.toReview.filter((x) => x.materialId === p.materialId).length }])).values()];
-
-  async function join(id: string) {
-    setBusy(id);
-    await joinCourse(profile!, id);
-    await refresh();
-    setBusy("");
-  }
 
   return (
     <Page>
@@ -68,7 +58,7 @@ export default function Home() {
       <Section>
         {joined.length === 0 ? (
           <Empty title="Belum ada mata kuliah" action={<Link href="/courses" className="btn-primary">Atur mata kuliah</Link>}>
-            Pilih mata kuliah semester ini, atau gabung salah satu di bawah.
+            Pilih mata kuliah semester ini. Mata kuliah lain bisa kamu tambah kapan saja.
           </Empty>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -88,6 +78,12 @@ export default function Home() {
               );
             })}
           </div>
+        )}
+        {joined.length > 0 && (
+          <p className="mt-2 text-xs text-muted">
+            Mata kuliah mengulang, pilihan, atau lintas prodi bisa ditambah kapan saja lewat{" "}
+            <Link href="/courses" className="link">Atur mata kuliah</Link>.
+          </p>
         )}
       </Section>
 
@@ -109,23 +105,6 @@ export default function Home() {
         </Section>
       )}
 
-      {others.length > 0 && (
-        <Section title="Mata kuliah lain">
-          <CollapsibleRows items={others}>
-            {(c) => (
-              <div key={c.id} className="flex items-center justify-between gap-3 p-4">
-                <div>
-                  <div className="font-medium">{c.code} · {c.name}</div>
-                  <div className="text-xs text-muted">{c.description}</div>
-                </div>
-                <button className="btn-ghost shrink-0" disabled={busy === c.id} onClick={() => join(c.id)}>
-                  {busy === c.id ? "…" : "Gabung"}
-                </button>
-              </div>
-            )}
-          </CollapsibleRows>
-        </Section>
-      )}
     </Page>
   );
 }
