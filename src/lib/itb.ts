@@ -147,6 +147,9 @@ export function academicPatch(a: Academic): Required<Pick<AcademicFields, "major
     : { major: a.faculty, stage: "jurusan", program: choice, dreamProgram: undefined };
 }
 
+/** Angkatan for other people, e.g. "angkatan 2024"; empty when hidden or unknown. */
+export const entryYearLabel = (p: { entryYear?: number } | null | undefined) => (p?.entryYear ? `angkatan ${p.entryYear}` : "");
+
 /** Short label for other people, e.g. "Teknik Kimia · FTI" or "TPB FTI · incar Teknik Kimia". */
 export function academicLabel(p: Partial<AcademicFields> | null | undefined, fallbackFaculty = ""): string {
   const faculty = p?.major || fallbackFaculty;

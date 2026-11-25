@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { firebaseEnabled } from "@/lib/firebase";
-import { academicOf, academicPatch, FACULTIES, suggestAcademic, type Academic } from "@/lib/itb";
+import { academicOf, academicPatch, FACULTIES, readNim, suggestAcademic, type Academic } from "@/lib/itb";
 import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 
@@ -114,7 +114,7 @@ function ProfileSetup() {
     try {
       const fields = { name: name.trim(), ...academicPatch(academic) };
       if (!uid) await signInLocal(fields);
-      else await saveProfile({ ...fields, year: 1, isPublic: true });
+      else await saveProfile({ ...fields, entryYear: profile?.entryYear ?? readNim(authEmail)?.entryYear, year: 1, isPublic: true });
     } catch (e) {
       setErr((e as Error).message);
       setBusy(false);

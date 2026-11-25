@@ -11,19 +11,23 @@ export type UserProfile = {
   dreamProgram?: string;
   /** Semester picked on the Mata Kuliah page (1 = first semester). Missing until that page is saved once. */
   semester?: number;
+  /** Angkatan (intake year), prefilled from the NIM and editable. `year` below is older and unused. */
+  entryYear?: number;
   year: number;
   bio?: string;
   contact?: string;
   isPublic: boolean;
   /** What other people may read. Missing switch = shown. Hidden fields live in users/{uid}/private/profile (src/lib/privacy.ts). */
   privacy?: Privacy;
+  /** Set by the app at sign-in: true for ITB accounts, false for guests. firestore.rules check it matches the token. */
+  isItbVerified?: boolean;
   isBot?: boolean;
   courseIds: string[];
   createdAt: number;
 };
 
 /** Per-item visibility. showProgram covers `program` and `dreamProgram`. */
-export type Privacy = { showProgram?: boolean; showContact?: boolean };
+export type Privacy = { showProgram?: boolean; showEntryYear?: boolean; showContact?: boolean };
 
 export type Course = {
   id: string;

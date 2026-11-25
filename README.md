@@ -10,7 +10,7 @@ One simple loop:
 4. **Duel**: one click starts a timed duel (6 questions, 20 s each) against the closest-rated peer.
 5. **Hasil**: score, rating change, topics you missed, and study partners strong in those topics (with contact).
 
-Profiles: each person picks what others can see (program, contact) on **Profil**; `/users/[id]` shows a profile as others see it. Hidden fields are stored in `users/{uid}/private/profile`, which `firestore.rules` lets only the owner read (`src/lib/privacy.ts`).
+Profiles: each person picks what others can see (program, angkatan, contact) on **Profil**, and non-ITB accounts get a **Tamu** badge; `/users/[id]` shows a profile as others see it. Hidden fields are stored in `users/{uid}/private/profile`, which `firestore.rules` lets only the owner read (`src/lib/privacy.ts`).
 
 Supporting: **Info** page with scholarships, competitions and seminars, filterable by type, faculty and deadline.
 

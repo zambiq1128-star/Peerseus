@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { academicLabel } from "@/lib/itb";
+import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
 import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -45,8 +45,12 @@ export default function UserPage() {
       )}
 
       <div>
-        <h1 className="text-xl font-bold">{user.name}{user.isBot && <span className="badge ml-2 align-middle">demo</span>}</h1>
-        <p className="text-sm text-muted">{academicLabel(user)}{user.semester ? ` · semester ${user.semester}` : ""}</p>
+        <h1 className="text-xl font-bold">
+          {user.name}
+          {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
+          {user.isItbVerified === false && <span className="badge ml-2 align-middle">Tamu</span>}
+        </h1>
+        <p className="text-sm text-muted">{[academicLabel(user), entryYearLabel(user), user.semester ? `semester ${user.semester}` : ""].filter(Boolean).join(" · ")}</p>
         {user.bio && <p className="mt-3 text-sm">{user.bio}</p>}
         {user.contact && <p className="mt-2 text-sm text-muted">Kontak: <span className="text-ink">{user.contact}</span></p>}
       </div>
