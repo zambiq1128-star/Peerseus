@@ -65,6 +65,14 @@
   --animate-slide-right: slide-right 420ms var(--ease-overshoot) backwards;
   --animate-slide-down: slide-down 380ms var(--ease-overshoot) backwards;
 
+  /* Duel drama: big numbers slam in, the winner glows, the clock pulses when time is short. */
+  --animate-slam: slam 520ms var(--ease-overshoot) backwards;
+  --animate-glow: glow 1800ms ease-in-out infinite;
+  --animate-tick: tick 700ms ease-in-out infinite;
+
+  @keyframes slam { from { opacity: 0; transform: scale(2.2) skewX(-8deg); } }
+  @keyframes glow { 50% { filter: brightness(1.25) drop-shadow(0 0 18px currentColor); } }
+  @keyframes tick { 50% { transform: scale(1.12); } }
   @keyframes slide-left { from { opacity: 0; transform: translateX(-48px) skewX(-12deg); } }
   @keyframes slide-right { from { opacity: 0; transform: translateX(48px) skewX(-12deg); } }
   @keyframes slide-down { from { opacity: 0; transform: translateY(-100%); } }

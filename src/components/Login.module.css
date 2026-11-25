@@ -133,6 +133,17 @@
   border-radius: 10px;
   background: #ffffff;
   padding: 1.25rem;
+  /* The card stays light (Figma). Re-point the app tokens so shared inputs, labels and the stage switch read on white. */
+  --color-ink: #111827;
+  --color-ink-soft: #374151;
+  --color-muted: #4b5563;
+  --color-canvas: #ffffff;
+  --color-surface: #ffffff;
+  --color-line: #d1d5db;
+  --color-navy-3: #e5e7eb;
+  --color-bad: #b91c1c;
+  --color-good: #15803d;
+  color: var(--color-ink);
 }
 
 .cardLogin {
