@@ -87,4 +87,40 @@ export async function rejectProposal(p: QuestionProposal, reason: string) {
 /** The proposer takes back a proposal nobody has reviewed yet. */
 export const withdrawProposal = (p: QuestionProposal) => db.remove(PROPOSALS, p.id);
 
+// ---------- Kelola soal (the uploader edits a published quiz) ----------
+// Duels copy their questions when created, so changes here only reach new duels and new practice runs.
+
+/** Fewest questions a published quiz keeps (the same minimum as publishing a draft). */
+export const MIN_QUIZ_QUESTIONS = 3;
+
+async function publishedQuiz(quizId: string) {
+  const quiz = await db.get<Quiz>("quizzes", quizId);
+  if (!quiz || quiz.status !== "published") throw new Error("Kuisnya tidak ditemukan.");
+  return quiz;
+}
+
+/** The uploader adds a question of their own: no review, straight into the quiz. */
+export async function addOwnQuestion(quizId: string, q: Question) {
+  const problem = questionProblem(q);
+  if (problem) throw new Error(problem);
+  const quiz = await publishedQuiz(quizId);
+  if (!canAddQuestions(quiz)) throw new Error(`Kuis ini sudah ${MAX_QUIZ_QUESTIONS} soal.`);
+  await db.update("quizzes", quiz.id, { questions: [...quiz.questions, { ...tidy(q), id: newId("o") }] });
+}
+
+/** Saves an edited question (matched by id); keeps who proposed it. */
+export async function updateQuizQuestion(quizId: string, q: Question) {
+  const problem = questionProblem(q);
+  if (problem) throw new Error(problem);
+  const quiz = await publishedQuiz(quizId);
+  if (!quiz.questions.some((x) => x.id === q.id)) throw new Error("Soal ini sudah tidak ada di kuis.");
+  await db.update("quizzes", quiz.id, { questions: quiz.questions.map((x) => (x.id === q.id ? { ...tidy(q), proposedBy: x.proposedBy } : x)) });
+}
+
+export async function deleteQuizQuestion(quizId: string, questionId: string) {
+  const quiz = await publishedQuiz(quizId);
+  if (quiz.questions.length <= MIN_QUIZ_QUESTIONS) throw new Error(`Kuis minimal ${MIN_QUIZ_QUESTIONS} soal.`);
+  await db.update("quizzes", quiz.id, { questions: quiz.questions.filter((x) => x.id !== questionId) });
+}
+
 export const PROPOSAL_STATUS: Record<QuestionProposal["status"], string> = { pending: "Menunggu", accepted: "Diterima", rejected: "Ditolak" };

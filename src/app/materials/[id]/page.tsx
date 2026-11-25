@@ -12,7 +12,7 @@ import type { WaitInfo } from "@/lib/convert";
 import { CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
 import { AttachmentPreview } from "@/components/AttachmentField";
-import { MyProposals, ProposeQuestion, ReviewProposals } from "@/components/Proposals";
+import { ManageQuestions, MyProposals, ProposeQuestion, ReviewProposals } from "@/components/Proposals";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -90,7 +90,10 @@ export default function MaterialPage() {
       {attempts.length > 0 && <PracticeHistory attempts={attempts} />}
 
       {quiz?.status === "published" && (isUploader
-        ? <ReviewProposals list={proposals} quiz={quiz} topics={material.topics} onChange={reload} />
+        ? <>
+            <ReviewProposals list={proposals} quiz={quiz} topics={material.topics} onChange={reload} />
+            <ManageQuestions quiz={quiz} topics={material.topics} onChange={reload} />
+          </>
         : <>
             <ProposeQuestion quiz={quiz} material={material} me={profile!} onDone={reload} />
             <MyProposals list={proposals} onChange={reload} />

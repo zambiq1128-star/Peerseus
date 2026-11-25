@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import {
-  acceptProposal, blankQuestion, MAX_QUIZ_QUESTIONS, PROPOSAL_STATUS, proposeQuestion, questionProblem, rejectProposal, withdrawProposal,
+  acceptProposal, addOwnQuestion, blankQuestion, deleteQuizQuestion, MAX_QUIZ_QUESTIONS, MIN_QUIZ_QUESTIONS, PROPOSAL_STATUS, proposeQuestion,
+  questionProblem, rejectProposal, updateQuizQuestion, withdrawProposal,
 } from "@/lib/proposals";
 import type { Material, Question, QuestionProposal, Quiz, UserProfile } from "@/lib/types";
 import { MathText } from "./Markdown";
-import { Section, timeAgo } from "./ui";
+import { CollapsibleRows, Section, timeAgo } from "./ui";
 
 /** Fields of one multiple-choice question, with a LaTeX preview of the question and the options. */
 export function QuestionForm({ value: q, onChange, topics, idPrefix }: {
@@ -194,6 +195,115 @@ function ReviewOne({ p, full, topics, onDone }: { p: QuestionProposal; full: boo
           <button className="btn-primary" onClick={() => act(() => acceptProposal(p, q))} disabled={busy || !!problem || full}>{busy ? "Menyimpan…" : "Terima"}</button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** The uploader's own view of a published quiz: add questions directly, edit or delete existing ones. */
+export function ManageQuestions({ quiz, topics, onChange }: { quiz: Quiz; topics: string[]; onChange: () => void }) {
+  const [adding, setAdding] = useState<Question | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const n = quiz.questions.length;
+  const full = n >= MAX_QUIZ_QUESTIONS;
+
+  async function add() {
+    setBusy(true);
+    setErr("");
+    try {
+      await addOwnQuestion(quiz.id, adding!);
+      setAdding(null);
+      onChange();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+    setBusy(false);
+  }
+
+  return (
+    <Section
+      title={`Kelola soal (${n}/${MAX_QUIZ_QUESTIONS})`}
+      action={!adding && !full && <button className="btn-ghost !py-1.5" onClick={() => setAdding(blankQuestion(topics[0] ?? ""))}>Tambah soal</button>}
+    >
+      <p className="mb-3 text-sm text-muted">Perubahan berlaku untuk duel dan latihan berikutnya. Duel yang sudah dibuat memakai soal saat duel dibuat. Minimal {MIN_QUIZ_QUESTIONS} soal.</p>
+      {adding && (
+        <div className="card mb-3 space-y-3">
+          <div className="font-semibold">Soal baru</div>
+          <QuestionForm value={adding} onChange={setAdding} topics={topics} idPrefix="add" />
+          {err && <p className="text-sm text-bad">{err}</p>}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {questionProblem(adding) && <span className="mr-auto text-xs text-muted">{questionProblem(adding)}</span>}
+            <button className="btn-ghost" onClick={() => { setAdding(null); setErr(""); }} disabled={busy}>Batal</button>
+            <button className="btn-primary" onClick={add} disabled={busy || !!questionProblem(adding)}>{busy ? "Menyimpan…" : "Tambahkan ke kuis"}</button>
+          </div>
+        </div>
+      )}
+      <CollapsibleRows items={quiz.questions.map((q, i) => ({ q, i }))}>
+        {({ q, i }) => <ManageOne key={q.id} q={q} no={i + 1} quiz={quiz} topics={topics} canDelete={n > MIN_QUIZ_QUESTIONS} onDone={onChange} />}
+      </CollapsibleRows>
+    </Section>
+  );
+}
+
+function ManageOne({ q, no, quiz, topics, canDelete, onDone }: { q: Question; no: number; quiz: Quiz; topics: string[]; canDelete: boolean; onDone: () => void }) {
+  const [editing, setEditing] = useState<Question | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function act(fn: () => Promise<void>, after: () => void) {
+    setBusy(true);
+    setErr("");
+    try {
+      await fn();
+      after();
+      onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+    setBusy(false);
+  }
+
+  if (editing) {
+    const problem = questionProblem(editing);
+    return (
+      <div className="space-y-3 p-4">
+        <div className="text-xs font-semibold text-muted">Edit soal {no}</div>
+        <QuestionForm value={editing} onChange={setEditing} topics={topics} idPrefix={`edit-${q.id}`} />
+        {err && <p className="text-sm text-bad">{err}</p>}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {problem && <span className="mr-auto text-xs text-muted">{problem}</span>}
+          <button className="btn-ghost" onClick={() => { setEditing(null); setErr(""); }} disabled={busy}>Batal</button>
+          <button className="btn-primary" disabled={busy || !!problem} onClick={() => act(() => updateQuizQuestion(quiz.id, editing), () => setEditing(null))}>{busy ? "Menyimpan…" : "Simpan"}</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 p-4 text-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium"><span className="text-muted">{no}.</span> <MathText text={q.question} /></div>
+          <div className="mt-0.5 text-xs text-muted">
+            {q.topic} · jawaban {"ABCD"[q.answerIndex]}{q.proposedBy && <> · diusulkan oleh {q.proposedBy.name}</>}
+          </div>
+        </div>
+        {!confirming && (
+          <div className="flex shrink-0 gap-3 text-xs">
+            <button className="link" onClick={() => setEditing(q)}>Edit</button>
+            <button className="text-bad hover:underline disabled:opacity-40" disabled={!canDelete} title={canDelete ? undefined : `Kuis minimal ${MIN_QUIZ_QUESTIONS} soal`} onClick={() => setConfirming(true)}>Hapus</button>
+          </div>
+        )}
+      </div>
+      {confirming && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <span className="mr-auto text-xs text-bad">Hapus soal ini dari kuis?</span>
+          <button className="btn-ghost !py-1.5" onClick={() => setConfirming(false)} disabled={busy}>Batal</button>
+          <button className="btn-primary !py-1.5" onClick={() => act(() => deleteQuizQuestion(quiz.id, q.id), () => setConfirming(false))} disabled={busy}>{busy ? "Menghapus…" : "Ya, hapus"}</button>
+        </div>
+      )}
+      {err && <p className="text-xs text-bad">{err}</p>}
     </div>
   );
 }

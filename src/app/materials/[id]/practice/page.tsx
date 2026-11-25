@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMaterial } from "@/lib/peerseus";
 import {
-  clampMinutes, defaultPracticeMinutes, finishRun, formatClock, formatDuration, loadRun, minutesLabel,
+  clampMinutes, clearRun, defaultPracticeMinutes, finishRun, formatClock, formatDuration, loadRun, minutesLabel,
   practiceMissedTopics, PRACTICE_MAX_MINUTES, PRACTICE_PRESETS, runQuestions, saveRun, startRun, type PracticeRun,
 } from "@/lib/practice";
 import type { PracticeAttempt, Quiz } from "@/lib/types";
@@ -45,7 +45,9 @@ function Practice({ quiz }: { quiz: Quiz }) {
   const uid = profile!.id;
   const [phase, setPhase] = useState<Phase>(() => {
     const run = loadRun(uid, quiz.id);
-    return run ? { kind: "play", run } : { kind: "start" };
+    // A run whose questions were all deleted meanwhile can't continue: start over.
+    if (run && !runQuestions(quiz, run).length) clearRun(uid, quiz.id);
+    return run && runQuestions(quiz, run).length ? { kind: "play", run } : { kind: "start" };
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
@@ -127,7 +129,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
   const [confirming, setConfirming] = useState(false);
   const items = runQuestions(quiz, run);
   const k = Math.min(run.current, items.length - 1);
-  const { question: q, answer } = items[k];
+  const { question: q, answer, slot } = items[k];
   const left = run.deadline - now;
   const empty = items.filter((x) => x.answer === -1).length;
 
@@ -141,7 +143,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
   }, [left, err, run, onSubmit]);
 
   const go = (i: number) => { setConfirming(false); onChange({ ...run, current: i }); };
-  const pick = (opt: number) => onChange({ ...run, answers: run.answers.map((a, j) => (j === k ? (a === opt ? -1 : opt) : a)) });
+  const pick = (opt: number) => onChange({ ...run, answers: run.answers.map((a, j) => (j === slot ? (a === opt ? -1 : opt) : a)) });
 
   return (
     <Page width="narrow">

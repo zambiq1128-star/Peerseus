@@ -17,13 +17,13 @@ export const clampMinutes = (m: number) => Math.min(PRACTICE_MAX_MINUTES, Math.m
 
 /**
  * A run in progress, kept in this browser (localStorage) so a closed page can continue. The deadline is
- * absolute, so the clock keeps running while the page is closed. `order` holds indexes into quiz.questions
- * (questions are only ever added to a published quiz, so indexes stay valid); `answers[k]` is the option
- * picked for order[k], -1 = empty.
+ * absolute, so the clock keeps running while the page is closed. `order` holds question ids, so the run
+ * survives the uploader adding, editing or deleting questions meanwhile (runs saved before ids were used
+ * hold indexes into quiz.questions); `answers[k]` is the option picked for order[k], -1 = empty.
  */
 export type PracticeRun = {
   quizId: string;
-  order: number[];
+  order: (string | number)[];
   answers: number[];
   current: number;
   limitMinutes: number;
@@ -63,7 +63,7 @@ export function startRun(uid: string, quiz: Quiz, minutes: number): PracticeRun 
   const now = Date.now();
   const run: PracticeRun = {
     quizId: quiz.id,
-    order: shuffle(quiz.questions.map((_, i) => i)),
+    order: shuffle(quiz.questions.map((q) => q.id)),
     answers: quiz.questions.map(() => -1),
     current: 0,
     limitMinutes,
@@ -74,11 +74,14 @@ export function startRun(uid: string, quiz: Quiz, minutes: number): PracticeRun 
   return run;
 }
 
-/** The run's questions in its order (skips any index the quiz no longer has). */
-export function runQuestions(quiz: Quiz, run: PracticeRun): { question: Question; answer: number }[] {
+export type RunItem = { question: Question; answer: number; /** position in run.order / run.answers */ slot: number };
+
+/** The run's questions in its order, with their current text (skips questions deleted since the run started). */
+export function runQuestions(quiz: Quiz, run: PracticeRun): RunItem[] {
+  const byId = new Map(quiz.questions.map((q) => [q.id, q]));
   return run.order
-    .map((qi, k) => ({ question: quiz.questions[qi], answer: run.answers[k] ?? -1 }))
-    .filter((x) => x.question);
+    .map((key, slot) => ({ question: typeof key === "number" ? quiz.questions[key] : byId.get(key), answer: run.answers[slot] ?? -1, slot }))
+    .filter((x): x is RunItem => !!x.question);
 }
 
 /** Scores the run, saves it to the owner's history and forgets the run in this browser. */
