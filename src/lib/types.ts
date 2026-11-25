@@ -101,6 +101,29 @@ export type Question = {
   answerIndex: number;
   explanation: string;
   topic: string;
+  /** Set on questions another user proposed and the uploader accepted (questionProposals). */
+  proposedBy?: { id: string; name: string };
+};
+
+/**
+ * A question someone proposed for a published quiz (usul soal). The material's uploader edits it, then
+ * accepts it (it is added to the quiz) or rejects it with an optional reason. Readable only by the proposer
+ * and that uploader.
+ */
+export type QuestionProposal = {
+  id: string;
+  quizId: string;
+  materialId: string;
+  courseId: string;
+  uploaderId: string;
+  materialTitle: string;
+  question: Question;
+  proposerId: string;
+  proposerName: string;
+  status: "pending" | "accepted" | "rejected";
+  rejectReason?: string;
+  createdAt: number;
+  reviewedAt?: number;
 };
 
 export type Quiz = {

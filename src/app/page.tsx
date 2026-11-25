@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isMyTurn, joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
-import type { Course, Membership } from "@/lib/types";
+import { proposalsToReview } from "@/lib/proposals";
+import type { Course, Membership, QuestionProposal } from "@/lib/types";
 import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
@@ -16,7 +17,9 @@ export default function Home() {
     const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
     const duels = await myDuels(uid);
     const latest = await latestMaterials(profile!.courseIds);
-    return { courses, ms, duels, latest };
+    // Questions others proposed for my quizzes (empty until firestore.rules allow questionProposals).
+    const toReview = await proposalsToReview(uid).catch(() => [] as QuestionProposal[]);
+    return { courses, ms, duels, latest, toReview };
   }, [uid, profile?.courseIds.length]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -24,6 +27,8 @@ export default function Home() {
   const myTurn = data.duels.filter((d) => isMyTurn(d, uid));
   const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
   const others = data.courses.filter((c) => !profile!.courseIds.includes(c.id));
+  // Pending proposals grouped by material, in the order they arrived (newest first).
+  const reviewByMaterial = [...new Map(data.toReview.map((p) => [p.materialId, { id: p.materialId, title: p.materialTitle, n: data.toReview.filter((x) => x.materialId === p.materialId).length }])).values()];
 
   async function join(id: string) {
     setBusy(id);
@@ -39,6 +44,19 @@ export default function Home() {
           <span className="text-sm font-medium">{myTurn.length} tantangan duel menunggu jawabanmu.</span>
           <Link href={`/duel/${myTurn[0].id}`} className="btn-primary">Jawab sekarang</Link>
         </div>
+      )}
+
+      {reviewByMaterial.length > 0 && (
+        <Section title={`Usulan soal menunggu (${data.toReview.length})`}>
+          <div className="rows">
+            {reviewByMaterial.map((m) => (
+              <Link key={m.id} href={`/materials/${m.id}`} className="row-link">
+                <span className="text-sm font-medium">{m.title}</span>
+                <span className="badge-accent shrink-0">{m.n} usulan</span>
+              </Link>
+            ))}
+          </div>
+        </Section>
       )}
 
       <PageHeader

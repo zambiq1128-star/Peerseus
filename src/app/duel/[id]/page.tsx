@@ -190,6 +190,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
                   {!ok && <span className="text-bad"> · kamu: {a === -1 ? "waktu habis" : <MathText text={q.options[a]} />}</span>}
                 </div>
                 <div className="text-xs text-muted"><MathText text={q.explanation} /></div>
+                {q.proposedBy && <div className="text-xs text-muted">Diusulkan oleh {q.proposedBy.name}</div>}
               </li>
             );
           })}

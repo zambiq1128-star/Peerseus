@@ -6,11 +6,13 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateQuiz, getMaterial, withUploaderNames, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import { formatDuration, loadRun, myPracticeAttempts } from "@/lib/practice";
-import type { PracticeAttempt, Question, Quiz } from "@/lib/types";
+import { myProposals, proposalsToReview } from "@/lib/proposals";
+import type { PracticeAttempt, Question, QuestionProposal, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
 import { CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
 import { AttachmentPreview } from "@/components/AttachmentField";
+import { MyProposals, ProposeQuestion, ReviewProposals } from "@/components/Proposals";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +24,10 @@ export default function MaterialPage() {
     const quiz = await db.get<Quiz>("quizzes", `quiz_${id}`);
     // My solo practice history. Fails (and is left empty) until firestore.rules allow practiceAttempts.
     const attempts = quiz?.status === "published" ? await myPracticeAttempts(uid, id).catch(() => [] as PracticeAttempt[]) : [];
-    return { material, quiz, attempts };
+    // Proposed questions: the uploader's review queue, or the ones I sent. Empty until the rules allow them.
+    const published = !!material && quiz?.status === "published";
+    const proposals = !published ? [] : await (material!.uploaderId === uid ? proposalsToReview(uid, id) : myProposals(uid, id)).catch(() => [] as QuestionProposal[]);
+    return { material, quiz, attempts, proposals };
   }, [id, uid]);
   const [showText, setShowText] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -32,7 +37,7 @@ export default function MaterialPage() {
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
-  const { material, quiz, attempts } = data;
+  const { material, quiz, attempts, proposals } = data;
   if (!material) return <NotFound title="Materi tidak ditemukan" />;
   const isUploader = material.uploaderId === uid;
   const isPrivate = material.isPublic === false;
@@ -83,6 +88,13 @@ export default function MaterialPage() {
       )}
 
       {attempts.length > 0 && <PracticeHistory attempts={attempts} />}
+
+      {quiz?.status === "published" && (isUploader
+        ? <ReviewProposals list={proposals} quiz={quiz} topics={material.topics} onChange={reload} />
+        : <>
+            <ProposeQuestion quiz={quiz} material={material} me={profile!} onDone={reload} />
+            <MyProposals list={proposals} onChange={reload} />
+          </>)}
 
       {isPrivate && (
         <Empty>Materi privat hanya bisa kamu lihat. Untuk membuat kuis dan dipakai duel, jadikan publik lewat <Link href={`/materials/${material.id}/edit`} className="link">Edit materi</Link>.</Empty>
