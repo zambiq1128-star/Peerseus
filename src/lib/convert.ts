@@ -36,7 +36,7 @@ export type Reply = { error?: string; code?: string; retryable?: boolean; hasFal
 let lastRequestAt = 0;
 
 /** The AI routes only answer signed-in ITB accounts, so send the Firebase ID token (refreshed by Firebase when needed). */
-async function authHeaders(): Promise<Record<string, string>> {
+export async function authHeaders(): Promise<Record<string, string>> {
   if (!firebaseEnabled) return {};
   const token = await getAuth(getFirebaseApp()).currentUser?.getIdToken();
   return token ? { Authorization: `Bearer ${token}` } : {};

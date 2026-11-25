@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getMaterial, materialType, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
+import AttachmentField, { attachmentToSave, cleanUpAttachment, draftOf, useAttachmentConfig, type AttachmentDraft } from "@/components/AttachmentField";
 import { ErrorState, MaterialTypeField, NotFound, Page, PageHeader, PrivateField, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
@@ -18,6 +19,8 @@ export default function EditMaterial() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
+  const [attachment, setAttachment] = useState<AttachmentDraft>(null);
+  const attachmentCfg = useAttachmentConfig();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
@@ -28,6 +31,7 @@ export default function EditMaterial() {
     setIsPrivate(material.isPublic === false);
     setTopics(material.topics.join(", "));
     setText(material.text);
+    setAttachment(draftOf(material.attachment));
   }, [material]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -41,8 +45,11 @@ export default function EditMaterial() {
     if (!text.trim()) return setErr("Isi materi tidak boleh kosong.");
     setBusy(true);
     try {
-      const m = await setMaterialPublic(material!, !isPrivate);
-      await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim() });
+      // Team Drive files never go into privateMaterials (they are readable by anyone with the link), and own-Drive links never go public.
+      const file = await attachmentToSave(attachment, isPrivate);
+      const m = await setMaterialPublic({ ...material!, attachment: file }, !isPrivate);
+      await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim(), attachment: file });
+      await cleanUpAttachment(material!.attachment, file);
       router.push(`/materials/${id}`);
     } catch (e) {
       setErr((e as Error).message);
@@ -64,6 +71,7 @@ export default function EditMaterial() {
           <MaterialTypeField value={type} onChange={setType} />
         </div>
         <MaterialComposer value={text} onChange={setText} />
+        <AttachmentField value={attachment} onChange={setAttachment} isPrivate={isPrivate} config={attachmentCfg} />
         <PrivateField checked={isPrivate} onChange={setIsPrivate} />
         <p className="text-xs text-muted">Kuis yang sudah ada tidak berubah otomatis setelah materi diedit.</p>
         {err && <p className="text-sm text-bad">{err}</p>}

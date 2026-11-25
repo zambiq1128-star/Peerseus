@@ -116,34 +116,42 @@ function firebaseProjectId(): string | null {
     : null;
 }
 
+/** Who made the request: `user` is null in local demo mode (no Firebase env), where the routes stay open. */
+export type AllowedCheck = { denied: Response; user?: undefined } | { denied: null; user: TokenUser | null };
+
 /**
- * Returns an error response unless the request comes from a signed-in ITB account or listed guest,
- * or null to go on. In local demo mode (no Firebase env) there are no accounts at all, so the routes stay open.
+ * Checks that the request comes from a signed-in ITB account or listed guest. On failure `denied` is the
+ * error response to send. In local demo mode (no Firebase env) there are no accounts at all, so it lets everyone in.
  */
-export async function requireAllowedUser(req: Request): Promise<Response | null> {
+export async function checkAllowedUser(req: Request): Promise<AllowedCheck> {
   const projectId = firebaseProjectId();
-  if (!projectId) return null;
+  if (!projectId) return { denied: null, user: null };
 
   const token = /^Bearer\s+(\S+)$/i.exec(req.headers.get("authorization") ?? "")?.[1];
-  if (!token) return Response.json({ error: "Silakan masuk dulu.", code: "unauthenticated", retryable: false }, { status: 401 });
+  if (!token) return { denied: Response.json({ error: "Silakan masuk dulu.", code: "unauthenticated", retryable: false }, { status: 401 }) };
 
   let user: TokenUser;
   try {
     user = await verifyFirebaseIdToken(token, projectId);
   } catch (e) {
     if (e instanceof InvalidTokenError) {
-      return Response.json({ error: "Sesi login sudah tidak berlaku. Muat ulang halaman, lalu masuk lagi.", code: "unauthenticated", retryable: false }, { status: 401 });
+      return { denied: Response.json({ error: "Sesi login sudah tidak berlaku. Muat ulang halaman, lalu masuk lagi.", code: "unauthenticated", retryable: false }, { status: 401 }) };
     }
     console.error("[auth] could not check the login token:", (e as Error).message);
-    return Response.json({ error: "Gagal memeriksa login. Coba lagi sebentar.", code: "auth_unavailable", retryable: true }, { status: 503 });
+    return { denied: Response.json({ error: "Gagal memeriksa login. Coba lagi sebentar.", code: "auth_unavailable", retryable: true }, { status: 503 }) };
   }
-  const denied = Response.json({ error: NOT_ALLOWED_MESSAGE, code: "not_allowed", retryable: false }, { status: 403 });
-  if (isItbAccount(user)) return null;
+  const denied = { denied: Response.json({ error: NOT_ALLOWED_MESSAGE, code: "not_allowed", retryable: false }, { status: 403 }) };
+  if (isItbAccount(user)) return { denied: null, user };
   if (!user.emailVerified || !user.email) return denied; // guests need a verified email
   try {
-    return (await isListedGuest(user.email, token, projectId)) ? null : denied;
+    return (await isListedGuest(user.email, token, projectId)) ? { denied: null, user } : denied;
   } catch (e) {
     console.error("[auth] could not read the guest list:", (e as Error).message);
-    return Response.json({ error: "Gagal memeriksa akses. Coba lagi sebentar.", code: "auth_unavailable", retryable: true }, { status: 503 });
+    return { denied: Response.json({ error: "Gagal memeriksa akses. Coba lagi sebentar.", code: "auth_unavailable", retryable: true }, { status: 503 }) };
   }
+}
+
+/** Returns an error response unless the request comes from an allowed user (see checkAllowedUser), or null to go on. */
+export async function requireAllowedUser(req: Request): Promise<Response | null> {
+  return (await checkAllowedUser(req)).denied;
 }

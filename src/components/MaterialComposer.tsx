@@ -31,8 +31,16 @@ function combine(job: Job): string {
     .join("\n\n");
 }
 
-/** Material input (PDF, .tex/.md/.txt, or pasted text) plus the Markdown/LaTeX editor with preview. */
-export default function MaterialComposer({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+/**
+ * Material input (PDF, .tex/.md/.txt, or pasted text) plus the Markdown/LaTeX editor with preview.
+ * `onPdf` gets each PDF the user picks (the upload page offers it as the attachment); `keepsPdf` says it will be kept.
+ */
+export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, keepsPdf = false }: {
+  value: string;
+  onChange: (v: string) => void;
+  onPdf?: (f: File) => void;
+  keepsPdf?: boolean;
+}) {
   const [tab, setTab] = useState<"pdf" | "file" | "paste">("pdf");
   const [paste, setPaste] = useState("");
   const [note, setNote] = useState("");
@@ -125,6 +133,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
     setNote("");
     if (!f) return;
     if (!isPdf(f)) return setNote("Pilih file PDF.");
+    onPdfPicked?.(f);
     pdfRef.current?.destroy();
     pdfRef.current = null;
     setJob(null);
@@ -213,7 +222,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
         {tab === "pdf" && (
           <div className="space-y-1">
             <input type="file" accept=".pdf,application/pdf" disabled={running} onChange={(e) => { void onPdf(e.target.files?.[0] ?? null); e.target.value = ""; }} className="text-sm" />
-            <p className="text-xs text-muted">Maksimal {MAX_PDF_PAGES} halaman. Tiap halaman dibaca AI dari gambarnya, jadi rumus dan PDF hasil scan tetap terbaca. File PDF-nya tidak disimpan.</p>
+            <p className="text-xs text-muted">Maksimal {MAX_PDF_PAGES} halaman. Tiap halaman dibaca AI dari gambarnya, jadi rumus dan PDF hasil scan tetap terbaca. {keepsPdf ? "File PDF aslinya ikut disimpan sebagai lampiran (bisa dihapus di bawah)." : "File PDF-nya tidak disimpan."}</p>
           </div>
         )}
         {tab === "file" && (

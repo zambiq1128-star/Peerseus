@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { createMaterial } from "@/lib/peerseus";
 import MaterialComposer from "@/components/MaterialComposer";
+import AttachmentField, { attachmentToSave, useAttachmentConfig, type AttachmentDraft } from "@/components/AttachmentField";
+import { checkAttachment } from "@/lib/attachments";
 import { MaterialTypeField, Page, PageHeader, PrivateField } from "@/components/ui";
 import type { MaterialType } from "@/lib/types";
 
@@ -16,6 +18,8 @@ export default function Upload() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
+  const [attachment, setAttachment] = useState<AttachmentDraft>(null);
+  const attachmentCfg = useAttachmentConfig();
   const [agree, setAgree] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -26,6 +30,7 @@ export default function Upload() {
     if (!text.trim()) return setErr("Isi materi masih kosong. Upload file atau tempel teks dulu.");
     setBusy(true);
     try {
+      const file = await attachmentToSave(attachment, isPrivate);
       const m = await createMaterial({
         courseId: id,
         title: title.trim(),
@@ -35,6 +40,7 @@ export default function Upload() {
         topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
         text: text.trim(),
         format: "markdown",
+        attachment: file,
         uploaderId: profile!.id,
         uploaderName: profile!.name,
       });
@@ -61,14 +67,21 @@ export default function Upload() {
           </div>
           <MaterialTypeField value={type} onChange={setType} />
         </div>
-        <MaterialComposer value={text} onChange={setText} />
+        <MaterialComposer
+          value={text}
+          onChange={setText}
+          keepsPdf={!!attachmentCfg?.enabled && !isPrivate}
+          // A PDF read into the editor is also offered as the attachment, unless one is already picked.
+          onPdf={(f) => { if (!attachment && !isPrivate && attachmentCfg?.enabled && !checkAttachment(f, attachmentCfg.maxBytes)) setAttachment({ kind: "new", file: f }); }}
+        />
+        <AttachmentField value={attachment} onChange={setAttachment} isPrivate={isPrivate} config={attachmentCfg} />
         <PrivateField checked={isPrivate} onChange={setIsPrivate} />
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
           <span className="text-muted">Materi ini buatan saya atau boleh dibagikan (bukan buku/soal berhak cipta tanpa izin).</span>
         </label>
         {err && <p className="text-sm text-bad">{err}</p>}
-        <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? "Menyimpan…" : "Simpan & lanjut buat kuis"}</button>
+        <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? (attachment?.kind === "new" && !isPrivate ? "Mengupload lampiran…" : "Menyimpan…") : "Simpan & lanjut buat kuis"}</button>
       </form>
     </Page>
   );
