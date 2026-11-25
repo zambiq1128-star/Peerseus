@@ -12,7 +12,7 @@ One simple loop:
 
 Profiles: each person picks what others can see (program, angkatan, contact) on **Profil**, and every signed-in account shows a **✓ ITB** or **Tamu** badge; `/users/[id]` shows a profile as others see it. Hidden fields are stored in `users/{uid}/private/profile`, which `firestore.rules` lets only the owner read (`src/lib/privacy.ts`).
 
-Supporting: **Info** page with scholarships, competitions and seminars, filterable by type, faculty and deadline.
+Supporting: **Info** page with scholarships, competitions, seminars and other info (open recruitment, internships, ...), filterable by type, faculty and deadline.
 
 Navigation has only three items: Mata Kuliah, Duel, Info. Profile and logout are under your name.
 

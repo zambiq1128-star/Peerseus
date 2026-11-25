@@ -5,7 +5,7 @@ import { db, newId } from "@/lib/db";
 import type { Opportunity, OpportunityType } from "@/lib/types";
 import { Empty, MAJORS, PageTitle, Spinner, useAsync } from "@/components/ui";
 
-const TYPES: Record<OpportunityType, string> = { beasiswa: "Beasiswa", lomba: "Lomba", seminar: "Seminar" };
+const TYPES: Record<OpportunityType, string> = { beasiswa: "Beasiswa", lomba: "Lomba", seminar: "Seminar", lainnya: "Lainnya" };
 const daysLeft = (d: string) => Math.ceil((new Date(d + "T23:59:59").getTime() - Date.now()) / 86400000);
 
 export default function Opportunities() {
@@ -26,7 +26,7 @@ export default function Opportunities() {
 
   return (
     <div>
-      <PageTitle title="Info akademik" sub="Beasiswa, lomba, dan seminar dalam satu tempat." action={<button className="btn-ghost" onClick={() => setAdding(!adding)}>{adding ? "Tutup" : "+ Bagikan info"}</button>} />
+      <PageTitle title="Info akademik" sub="Beasiswa, lomba, seminar, dan info lainnya dalam satu tempat." action={<button className="btn-ghost" onClick={() => setAdding(!adding)}>{adding ? "Tutup" : "+ Bagikan info"}</button>} />
       {adding && <AddForm onDone={() => { setAdding(false); reload(); }} />}
       <div className="mb-4 flex flex-wrap gap-2">
         <select className="input !w-auto" value={type} onChange={(e) => setType(e.target.value as OpportunityType | "")}>
@@ -51,7 +51,7 @@ export default function Opportunities() {
           return (
             <div key={o.id} className="card flex flex-col">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-xs font-semibold text-muted">{TYPES[o.type]}</span>
+                <span className="text-xs font-semibold text-muted">{TYPES[o.type] ?? TYPES.lainnya}</span>
                 <span className={`badge ${d <= 7 ? "!bg-red-50 !text-bad" : ""}`}>{d === 0 ? "Hari ini" : `${d} hari lagi`}</span>
               </div>
               <div className="mt-1 font-semibold">{o.title}</div>
@@ -85,7 +85,7 @@ function AddForm({ onDone }: { onDone: () => void }) {
       }}
     >
       <div className="sm:col-span-2"><label className="label">Judul</label><input className="input" required value={f.title} onChange={(e) => set({ title: e.target.value })} /></div>
-      <div><label className="label">Jenis</label><select className="input" value={f.type} onChange={(e) => set({ type: e.target.value as OpportunityType })}>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+      <div><label className="label" htmlFor="opp-type">Jenis</label><select id="opp-type" className="input" value={f.type} onChange={(e) => set({ type: e.target.value as OpportunityType })}>{Object.entries(TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{f.type === "lainnya" && <p className="mt-1 text-xs text-muted">Mis. open recruitment, magang, atau acara kampus.</p>}</div>
       <div><label className="label">Penyelenggara</label><input className="input" required value={f.organizer} onChange={(e) => set({ organizer: e.target.value })} /></div>
       <div><label className="label">Deadline</label><input type="date" className="input" required value={f.deadline} onChange={(e) => set({ deadline: e.target.value })} /></div>
       <div><label className="label">Link</label><input type="url" className="input" required value={f.link} onChange={(e) => set({ link: e.target.value })} placeholder="https://" /></div>
