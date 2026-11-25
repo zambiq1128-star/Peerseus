@@ -82,8 +82,8 @@ async function membersWithProfiles(courseId: string): Promise<{ member: Membersh
 export const courseMembers = async (courseId: string) => (await membersWithProfiles(courseId)).map((x) => x.member);
 
 // ---------- Materials & quizzes ----------
-/** Labels in display order. "paper" = past exam questions (soal ujian tahun lalu). */
-export const MATERIAL_TYPES: Record<MaterialType, string> = { materi: "Materi", catatan: "Catatan", paper: "Past paper" };
+/** Labels in display order. "paper" = past exam questions (soal ujian tahun lalu); "referensi" = paper ilmiah, contoh laporan, dsb. */
+export const MATERIAL_TYPES: Record<MaterialType, string> = { materi: "Materi", catatan: "Catatan", paper: "Past paper", referensi: "Referensi" };
 export const materialType = (m: Pick<Material, "type">): MaterialType => m.type ?? "materi";
 
 /**

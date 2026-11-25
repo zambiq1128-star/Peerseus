@@ -19,7 +19,7 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `entryYear`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}`. `name` dan `major` hanya salinan saat bergabung; peringkat, lawan duel, dan teman belajar memakai nama dan fakultas terbaru dari `users`, dan anggota yang dokumen `users`-nya sudah dihapus tidak ditampilkan (`courseMembers`). |
-| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `attachment` (file asli di Google Drive tim: `driveFileId`, `name`, `mimeType`, `size`; kosong/`null` = tanpa lampiran), `fileUrl`, `fileName`, `mimeType` (lama, tidak diisi lagi), `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
+| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper` = past paper/soal ujian lalu, `referensi` = paper ilmiah, contoh laporan, dsb.; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `attachment` (file asli di Google Drive tim: `driveFileId`, `name`, `mimeType`, `size`; kosong/`null` = tanpa lampiran), `fileUrl`, `fileName`, `mimeType` (lama, tidak diisi lagi), `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
 | `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`. `attachment` di sini hanya link ke Drive pribadi pengunggah (`ownDrive: true`, hanya `driveFileId`), tidak pernah file di Drive tim. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
 | `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `declinedAt`, `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
@@ -49,14 +49,14 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Jelajah** (`/
 2. **Data diri** (layar yang sama): nama, fakultas, TPB/jurusan, prodi atau prodi incaran. Untuk akun ITB diisi otomatis dari NIM di email dan tetap bisa diubah.
 3. `/courses`: **Mata Kuliah**. Pengguna baru diarahkan ke sini. Semester ditebak dari NIM, mata kuliah semester ini diisi dari Kurikulum 2024, bisa dihapus, dan ada pencarian untuk menambah. Mata kuliah yang dihapus menyimpan ratingnya.
 4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, 5 materi terbaru dari mata kuliahku (dengan tanda kuis siap duel), dan mata kuliah lain untuk digabung.
-5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
+5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper, Referensi), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
 6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini. Lampiran file asli opsional (PDF/gambar ke Google Drive tim); PDF yang dipilih di tab "Upload PDF" otomatis jadi lampiran dan bisa dihapus.
 7. `/materials`: **Materiku**, semua materi yang aku upload (publik dan privat) dari semua mata kuliah, dengan filter dan tombol edit. Jadi tab kedua di Jelajah ("Semua materi" | "Materiku"), dan menu Jelajah aktif di sini.
 8. `/materials/[id]`: baca materi, dengan pratinjau lampiran (iframe Google Drive) di atas teksnya. Materi privat hanya terbuka untuk pengunggahnya dan tidak bisa dibuat kuis. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
 9. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
 10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu. Lawan yang belum menjawab bisa menekan **Tolak** di layar mulai. Duel yang ditolak menampilkan "… menolak duel ini" tanpa perubahan rating.
 11. `/duels`: tantangan masuk dan riwayat duel. Tantangan masuk yang belum dijawab punya tombol **Tolak** (dengan konfirmasi "Ya, tolak"). Duel yang ditolak memakai badge "Ditolak" bagi kedua pemain.
-12. `/explore`: **Jelajah materi**. Semua materi publik dari semua mata kuliah (hanya koleksi `materials`, tidak pernah `privateMaterials`), terbaru dulu. Cari berdasarkan judul, topik, mata kuliah, atau pengunggah, filter jenis (Materi, Catatan, Past paper), dan feed kartu yang bisa di-scroll dengan "Muat lebih banyak". Tab "Materiku" di atasnya membuka `/materials`. Menggantikan halaman Info (`/opportunities`), yang dihapus; koleksi `opportunities` dan seed-nya dibiarkan tapi tidak dipakai halaman mana pun.
+12. `/explore`: **Jelajah materi**. Semua materi publik dari semua mata kuliah (hanya koleksi `materials`, tidak pernah `privateMaterials`), terbaru dulu. Cari berdasarkan judul, topik, mata kuliah, atau pengunggah, filter jenis (Materi, Catatan, Past paper, Referensi), dan feed kartu yang bisa di-scroll dengan "Muat lebih banyak". Tab "Materiku" di atasnya membuka `/materials`. Menggantikan halaman Info (`/opportunities`), yang dihapus; koleksi `opportunities` dan seed-nya dibiarkan tapi tidak dipakai halaman mana pun.
 13. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
 14. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
 
@@ -119,13 +119,36 @@ Juri menilai scope terlalu luas dan feasibility paling lemah. Fitur di bawah men
 9. **Foto profil dan akun sosial** (Kecil, tapi perlu Storage)
    - Login Microsoft lewat Firebase biasanya tidak memberi foto, jadi foto perlu Firebase Storage, yang sekarang tidak dipakai. Usul: tetap `contact` dan avatar inisial.
 
-10. **Latihan sendiri** (Kecil–Sedang)
-    - Mengerjakan kuis `published` tanpa lawan dan tanpa Elo. Duel melawan teman demo sudah bisa dipakai untuk latihan.
+10. ~~**Latihan sendiri**~~ (dipilih Cluny, lihat #13 Kuis mandiri)
+    - Mengerjakan kuis `published` tanpa lawan dan tanpa Elo.
 
 11. **Duel kompleks dan antrean auto-match** (Besar)
     - `Duel.mode?: "cepat" | "kompleks"` (kosong = `"cepat"`), `matchQueue/{uid}`: `courseId`, `mode`, `joinedAt`.
     - "Pemenang = yang pertama benar" butuh dua pemain online bersamaan dan listener realtime (`onSnapshot`), yang belum ada di `src/lib/db.ts`. Duel sekarang bergantian, jadi ini perubahan terbesar dan paling berisiko untuk demo.
     - Lawan dengan rating terdekat yang dipilih otomatis di `/duel/new` sudah berfungsi seperti auto-match.
+
+### Kuis mandiri dan usul soal (disepakati 2026-11-25)
+
+Dibangun berurutan, satu PR per item, item berikutnya setelah PR sebelumnya di-merge.
+
+12. ~~**Jenis Referensi**~~ (sudah dibuat) (Kecil)
+    - `MaterialType` ditambah `"referensi"` (label "Referensi") untuk paper ilmiah, contoh laporan, dan bacaan relevan lain. `"paper"` tetap berarti past paper (soal ujian lalu).
+    - Muncul di form upload/edit, filter jenis di tab Materi `/courses/[id]`, Jelajah, dan Materiku. Kuis tetap opsional seperti jenis lain (kuis memang hanya dibuat kalau pengunggah menekan "Buat kuis"), jadi tidak ada tanda "tanpa kuis".
+
+13. **Kuis mandiri** (Sedang)
+    - Tombol "Latihan sendiri" di samping "Mulai duel" pada `/materials/[id]`, hanya untuk kuis `published` (jadi hanya materi publik; materi privat tetap tanpa kuis). Halaman `/materials/[id]/practice`.
+    - Layar mulai: pilih batas waktu untuk seluruh kuis, tombol 10, 30, 60, 120 menit atau isi menit sendiri (1–120). Default 2 menit per soal (maks 120).
+    - Semua soal kuis, urutan diacak tiap percobaan. Seperti ujian: bisa pindah ke soal mana pun dan mengganti jawaban, lalu "Kumpulkan". Waktu habis = otomatis dikumpulkan, soal kosong dihitung salah. Skor, jawaban benar, dan pembahasan baru tampil setelah dikumpulkan.
+    - Progres (urutan soal, jawaban, batas waktu absolut) disimpan di `localStorage`. Halaman yang tertutup bisa dilanjutkan di browser yang sama dan timer tetap berjalan; kalau waktunya sudah habis, langsung dikumpulkan.
+    - Hasil tidak mengubah apa pun (Elo, menang/kalah, `topicStats` tetap). Riwayat disimpan di `practiceAttempts/{id}`: `uid`, `quizId`, `materialId`, `courseId`, `questionIds[]`, `answers[]` (-1 = kosong), `score`, `total`, `limitMinutes`, `usedMs`, `createdAt`. Hanya bisa dibaca dan ditulis pemiliknya (rules baru, perlu republish). Tampil di `/materials/[id]` sebagai "Skor terbaik" dan daftar percobaan.
+
+14. **Usul soal** (Sedang)
+    - Tombol "Usulkan soal" di `/materials/[id]` untuk kuis `published`, selama kuis belum 30 soal (`MAX_QUIZ_QUESTIONS`, termasuk soal usulan; kuis mandiri memakai semua soal, jadi 30 soal masih muat dalam 2 jam). Form sama dengan soal AI: pertanyaan, 4 opsi, jawaban benar, pembahasan, topik, dengan pratinjau LaTeX. Tanpa AI.
+    - `questionProposals/{id}`: `quizId`, `materialId`, `courseId`, `uploaderId` (pengunggah materi, untuk rules dan beranda), `question` (`Question`), `proposerId`, `proposerName`, `status` (`pending`, `accepted`, `rejected`), `rejectReason`, `createdAt`, `reviewedAt`.
+    - Pengunggah materi mereview di halaman materi: edit, terima, atau tolak (alasan opsional). Yang diterima ditambahkan ke `quizzes/quiz_{materialId}.questions`, jadi dipakai di duel (6 acak) dan kuis mandiri, dengan `Question.proposedBy?: { id, name }` dan tanda "Diusulkan oleh X" di pembahasan.
+    - Beranda `/` menampilkan "Usulan soal menunggu (N)" bagi pengunggah, menaut ke materinya (pola sama dengan tantangan duel yang menunggu).
+    - Pengusul melihat status usulannya di halaman materi (Menunggu, Diterima, Ditolak + alasan) dan bisa menarik usulan yang masih `pending`.
+    - Rules (perlu republish): usulan dibuat oleh `proposerId` sendiri dengan status `pending`; hanya `uploaderId` yang bisa mengubah status; pengusul bisa menghapus selama `pending`.
 
 ## 6. Aturan privasi
 
