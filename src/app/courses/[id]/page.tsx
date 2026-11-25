@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS } from "@/lib/peerseus";
+import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS, withUploaderNames } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Membership, Quiz } from "@/lib/types";
 import { CollapsibleRows, Empty, ErrorState, LIST_LIMIT, NotFound, Page, PageHeader, ShowMoreButton, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
@@ -29,7 +29,8 @@ export default function CoursePage() {
       db.list<Quiz>("quizzes", [["courseId", "==", id]]),
       courseMembers(id),
     ]);
-    return { course, materials: [...materials, ...mine.filter((m) => m.courseId === id)].sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
+    const all = await withUploaderNames([...materials, ...mine.filter((m) => m.courseId === id)]);
+    return { course, materials: all.sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
   }, [id, uid]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;

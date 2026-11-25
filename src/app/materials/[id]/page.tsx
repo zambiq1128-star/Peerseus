@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generateQuiz, getMaterial, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import { generateQuiz, getMaterial, withUploaderNames, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
 import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -16,7 +16,8 @@ export default function MaterialPage() {
   const { profile } = useAuth();
   const uid = profile!.id;
   const { data, error, reload } = useAsync(async () => {
-    const material = await getMaterial(id);
+    const found = await getMaterial(id);
+    const material = found && (await withUploaderNames([found]))[0];
     const quiz = await db.get<Quiz>("quizzes", `quiz_${id}`);
     return { material, quiz };
   }, [id]);
