@@ -3,19 +3,20 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db, newId } from "@/lib/db";
 import type { Opportunity, OpportunityType } from "@/lib/types";
-import { Empty, MAJORS, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
+import { Empty, ErrorState, MAJORS, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
 const TYPES: Record<OpportunityType, string> = { beasiswa: "Beasiswa", lomba: "Lomba", seminar: "Seminar", lainnya: "Lainnya" };
 const daysLeft = (d: string) => Math.ceil((new Date(d + "T23:59:59").getTime() - Date.now()) / 86400000);
 
 export default function Opportunities() {
   const { profile } = useAuth();
-  const { data, reload } = useAsync(() => db.list<Opportunity>("opportunities"), []);
+  const { data, error, reload } = useAsync(() => db.list<Opportunity>("opportunities"), []);
   const [type, setType] = useState<"" | OpportunityType>("");
   const [major, setMajor] = useState(profile!.major);
   const [within, setWithin] = useState(0);
   const [adding, setAdding] = useState(false);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   const list = data
     .filter((o) => daysLeft(o.deadline) >= 0)

@@ -7,14 +7,14 @@ import { db } from "@/lib/db";
 import { generateQuiz, getMaterial, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
-import { Empty, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
 
 export default function MaterialPage() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const uid = profile!.id;
-  const { data, reload } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const material = await getMaterial(id);
     const quiz = await db.get<Quiz>("quizzes", `quiz_${id}`);
     return { material, quiz };
@@ -25,9 +25,10 @@ export default function MaterialPage() {
   const [err, setErr] = useState("");
   const [reported, setReported] = useState("");
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
   const { material, quiz } = data;
-  if (!material) return <Empty>Materi tidak ditemukan.</Empty>;
+  if (!material) return <NotFound title="Materi tidak ditemukan" />;
   const isUploader = material.uploaderId === uid;
   const isPrivate = material.isPublic === false;
 

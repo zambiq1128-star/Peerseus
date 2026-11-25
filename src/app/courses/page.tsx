@@ -8,7 +8,7 @@ import { academicLabel, academicOf, academicPatch, readNim, type Academic } from
 import { needsCourses, setMyCourses } from "@/lib/peerseus";
 import type { Course } from "@/lib/types";
 import AcademicFields from "@/components/AcademicFields";
-import { Empty, Page, PageHeader, Section, Spinner, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Section, Spinner, useAsync } from "@/components/ui";
 
 const SEMESTERS = Array.from({ length: 14 }, (_, i) => i + 1);
 /** ITB course codes: two letters and four characters, e.g. IF2110 or WI201X. */
@@ -24,7 +24,8 @@ function merge(...lists: CourseInfo[][]): CourseInfo[] {
 /** Picks this semester's courses. Shown right after the personal data for new users, and from the menu later. */
 export default function CoursesPage() {
   const { profile } = useAuth();
-  const { data: catalog } = useAsync(() => db.list<Course>("courses"), []);
+  const { data: catalog, error, reload } = useAsync(() => db.list<Course>("courses"), []);
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!catalog) return <Spinner />;
   return <CourseEditor key={profile!.id} catalog={catalog} />;
 }

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
-import { Empty, Page, PageHeader, Spinner, TopicBar, useAsync } from "@/components/ui";
+import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
 
 const TABS = { materi: "Materi", peringkat: "Peringkat", partner: "Teman belajar" } as const;
@@ -20,7 +20,7 @@ export default function CoursePage() {
   const [kind, setKind] = useState<"" | MaterialType>("");
   const joined = profile!.courseIds.includes(id);
 
-  const { data, reload } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const [course, materials, mine, quizzes, members] = await Promise.all([
       db.get<Course>("courses", id),
       db.list<Material>("materials", [["courseId", "==", id]]),
@@ -32,8 +32,9 @@ export default function CoursePage() {
     return { course, materials: [...materials, ...mine.filter((m) => m.courseId === id)].sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
   }, [id, uid]);
 
+  if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
-  if (!data.course) return <Empty>Mata kuliah tidak ditemukan.</Empty>;
+  if (!data.course) return <NotFound title="Mata kuliah tidak ditemukan" back={{ href: "/", label: "Ke beranda" }} />;
   const me = data.members.find((m) => m.uid === uid);
   const published = data.quizzes.filter((q) => q.status === "published");
   const shown = data.materials.filter((m) => !kind || materialType(m) === kind);
@@ -84,7 +85,11 @@ export default function CoursePage() {
       </div>
 
       {tab === "materi" && (
-        data.materials.length === 0 ? <Empty>Belum ada materi. Jadilah yang pertama upload.</Empty> : (
+        data.materials.length === 0 ? (
+          <Empty title="Belum ada materi" action={joined && <Link href={`/courses/${id}/upload`} className="btn-primary">Upload materi</Link>}>
+            Jadilah yang pertama upload.
+          </Empty>
+        ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {kinds.map(([k, label, n]) => (

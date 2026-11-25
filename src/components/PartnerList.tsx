@@ -3,17 +3,18 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { recommendPartners, weakTopicsOf, getMembership } from "@/lib/peerseus";
-import { AccountBadge, Empty, Spinner, useAsync } from "./ui";
+import { AccountBadge, Empty, ErrorState, Spinner, useAsync } from "./ui";
 
 export default function PartnerList({ courseId, focusTopics, limit = 5 }: { courseId: string; focusTopics?: string[]; limit?: number }) {
   const { profile } = useAuth();
   const uid = profile!.id;
-  const { data } = useAsync(async () => {
+  const { data, error, reload } = useAsync(async () => {
     const me = await getMembership(courseId, uid);
     const weak = focusTopics?.length ? focusTopics : weakTopicsOf(me);
     return { weak, recs: await recommendPartners(courseId, uid, weak, limit) };
   }, [courseId, uid, (focusTopics ?? []).join(",")]);
 
+  if (error) return <ErrorState title="Gagal memuat teman belajar" message={error} onRetry={reload} />;
   if (!data) return <Spinner label="Mencari teman belajar…" />;
   if (!data.recs.length) return <Empty>Belum ada mahasiswa lain di mata kuliah ini.</Empty>;
   return (
