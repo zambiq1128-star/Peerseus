@@ -3,9 +3,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { joinCourse, myDuels } from "@/lib/peerseus";
+import { joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
-import { PageTitle, Spinner, useAsync } from "@/components/ui";
+import { PageTitle, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
   const { profile, refresh } = useAuth();
@@ -15,7 +15,8 @@ export default function Home() {
     const courses = (await db.list<Course>("courses")).sort((a, b) => a.code.localeCompare(b.code));
     const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
     const duels = await myDuels(uid);
-    return { courses, ms, duels };
+    const latest = await latestMaterials(profile!.courseIds);
+    return { courses, ms, duels, latest };
   }, [uid, profile?.courseIds.length]);
 
   if (!data) return <Spinner />;
@@ -72,6 +73,25 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {data.latest.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold text-muted">Materi terbaru di mata kuliahku</h2>
+          <div className="divide-y divide-line rounded-xl border border-line">
+            {data.latest.map(({ material: m, quizReady }) => (
+              <Link key={m.id} href={`/materials/${m.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
+                <div className="min-w-0">
+                  <div className="font-medium">{m.title}</div>
+                  <div className="text-xs text-muted">
+                    {data.courses.find((c) => c.id === m.courseId)?.code ?? m.courseId} · {MATERIAL_TYPES[materialType(m)]} · oleh {m.uploaderName} · {timeAgo(m.createdAt)}
+                  </div>
+                </div>
+                {quizReady && <span className="badge shrink-0 !bg-accent-soft !text-accent">Kuis siap duel</span>}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {others.length > 0 && (
         <section>

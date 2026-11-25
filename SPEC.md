@@ -48,7 +48,7 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 1. **Masuk** (layar di `Shell`, muncul di route mana pun selama belum login): "Masuk dengan akun ITB" (Microsoft) atau "Masuk dengan Google" untuk tamu.
 2. **Data diri** (layar yang sama): nama, fakultas, TPB/jurusan, prodi atau prodi incaran. Untuk akun ITB diisi otomatis dari NIM di email dan tetap bisa diubah.
 3. `/courses`: **Mata Kuliah**. Pengguna baru diarahkan ke sini. Semester ditebak dari NIM, mata kuliah semester ini diisi dari Kurikulum 2024, bisa dihapus, dan ada pencarian untuk menambah. Mata kuliah yang dihapus menyimpan ratingnya.
-4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, dan mata kuliah lain untuk digabung.
+4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, 5 materi terbaru dari mata kuliahku (dengan tanda kuis siap duel), tautan Materiku, dan mata kuliah lain untuk digabung.
 5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
 6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini.
 7. `/materials`: **Materiku**, semua materi yang aku upload (publik dan privat) dari semua mata kuliah, dengan filter dan tombol edit. Tautannya ada di beranda.
@@ -91,8 +91,8 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
    - `Material.isPublic?: boolean`. Kosong dianggap publik. Pilihan "Privat, hanya untuk saya" ada di form upload dan edit. Materi privat tidak bisa dibuat kuis, dan materi yang sudah punya kuis tidak bisa dijadikan privat.
    - Beda dari rencana awal: materi privat disimpan di koleksi terpisah `privateMaterials` (pola yang sama dengan `users/{uid}/private`), bukan di `materials` dengan filter rules. Alasannya, Firestore menolak query yang bisa memuat dokumen terlarang, sehingga semua query `materials` harus diubah dan materi lama harus dimigrasi. Dengan koleksi terpisah, query yang ada tidak berubah dan tidak perlu migrasi.
 
-4. **Materi terbaru di beranda** (Kecil, setelah #1)
-   - Bagian "Materi terbaru" di `/` dari mata kuliah di `courseIds`, dengan badge jenis dan tanda kuis siap duel.
+4. ~~**Materi terbaru di beranda**~~ (sudah dibuat)
+   - Bagian "Materi terbaru di mata kuliahku" di `/`: 5 materi publik terbaru dari mata kuliah di `courseIds` (`latestMaterials()`), dengan kode mata kuliah, jenis, pengunggah, dan tanda "Kuis siap duel".
 
 5. **Angkatan dan tanda akun ITB** (Kecil)
    - `UserProfile.entryYear?: number`, diisi dari NIM (`readNim(...).entryYear`) dan bisa diubah. Field `year` yang lama dibiarkan.
