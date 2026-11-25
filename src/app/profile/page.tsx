@@ -3,8 +3,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { academicOf, academicPatch, type Academic } from "@/lib/itb";
+import { isShown } from "@/lib/privacy";
+import type { Privacy } from "@/lib/types";
 import AcademicFields from "@/components/AcademicFields";
 import { PageTitle } from "@/components/ui";
+
+const SHOW: Record<keyof Privacy, string> = {
+  showProgram: "Tampilkan prodi (atau prodi incaran)",
+  showContact: "Tampilkan kontak",
+};
 
 export default function Profile() {
   const { profile, saveProfile, logout } = useAuth();
@@ -20,10 +27,22 @@ export default function Profile() {
         <p className="text-xs text-muted">Ganti jurusan atau semester? <Link href="/courses" className="text-accent hover:underline">Atur mata kuliah</Link> setelah menyimpan.</p>
         <div><label className="label">Bio singkat</label><input className="input" value={p.bio ?? ""} onChange={(e) => { setSaved(false); setP({ ...p, bio: e.target.value }); }} placeholder="mis. Suka belajar malam, open diskusi kalkulus" /></div>
         <div><label className="label">Kontak</label><input className="input" value={p.contact ?? ""} onChange={(e) => { setSaved(false); setP({ ...p, contact: e.target.value }); }} placeholder="LINE / IG / WA" /></div>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={p.isPublic} onChange={(e) => { setSaved(false); setP({ ...p, isPublic: e.target.checked }); }} />
-          Tampilkan saya di rekomendasi teman belajar
-        </label>
+        <fieldset className="space-y-2 border-t border-line pt-4">
+          <legend className="label">Yang bisa dilihat orang lain</legend>
+          {(Object.keys(SHOW) as (keyof Privacy)[]).map((k) => (
+            <label key={k} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={isShown(p, k)} onChange={(e) => { setSaved(false); setP({ ...p, privacy: { ...p.privacy, [k]: e.target.checked } }); }} />
+              {SHOW[k]}
+            </label>
+          ))}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={p.isPublic} onChange={(e) => { setSaved(false); setP({ ...p, isPublic: e.target.checked }); }} />
+            Tampilkan saya di rekomendasi teman belajar
+          </label>
+          <p className="text-xs text-muted">
+            Yang disembunyikan disimpan terpisah dan hanya bisa dibaca akunmu. <Link href={`/users/${p.id}`} className="text-accent hover:underline">Lihat profilmu seperti orang lain melihatnya</Link>
+          </p>
+        </fieldset>
         <button className="btn-primary w-full">{saved ? "Tersimpan" : "Simpan"}</button>
       </form>
       <button className="btn-ghost mt-3 w-full" onClick={logout}>Keluar</button>

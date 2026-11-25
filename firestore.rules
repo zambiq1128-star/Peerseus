@@ -6,8 +6,11 @@ rules_version = '2';
 //    by the app (see docs/SETUP.md, "Login akun ITB (Microsoft)").
 // 2. Guests (e.g. judges): verified emails (Google sign-in) listed in the document config/access,
 //    field guestEmails (array of lowercase emails). Edit that list in the Firebase Console.
-// Hackathon rules otherwise: any allowed user can read and write all app data.
-// Tighten before real users (e.g. only owners edit their profile/materials).
+// Profiles: only the owner writes users/{uid}; fields the owner hid live in users/{uid}/private/profile,
+// which only the owner can read (src/lib/privacy.ts). Firestore rules allow or deny whole documents,
+// so a hidden field must not be in users/{uid} at all, and the rules refuse a profile that still has one.
+// Hackathon rules otherwise: any allowed user can read and write the rest of the app data
+// (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
   match /databases/{database}/documents {
     function userEmail() {
@@ -40,9 +43,32 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // All app data.
+    // Hidden fields are absent from the public profile (missing switch = shown). Keep in sync with HIDEABLE.
+    function respectsPrivacy(d) {
+      let p = d.get('privacy', {});
+      return (p.get('showProgram', true) == true || !d.keys().hasAny(['program', 'dreamProgram']))
+        && (p.get('showContact', true) == true || !d.keys().hasAny(['contact']));
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if allowed();
+      // Demo peers (bot_...) are written by the seed, run by whoever signs in first.
+      allow write: if allowed()
+        && (isOwner(uid) || (uid.matches('bot_.*') && request.resource.data.get('isBot', false) == true))
+        && respectsPrivacy(request.resource.data);
+
+      match /private/{doc} {
+        allow read, write: if allowed() && isOwner(uid);
+      }
+    }
+
+    // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if col != 'config' && allowed();
+      allow read, write: if col != 'config' && col != 'users' && allowed();
     }
   }
 }

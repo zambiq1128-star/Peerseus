@@ -15,10 +15,15 @@ export type UserProfile = {
   bio?: string;
   contact?: string;
   isPublic: boolean;
+  /** What other people may read. Missing switch = shown. Hidden fields live in users/{uid}/private/profile (src/lib/privacy.ts). */
+  privacy?: Privacy;
   isBot?: boolean;
   courseIds: string[];
   createdAt: number;
 };
+
+/** Per-item visibility. showProgram covers `program` and `dreamProgram`. */
+export type Privacy = { showProgram?: boolean; showContact?: boolean };
 
 export type Course = {
   id: string;
