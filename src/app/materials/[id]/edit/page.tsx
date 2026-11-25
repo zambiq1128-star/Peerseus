@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { getMaterial, materialType, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
-import { Empty, MaterialTypeField, PageTitle, PrivateField, Spinner, useAsync } from "@/components/ui";
+import { Empty, MaterialTypeField, Page, PageHeader, PrivateField, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
   const { id } = useParams<{ id: string }>();
@@ -50,10 +50,13 @@ export default function EditMaterial() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <Link href={`/materials/${id}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
-      <PageTitle title="Edit materi" sub="Perbaiki teks dan rumus, rapikan dengan AI, atau ganti isinya dari file baru." />
-      <form onSubmit={save} className="card mt-2 space-y-4">
+    <Page width="wide">
+      <PageHeader
+        back={{ href: `/materials/${id}`, label: "Kembali" }}
+        title="Edit materi"
+        sub="Perbaiki teks dan rumus, rapikan dengan AI, atau ganti isinya dari file baru."
+      />
+      <form onSubmit={save} className="card space-y-4">
         <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
           <div><label className="label">Topik (pisahkan dengan koma)</label><input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} /></div>
@@ -68,6 +71,6 @@ export default function EditMaterial() {
           <button className="btn-primary" disabled={busy}>{busy ? "Menyimpan…" : "Simpan perubahan"}</button>
         </div>
       </form>
-    </div>
+    </Page>
   );
 }

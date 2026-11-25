@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType, myMaterials } from "@/lib/peerseus";
 import type { Course, MaterialType, Quiz } from "@/lib/types";
-import { Empty, PageTitle, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 type Show = "" | "publik" | "privat" | MaterialType;
 
@@ -36,21 +36,25 @@ export default function MyMaterials() {
   const shown = data.materials.filter((m) => matches(m, show));
 
   return (
-    <div>
-      <PageTitle title="Materiku" sub="Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah." />
+    <Page>
+      <PageHeader
+        back={{ href: "/", label: "Mata kuliah" }}
+        title="Materiku"
+        sub="Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah."
+      />
       {data.materials.length === 0 ? (
-        <Empty>Belum ada materi. Buka <Link href="/" className="text-accent">mata kuliahmu</Link>, lalu klik “Upload materi”.</Empty>
+        <Empty>Belum ada materi. Buka <Link href="/" className="link">mata kuliahmu</Link>, lalu klik “Upload materi”.</Empty>
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             {filters.map(([f, label]) => (
-              <button key={f || "all"} onClick={() => setShow(f)} className={`rounded-full border px-3 py-1 text-xs font-medium ${show === f ? "border-accent bg-accent-soft text-ink" : "border-line text-muted hover:text-ink"}`}>
+              <button key={f || "all"} onClick={() => setShow(f)} className={show === f ? "chip-active" : "chip"}>
                 {label} ({count(f)})
               </button>
             ))}
           </div>
           {shown.length === 0 ? <Empty>Tidak ada materi yang cocok.</Empty> : (
-            <div className="divide-y divide-line rounded-xl border border-line">
+            <div className="rows">
               {shown.map((m) => {
                 const quiz = data.quizzes.get(m.id);
                 const course = data.courses.get(m.courseId);
@@ -71,6 +75,6 @@ export default function MyMaterials() {
           )}
         </div>
       )}
-    </div>
+    </Page>
   );
 }

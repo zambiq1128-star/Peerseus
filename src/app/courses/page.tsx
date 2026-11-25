@@ -8,7 +8,7 @@ import { academicLabel, academicOf, academicPatch, readNim, type Academic } from
 import { needsCourses, setMyCourses } from "@/lib/peerseus";
 import type { Course } from "@/lib/types";
 import AcademicFields from "@/components/AcademicFields";
-import { Empty, PageTitle, Spinner, useAsync } from "@/components/ui";
+import { Empty, Page, PageHeader, Section, Spinner, useAsync } from "@/components/ui";
 
 const SEMESTERS = Array.from({ length: 14 }, (_, i) => i + 1);
 /** ITB course codes: two letters and four characters, e.g. IF2110 or WI201X. */
@@ -118,13 +118,17 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <PageTitle title="Mata kuliah" sub="Mata kuliah ini menentukan materi, lawan duel, dan teman belajarmu di Peerseus." />
+    <Page width="narrow">
+      <PageHeader
+        title="Mata kuliah"
+        sub="Mata kuliah ini menentukan materi, lawan duel, dan teman belajarmu di Peerseus."
+        back={firstRun ? undefined : { href: "/", label: "Beranda" }}
+      />
 
       <div className="card flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <div className="font-semibold">{academicLabel(academicPatch(academic))}</div>
-          <button type="button" className="text-sm text-accent hover:underline" aria-expanded={editAcademic} onClick={() => setEditAcademic(!editAcademic)}>
+          <button type="button" className="link text-sm" aria-expanded={editAcademic} onClick={() => setEditAcademic(!editAcademic)}>
             {editAcademic ? "Selesai ubah jurusan" : "Ubah jurusan"}
           </button>
         </div>
@@ -142,8 +146,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
         )}
       </div>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-muted">Mata kuliah semester ini</h2>
+      <Section title="Mata kuliah semester ini">
         {picked.length === 0 ? (
           <Empty>
             {semester
@@ -152,7 +155,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
           </Empty>
         ) : (
           <>
-            <ul className="divide-y divide-line rounded-xl border border-line">
+            <ul className="rows">
               {picked.map((c) => (
                 <li key={c.code} className="flex items-center gap-3 py-2.5 pl-4 pr-2">
                   <div className="min-w-0 flex-1">
@@ -163,7 +166,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
                   <button
                     type="button"
                     aria-label={`Hapus ${c.name}`}
-                    className="shrink-0 rounded-md px-2.5 py-1.5 text-muted hover:bg-paper hover:text-bad"
+                    className="shrink-0 rounded-control px-2.5 py-1.5 text-muted hover:bg-paper hover:text-bad"
                     onClick={() => change(picked.filter((x) => x.code !== c.code))}
                   >
                     ✕
@@ -174,14 +177,14 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
             <p className="mt-2 text-right text-sm text-muted">Total <b className="text-ink">{total} SKS</b></p>
           </>
         )}
-      </section>
+      </Section>
 
       <section>
         <label className="label" htmlFor="cari">Tambah mata kuliah</label>
         <input id="cari" className="input" value={q} onChange={(e) => search(e.target.value)} placeholder="Cari kode atau nama, mis. IF2110 atau Basis Data" autoComplete="off" />
         <p className="mt-1 text-xs text-muted">Untuk mata kuliah mengulang, pilihan, atau lintas prodi.</p>
         {results.length > 0 && (
-          <ul className="mt-2 divide-y divide-line rounded-xl border border-line">
+          <ul className="rows mt-2">
             {results.map((c) => (
               <li key={c.code} className="flex items-center gap-3 py-2 pl-4 pr-2">
                 <div className="min-w-0 flex-1 text-sm"><span className="text-xs font-semibold text-muted">{c.code}</span> {c.name}{c.sks ? <span className="text-muted"> · {c.sks} SKS</span> : null}</div>
@@ -191,7 +194,7 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
           </ul>
         )}
         {query && results.length === 0 && (
-          <div className="mt-2 rounded-xl border border-dashed border-line p-3">
+          <div className="mt-2 rounded-card border border-dashed border-line p-3">
             <p className="text-sm text-muted">Tidak ketemu. Tambahkan sendiri:</p>
             <div className="mt-2 grid grid-cols-[7rem_1fr] gap-2">
               <input className="input" aria-label="Kode mata kuliah" placeholder="Kode" value={manual.code} onChange={(e) => setManual({ ...manual, code: e.target.value })} />
@@ -211,6 +214,6 @@ function CourseEditor({ catalog }: { catalog: Course[] }) {
         {!semester && <p className="mt-2 text-center text-xs text-muted">Pilih semester dulu sebelum menyimpan.</p>}
         {err && <p className="mt-2 text-sm text-bad">{err}</p>}
       </div>
-    </div>
+    </Page>
   );
 }

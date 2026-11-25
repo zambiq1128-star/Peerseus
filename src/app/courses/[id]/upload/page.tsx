@@ -1,11 +1,10 @@
 "use client";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { createMaterial } from "@/lib/peerseus";
 import MaterialComposer from "@/components/MaterialComposer";
-import { MaterialTypeField, PageTitle, PrivateField } from "@/components/ui";
+import { MaterialTypeField, Page, PageHeader, PrivateField } from "@/components/ui";
 import type { MaterialType } from "@/lib/types";
 
 export default function Upload() {
@@ -47,10 +46,13 @@ export default function Upload() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <Link href={`/courses/${id}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
-      <PageTitle title="Upload materi" sub="Upload PDF, file .tex/.md/.txt, atau tempel teks. Cek hasilnya di editor, lalu simpan. Kuis dibuat dari materi ini." />
-      <form onSubmit={submit} className="card mt-2 space-y-4">
+    <Page width="wide">
+      <PageHeader
+        back={{ href: `/courses/${id}`, label: "Kembali" }}
+        title="Upload materi"
+        sub="Upload PDF, file .tex/.md/.txt, atau tempel teks. Cek hasilnya di editor, lalu simpan. Kuis dibuat dari materi ini."
+      />
+      <form onSubmit={submit} className="card space-y-4">
         <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Tutorial Fisika Dasar: Vektor" /></div>
           <div>
@@ -68,6 +70,6 @@ export default function Upload() {
         {err && <p className="text-sm text-bad">{err}</p>}
         <button className="btn-primary w-full" disabled={busy || !agree}>{busy ? "Menyimpan…" : "Simpan & lanjut buat kuis"}</button>
       </form>
-    </div>
+    </Page>
   );
 }

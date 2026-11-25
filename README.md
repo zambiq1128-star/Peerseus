@@ -47,6 +47,7 @@ Open http://localhost:3000.
 | `src/lib/access.ts` | Who can sign in: ITB accounts and listed guests; same rule as `firestore.rules` |
 | `src/lib/serverAuth.ts` | Verifies the Firebase ID token on the AI routes (Google public keys, no firebase-admin), then ITB account or guest list |
 | `src/app/**/page.tsx` | Pages (UI in Bahasa Indonesia) |
+| `src/app/globals.css`, `src/components/ui.tsx` | Design tokens, component classes and page building blocks; see [docs/UI.md](docs/UI.md) |
 
 ### Partner recommendation score
 
