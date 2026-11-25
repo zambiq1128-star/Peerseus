@@ -43,7 +43,12 @@ export default function Home() {
         <PageTitle
           title="Mata kuliahku"
           sub="Pilih mata kuliah untuk buka materi dan mulai duel."
-          action={<Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>}
+          action={
+            <div className="flex gap-2">
+              <Link href="/materials" className="btn-ghost">Materiku</Link>
+              <Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>
+            </div>
+          }
         />
         {joined.length === 0 ? (
           <p className="text-sm text-muted">Belum ada. <Link href="/courses" className="text-accent hover:underline">Atur mata kuliahmu</Link>, atau gabung salah satu di bawah.</p>

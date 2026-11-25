@@ -73,19 +73,61 @@ export const courseMembers = async (courseId: string) =>
 export const MATERIAL_TYPES: Record<MaterialType, string> = { materi: "Materi", catatan: "Catatan", paper: "Past paper" };
 export const materialType = (m: Pick<Material, "type">): MaterialType => m.type ?? "materi";
 
+/**
+ * Private materials (Materiku) live in their own collection, which only the uploader can read
+ * (firestore.rules), so every existing `materials` query stays public-only and old materials need no migration.
+ * Making a material public or private moves it between the two collections, keeping its id.
+ */
+export const PRIVATE_MATERIALS = "privateMaterials";
+const colOf = (m: Pick<Material, "isPublic">) => (m.isPublic === false ? PRIVATE_MATERIALS : "materials");
+
+/** A public material, or one of my private ones. Others get null for a private material. */
+export async function getMaterial(id: string): Promise<Material | null> {
+  const m = await db.get<Material>("materials", id);
+  if (m) return m;
+  try {
+    return await db.get<Material>(PRIVATE_MATERIALS, id);
+  } catch {
+    return null; // someone else's private material: the rules refuse the read
+  }
+}
+
+/** Everything I uploaded, public and private, newest first. */
+export async function myMaterials(uid: string): Promise<Material[]> {
+  const [pub, priv] = await Promise.all([
+    db.list<Material>("materials", [["uploaderId", "==", uid]]),
+    db.list<Material>(PRIVATE_MATERIALS, [["uploaderId", "==", uid]]),
+  ]);
+  return [...pub, ...priv].sort((a, b) => b.createdAt - a.createdAt);
+}
+
 /** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */
 export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">) {
   const m: Material = { ...input, id: newId("mat_"), createdAt: Date.now(), reports: 0 };
-  await db.set("materials", m.id, m);
+  if (m.isPublic !== false) delete m.isPublic;
+  await db.set(colOf(m), m.id, m);
   return m;
 }
 
-export async function updateMaterial(id: string, patch: Pick<Material, "title" | "type" | "topics" | "text">) {
-  await db.update("materials", id, { ...patch, format: "markdown", updatedAt: Date.now() });
+export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text">) {
+  await db.update(colOf(m), m.id, { ...patch, format: "markdown", updatedAt: Date.now() });
+}
+
+export const PRIVATE_WITH_QUIZ = "Materi yang sudah punya kuis tidak bisa dijadikan privat, karena kuisnya dipakai untuk duel.";
+
+/** Moves a material between public and private. A material with a quiz stays public (its quiz is used in duels). */
+export async function setMaterialPublic(m: Material, isPublic: boolean): Promise<Material> {
+  if ((m.isPublic !== false) === isPublic) return m;
+  if (!isPublic && (await db.get<Quiz>("quizzes", `quiz_${m.id}`))) throw new Error(PRIVATE_WITH_QUIZ);
+  const next: Material = { ...m, isPublic: isPublic ? undefined : false, updatedAt: Date.now() };
+  await db.set(colOf(next), m.id, next);
+  await db.remove(colOf(m), m.id);
+  return next;
 }
 
 /** Asks the server for questions; waits and retries by itself on rate limits (see callAi). */
 export async function generateQuiz(material: Material, uid: string, count = 8, onWait?: (w: WaitInfo) => void): Promise<Quiz> {
+  if (material.isPublic === false) throw new Error("Kuis hanya bisa dibuat dari materi publik.");
   const data = await callAi<Reply & { questions?: Question[]; generator?: Quiz["generator"] }>(
     "/api/generate-quiz",
     { title: material.title, topics: material.topics, text: material.text, fileUrl: material.fileUrl, mimeType: material.mimeType, count },

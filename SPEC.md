@@ -19,7 +19,8 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}` |
-| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports` |
+| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
+| `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
 | `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
 | `opportunities/{id}` | `title`, `type` (`beasiswa`, `lomba`, `seminar`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
@@ -50,13 +51,14 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, dan mata kuliah lain untuk digabung.
 5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
 6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini.
-7. `/materials/[id]`: baca materi. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
-8. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
-9. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
-10. `/duels`: tantangan masuk dan riwayat duel.
-11. `/opportunities`: **Info**. Beasiswa, lomba, seminar. Filter jenis, fakultas, dan deadline. Tombol "+ Bagikan info".
-12. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
-13. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
+7. `/materials`: **Materiku**, semua materi yang aku upload (publik dan privat) dari semua mata kuliah, dengan filter dan tombol edit. Tautannya ada di beranda.
+8. `/materials/[id]`: baca materi. Materi privat hanya terbuka untuk pengunggahnya dan tidak bisa dibuat kuis. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
+9. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
+10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
+11. `/duels`: tantangan masuk dan riwayat duel.
+12. `/opportunities`: **Info**. Beasiswa, lomba, seminar. Filter jenis, fakultas, dan deadline. Tombol "+ Bagikan info".
+13. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
+14. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
 
 ## 4. Aturan yang berlaku sekarang
 
@@ -84,10 +86,10 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
    - Penegakan di Firestore Security Rules, lihat bagian 6.
    - Alasan: abstrak menjanjikan "users choose what is public", dan aturan privasi ini wajib.
 
-3. **Materiku (repositori pribadi)** (Sedang)
-   - Halaman baru `/materials`: semua materi yang aku upload (`uploaderId == uid`) dari semua mata kuliah, dengan jenis dan tombol edit.
-   - `Material.isPublic?: boolean`. Kosong dianggap publik. Materi privat hanya terlihat oleh pemiliknya dan tidak bisa dipakai untuk kuis duel.
-   - Rules: baca jika `isPublic != false` atau pemiliknya. Karena Firestore menolak query yang bisa memuat dokumen terlarang, tab Materi memakai dua query (`isPublic == true` dan `uploaderId == uid`), dan materi lama perlu diisi `isPublic: true` sekali.
+3. ~~**Materiku (repositori pribadi)**~~ (sudah dibuat)
+   - Halaman `/materials`: semua materi yang aku upload (`uploaderId == uid`) dari semua mata kuliah, publik dan privat, dengan filter, jenis, dan tombol edit.
+   - `Material.isPublic?: boolean`. Kosong dianggap publik. Pilihan "Privat, hanya untuk saya" ada di form upload dan edit. Materi privat tidak bisa dibuat kuis, dan materi yang sudah punya kuis tidak bisa dijadikan privat.
+   - Beda dari rencana awal: materi privat disimpan di koleksi terpisah `privateMaterials` (pola yang sama dengan `users/{uid}/private`), bukan di `materials` dengan filter rules. Alasannya, Firestore menolak query yang bisa memuat dokumen terlarang, sehingga semua query `materials` harus diubah dan materi lama harus dimigrasi. Dengan koleksi terpisah, query yang ada tidak berubah dan tidak perlu migrasi.
 
 4. **Materi terbaru di beranda** (Kecil, setelah #1)
    - Bagian "Materi terbaru" di `/` dari mata kuliah di `courseIds`, dengan badge jenis dan tanda kuis siap duel.
@@ -133,6 +135,6 @@ Cara menerapkannya di app ini (sudah berlaku untuk profil, lihat `src/lib/privac
 - Firestore Security Rules mengizinkan atau menolak baca per dokumen, bukan per field. Jadi field yang disembunyikan disimpan di dokumen terpisah `users/{uid}/private/profile` yang hanya bisa dibaca pemiliknya. Saat profil disimpan, field yang `privacy`-nya mati ditulis ke sana dan dihapus dari `users/{uid}`. Pemilik membaca keduanya dan menggabungkannya. Rules juga menolak `users/{uid}` yang masih memuat field yang disembunyikan.
 - `users/{uid}` dan `users/{uid}/private/profile` hanya bisa ditulis pemiliknya. Pengecualian: profil teman demo (`bot_…` dengan `isBot`) yang ditulis seed. Subkoleksi lain di bawah `users/{uid}` ditolak sampai ditambahkan ke rules (mis. `achievements` di #8).
 - Nanti: `achievements` bisa dibaca jika pemiliknya, atau `get(users/{uid}).data.privacy.showAchievements == true`.
-- `materials` privat: lihat Belum ada #3.
+- Materi privat: `privateMaterials/{id}` hanya bisa dibaca dan ditulis pengunggahnya, dan `materials` menolak dokumen dengan `isPublic == false`.
 - `major` (fakultas) tetap terlihat, karena disalin ke `memberships` untuk peringkat dan dipakai filter Info. Jika prodi disembunyikan, rekomendasi teman belajar tidak memakai kecocokan prodi untuk orang itu.
 - `memberships` dan `duels` tetap bisa ditulis peserta lain, karena hasil duel memperbarui Elo kedua pemain.
