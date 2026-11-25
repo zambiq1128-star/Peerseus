@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
-import { PageTitle, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
   const { profile, refresh } = useAuth();
@@ -32,27 +32,26 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <Page>
       {myTurn.length > 0 && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 border-accent bg-accent-soft">
+        <div className="callout flex flex-wrap items-center justify-between gap-3">
           <span className="text-sm font-medium">{myTurn.length} tantangan duel menunggu jawabanmu.</span>
           <Link href={`/duel/${myTurn[0].id}`} className="btn-primary">Jawab sekarang</Link>
         </div>
       )}
 
-      <section>
-        <PageTitle
-          title="Mata kuliahku"
-          sub="Pilih mata kuliah untuk buka materi dan mulai duel."
-          action={
-            <div className="flex gap-2">
-              <Link href="/materials" className="btn-ghost">Materiku</Link>
-              <Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>
-            </div>
-          }
-        />
+      <PageHeader
+        title="Mata kuliahku"
+        sub="Pilih mata kuliah untuk buka materi dan mulai duel."
+        action={<>
+          <Link href="/materials" className="btn-ghost">Materiku</Link>
+          <Link href="/courses" className="btn-ghost">Atur mata kuliah</Link>
+        </>}
+      />
+
+      <Section>
         {joined.length === 0 ? (
-          <p className="text-sm text-muted">Belum ada. <Link href="/courses" className="text-accent hover:underline">Atur mata kuliahmu</Link>, atau gabung salah satu di bawah.</p>
+          <p className="text-sm text-muted">Belum ada. <Link href="/courses" className="link">Atur mata kuliahmu</Link>, atau gabung salah satu di bawah.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {joined.map((c) => {
@@ -60,7 +59,7 @@ export default function Home() {
               return (
                 <Link key={c.id} href={`/courses/${c.id}`} className="card flex items-center justify-between gap-3 hover:border-accent">
                   <div>
-                    <div className="text-xs font-semibold text-muted">{c.code}</div>
+                    <div className="eyebrow">{c.code}</div>
                     <div className="font-semibold">{c.name}</div>
                   </div>
                   <div className="text-right">
@@ -72,31 +71,29 @@ export default function Home() {
             })}
           </div>
         )}
-      </section>
+      </Section>
 
       {data.latest.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-muted">Materi terbaru di mata kuliahku</h2>
-          <div className="divide-y divide-line rounded-xl border border-line">
+        <Section title="Materi terbaru di mata kuliahku">
+          <div className="rows">
             {data.latest.map(({ material: m, quizReady }) => (
-              <Link key={m.id} href={`/materials/${m.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
+              <Link key={m.id} href={`/materials/${m.id}`} className="row-link">
                 <div className="min-w-0">
                   <div className="font-medium">{m.title}</div>
                   <div className="text-xs text-muted">
                     {data.courses.find((c) => c.id === m.courseId)?.code ?? m.courseId} · {MATERIAL_TYPES[materialType(m)]} · oleh {m.uploaderName} · {timeAgo(m.createdAt)}
                   </div>
                 </div>
-                {quizReady && <span className="badge shrink-0 !bg-accent-soft !text-accent">Kuis siap duel</span>}
+                {quizReady && <span className="badge-accent shrink-0">Kuis siap duel</span>}
               </Link>
             ))}
           </div>
-        </section>
+        </Section>
       )}
 
       {others.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold text-muted">Mata kuliah lain</h2>
-          <div className="divide-y divide-line rounded-xl border border-line">
+        <Section title="Mata kuliah lain">
+          <div className="rows">
             {others.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 p-4">
                 <div>
@@ -109,8 +106,8 @@ export default function Home() {
               </div>
             ))}
           </div>
-        </section>
+        </Section>
       )}
-    </div>
+    </Page>
   );
 }

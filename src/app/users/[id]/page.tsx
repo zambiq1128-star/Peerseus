@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
-import { AccountBadge, Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { AccountBadge, Empty, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
  * Someone's profile as other people see it. Reads only users/{id} (never the private part), so fields the
@@ -36,29 +36,30 @@ export default function UserPage() {
   const isMe = me?.id === user.id;
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
+    <Page width="narrow">
       {isMe && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 bg-paper text-sm">
+        <div className="card flex flex-wrap items-center justify-between gap-3 !bg-paper text-sm">
           <span>Ini profilmu seperti dilihat orang lain.</span>
           <Link href="/profile" className="btn-ghost">Atur profil</Link>
         </div>
       )}
 
       <div>
-        <h1 className="text-xl font-bold">
-          {user.name}
-          {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
-          <AccountBadge itb={user.isItbVerified} className="ml-2 align-middle" />
-        </h1>
-        <p className="text-sm text-muted">{[academicLabel(user), entryYearLabel(user), user.semester ? `semester ${user.semester}` : ""].filter(Boolean).join(" · ")}</p>
+        <PageHeader
+          title={<>
+            {user.name}
+            {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
+            <AccountBadge itb={user.isItbVerified} className="ml-2 align-middle" />
+          </>}
+          sub={[academicLabel(user), entryYearLabel(user), user.semester ? `semester ${user.semester}` : ""].filter(Boolean).join(" · ")}
+        />
         {user.bio && <p className="mt-3 text-sm">{user.bio}</p>}
         {user.contact && <p className="mt-2 text-sm text-muted">Kontak: <span className="text-ink">{user.contact}</span></p>}
       </div>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-muted">Mata kuliah</h2>
+      <Section title="Mata kuliah">
         {data.memberships.length === 0 ? <Empty>Belum ikut mata kuliah.</Empty> : (
-          <div className="divide-y divide-line rounded-xl border border-line">
+          <div className="rows">
             {data.memberships.map((m) => {
               const c = data.courses.get(m.courseId);
               return (
@@ -70,12 +71,11 @@ export default function UserPage() {
             })}
           </div>
         )}
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-muted">Materi yang dibagikan</h2>
+      <Section title="Materi yang dibagikan">
         {data.materials.length === 0 ? <Empty>Belum ada materi.</Empty> : (
-          <div className="divide-y divide-line rounded-xl border border-line">
+          <div className="rows">
             {data.materials.map((m) => (
               <Link key={m.id} href={`/materials/${m.id}`} className="block p-3 hover:bg-paper">
                 <div className="text-sm font-medium">{m.title}</div>
@@ -84,7 +84,7 @@ export default function UserPage() {
             ))}
           </div>
         )}
-      </section>
-    </div>
+      </Section>
+    </Page>
   );
 }

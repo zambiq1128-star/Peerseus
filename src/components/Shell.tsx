@@ -7,6 +7,7 @@ import { firebaseEnabled } from "@/lib/firebase";
 import { academicOf, academicPatch, FACULTIES, readNim, suggestAcademic, type Academic } from "@/lib/itb";
 import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
+import { Spinner } from "./ui";
 
 const NAV = [
   { href: "/", label: "Mata Kuliah", match: (p: string) => p === "/" || p.startsWith("/courses") || p.startsWith("/materials") },
@@ -27,26 +28,39 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     if (redirect) router.replace(COURSES_PAGE);
   }, [redirect, router]);
 
-  if (loading || redirect) return <div className="grid min-h-screen place-items-center text-sm text-muted">Memuat…</div>;
+  if (loading || redirect) return <div className="grid min-h-screen place-items-center"><Spinner /></div>;
   if (!uid || !profile || !profile.major) return <SignIn />;
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-line bg-white">
-        <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-3 sm:gap-4">
-          <Link href="/"><Logo /></Link>
-          <nav className="flex flex-1 gap-0.5 sm:gap-1">
-            {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className={`whitespace-nowrap rounded-md px-2 py-1.5 text-sm font-medium sm:px-2.5 ${n.match(path) ? "bg-paper text-ink" : "text-muted hover:text-ink"}`}>
+    <div className="flex min-h-screen flex-col">
+      <AppHeader path={path} firstName={profile.name.split(" ")[0]} />
+      <main className="flex-1 px-4 py-6 sm:py-8">{children}</main>
+    </div>
+  );
+}
+
+/** Top bar on every signed-in page: logo, the three main sections, and the profile link. */
+function AppHeader({ path, firstName }: { path: string; firstName: string }) {
+  const onProfile = path === "/profile";
+  return (
+    <header className="sticky top-0 z-20 border-b border-line bg-surface px-4">
+      <div className="mx-auto flex max-w-page items-center gap-2 py-3 sm:gap-4">
+        <Link href="/" aria-label="Peerseus, ke beranda"><Logo /></Link>
+        <nav aria-label="Menu utama" className="flex flex-1 gap-0.5 sm:gap-1">
+          {NAV.map((n) => {
+            const active = n.match(path);
+            return (
+              <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
+                className={`whitespace-nowrap rounded-control px-2 py-1.5 text-sm font-medium sm:px-2.5 ${active ? "bg-paper text-ink" : "text-muted hover:text-ink"}`}>
                 {n.label}
               </Link>
-            ))}
-          </nav>
-          <Link href="/profile" className={`truncate text-sm font-medium ${path === "/profile" ? "text-ink" : "text-muted hover:text-ink"}`}>{profile.name.split(" ")[0]}</Link>
-        </div>
-      </header>
-      <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
-    </div>
+            );
+          })}
+        </nav>
+        <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
+          className={`truncate text-sm font-medium ${onProfile ? "text-ink" : "text-muted hover:text-ink"}`}>{firstName}</Link>
+      </div>
+    </header>
   );
 }
 

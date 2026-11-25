@@ -6,9 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createDuel, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
 import type { Course, Quiz } from "@/lib/types";
-import { Empty, Spinner, useAsync } from "@/components/ui";
+import { Empty, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
-export default function Page() {
+export default function NewDuelPage() {
   return <Suspense fallback={<Spinner />}><NewDuel /></Suspense>;
 }
 
@@ -37,7 +37,7 @@ function NewDuel() {
 
   if (data === undefined) return <Spinner />;
   if (!data || !data.course) return <Empty>Pilih materi yang sudah punya kuis untuk mulai duel.</Empty>;
-  if (!data.quizzes.length) return <Empty>Belum ada kuis di mata kuliah ini. <Link className="text-accent" href={`/courses/${data.course.id}`}>Upload materi</Link> dulu.</Empty>;
+  if (!data.quizzes.length) return <Empty>Belum ada kuis di mata kuliah ini. <Link className="link" href={`/courses/${data.course.id}`}>Upload materi</Link> dulu.</Empty>;
   if (!data.opponents.length) return <Empty>Belum ada lawan di mata kuliah ini.</Empty>;
 
   // Sensible defaults so the user can start with one click.
@@ -53,11 +53,12 @@ function NewDuel() {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-5">
-      <div>
-        <h1 className="text-xl font-bold">Duel kuis</h1>
-        <p className="text-sm text-muted">{data.course.code} · {DUEL_QUESTIONS} soal · {SECONDS_PER_QUESTION} detik per soal. Skor sama, yang lebih cepat menang.</p>
-      </div>
+    <Page width="narrow">
+      <PageHeader
+        back={{ href: `/courses/${data.course.id}`, label: data.course.code }}
+        title="Duel kuis"
+        sub={`${DUEL_QUESTIONS} soal · ${SECONDS_PER_QUESTION} detik per soal. Skor sama, yang lebih cepat menang.`}
+      />
 
       {data.quizzes.length > 1 && (
         <div>
@@ -71,7 +72,7 @@ function NewDuel() {
 
       <div>
         <div className="label">Lawan <span className="font-normal text-muted">(urut dari rating terdekat denganmu, {myElo})</span></div>
-        <div className="divide-y divide-line rounded-xl border border-line">
+        <div className="rows">
           {data.opponents.map((o) => (
             <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-paper"}`}>
               <span className="flex items-center gap-2 text-sm">
@@ -87,6 +88,6 @@ function NewDuel() {
 
       <button className="btn-primary w-full !py-3" disabled={busy} onClick={start}>{busy ? "Menyiapkan…" : `Mulai duel vs ${opp.name.split(" ")[0]}`}</button>
       {!opp.isBot && <p className="text-center text-xs text-muted">Kamu jawab duluan. {opp.name} menjawab soal yang sama nanti, lalu hasilnya dibandingkan.</p>}
-    </div>
+    </Page>
   );
 }

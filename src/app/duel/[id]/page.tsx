@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
-import { Empty, Spinner, useAsync } from "@/components/ui";
+import { Empty, Page, Section, Spinner, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
 
@@ -70,42 +70,44 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
 
   if (!started) {
     return (
-      <div className="mx-auto max-w-md">
+      <Page width="narrow">
         <div className="card space-y-4 text-center !p-8">
           <div className="text-sm text-muted">Duel melawan</div>
           <h1 className="text-2xl font-bold">{opp}</h1>
           <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
           <button className="btn-primary w-full !py-3" onClick={() => setStarted(true)}>Mulai</button>
         </div>
-      </div>
+      </Page>
     );
   }
   if (submitting) return <Spinner label="Menghitung hasil…" />;
 
   return (
-    <div className="mx-auto max-w-xl">
-      <div className="mb-2 flex items-center justify-between text-sm">
-        <span className="font-medium">Soal {i + 1} dari {duel.questions.length} <span className="text-muted">· {q.topic}</span></span>
-        <span className={`font-semibold tabular-nums ${left <= 5 ? "text-bad" : ""}`}>{Math.max(left, 0)} detik</span>
-      </div>
-      <div className="mb-4 h-1 rounded-full bg-line">
-        <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
-      </div>
-      <div className="card !p-6">
-        <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
-        <div className="mt-5 grid gap-2">
-          {q.options.map((o, k) => {
-            const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "border-good bg-green-50" : k === picked ? "border-bad bg-red-50" : "opacity-50";
-            return (
-              <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-lg border border-line p-3 text-left text-sm transition ${state}`}>
-                <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />
-              </button>
-            );
-          })}
+    <Page width="narrow">
+      <div>
+        <div className="mb-2 flex items-center justify-between text-sm">
+          <span className="font-medium">Soal {i + 1} dari {duel.questions.length} <span className="text-muted">· {q.topic}</span></span>
+          <span className={`font-semibold tabular-nums ${left <= 5 ? "text-bad" : ""}`}>{Math.max(left, 0)} detik</span>
         </div>
-        {picked === -1 && <p className="mt-3 text-sm text-bad">Waktu habis.</p>}
+        <div className="mb-4 h-1 rounded-full bg-line">
+          <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
+        </div>
+        <div className="card !p-6">
+          <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
+          <div className="mt-5 grid gap-2">
+            {q.options.map((o, k) => {
+              const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "border-good bg-good-soft" : k === picked ? "border-bad bg-bad-soft" : "opacity-50";
+              return (
+                <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-control border border-line p-3 text-left text-sm transition ${state}`}>
+                  <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />
+                </button>
+              );
+            })}
+          </div>
+          {picked === -1 && <p className="mt-3 text-sm text-bad">Waktu habis.</p>}
+        </div>
       </div>
-    </div>
+    </Page>
   );
 }
 
@@ -121,7 +123,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const delta = done ? (meC ? duel.eloChange!.challenger : duel.eloChange!.opponent) : 0;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <Page width="narrow">
       <div className="card text-center !p-8">
         <h1 className="text-2xl font-bold">{!done ? `Menunggu ${oppName}` : won ? "Kamu menang" : draw ? "Seri" : `${oppName} menang`}</h1>
         <div className="mt-4 flex items-center justify-center gap-8">
@@ -133,19 +135,17 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         {!done && <p className="mt-3 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
       </div>
 
-      <section>
-        <h2 className="mb-2 font-semibold">Topik yang perlu diperkuat</h2>
+      <Section title="Topik yang perlu diperkuat">
         {missed.length ? (
-          <div className="flex flex-wrap gap-2">{missed.map((t) => <span key={t} className="badge !bg-red-50 !text-bad">{t}</span>)}</div>
+          <div className="flex flex-wrap gap-2">{missed.map((t) => <span key={t} className="badge-bad">{t}</span>)}</div>
         ) : (
           <p className="text-sm text-muted">Semua jawaban benar.</p>
         )}
-      </section>
+      </Section>
 
-      <section>
-        <h2 className="mb-2 font-semibold">Teman belajar untukmu</h2>
+      <Section title="Teman belajar untukmu">
         <PartnerList courseId={duel.courseId} focusTopics={missed} limit={3} />
-      </section>
+      </Section>
 
       <details className="card">
         <summary className="cursor-pointer font-semibold">Pembahasan soal</summary>
@@ -171,6 +171,6 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         <Link href={`/duel/new?quiz=${duel.quizId}`} className="btn-primary">Duel lagi</Link>
         <Link href={`/courses/${duel.courseId}`} className="btn-ghost">Ke mata kuliah</Link>
       </div>
-    </div>
+    </Page>
   );
 }

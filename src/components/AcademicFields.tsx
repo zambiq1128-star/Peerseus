@@ -30,13 +30,13 @@ export default function AcademicFields({ value, onChange, note }: { value: Acade
         </select>
       </div>
       <div>
-        <div className="grid grid-cols-2 gap-1 rounded-lg bg-paper p-1" role="group" aria-label="Tahap studi">
+        <div className="grid grid-cols-2 gap-1 rounded-control bg-paper p-1" role="group" aria-label="Tahap studi">
           {STAGES.map((s) => (
             <button
               key={s.id}
               type="button"
               aria-pressed={value.stage === s.id}
-              className={`rounded-md px-2 py-1.5 text-sm font-medium ${value.stage === s.id ? "bg-white text-ink shadow-sm" : "text-muted hover:text-ink"}`}
+              className={`rounded-md px-2 py-1.5 text-sm font-medium ${value.stage === s.id ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}
               onClick={() => onChange({ ...value, stage: s.id })}
             >
               {s.label}

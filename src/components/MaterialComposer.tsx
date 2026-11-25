@@ -202,11 +202,11 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-line p-4">
+      <div className="rounded-card border border-line p-4">
         <div className="mb-3 flex flex-wrap gap-1 text-sm">
           {([["pdf", "Upload PDF"], ["file", "File .tex / .md / .txt"], ["paste", "Tempel teks"]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setTab(k)} disabled={running}
-              className={`rounded-md px-3 py-1.5 font-medium ${tab === k ? "bg-ink text-white" : "text-ink-soft hover:bg-paper"}`}>{l}</button>
+              className={`rounded-md px-3 py-1.5 font-medium ${tab === k ? "bg-ink text-surface" : "text-ink-soft hover:bg-paper"}`}>{l}</button>
           ))}
         </div>
 
@@ -255,7 +255,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
               {job.units.map((u) => (
                 <button key={u.n} type="button" title={u.error ?? ""} disabled={u.status !== "failed" || running} onClick={() => retryOne(u.n)}
                   className={`min-w-8 rounded border px-1.5 py-0.5 text-xs tabular-nums ${
-                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-red-50" : u.status === "working" ? "border-accent text-accent" : "border-line text-muted"}`}>
+                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-bad-soft" : u.status === "working" ? "border-accent text-accent" : "border-line text-muted"}`}>
                   {u.n}{u.status === "failed" ? " ↻" : ""}
                 </button>
               ))}
@@ -274,7 +274,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
       </div>
 
       {pending !== null && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-accent bg-accent-soft p-3 text-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-control border border-accent bg-accent-soft p-3 text-sm">
           <span className="mr-auto">Hasil konversi baru sudah siap. Pakai hasil ini? Isi editor sekarang akan diganti.</span>
           <button type="button" className="btn-primary !py-1" onClick={() => { lastAuto.current = pending; onChange(pending); setPending(null); }}>Pakai hasil baru</button>
           <button type="button" className="btn-ghost !py-1" onClick={() => setPending(null)}>Abaikan</button>
@@ -303,7 +303,7 @@ export function MarkdownEditor({ value, onChange }: { value: string; onChange: (
     <div>
       <div className="mb-2 flex gap-1 text-sm md:hidden">
         {(["edit", "preview"] as const).map((k) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1 font-medium ${tab === k ? "bg-ink text-white" : "text-ink-soft"}`}>
+          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1 font-medium ${tab === k ? "bg-ink text-surface" : "text-ink-soft"}`}>
             {k === "edit" ? "Edit" : "Pratinjau"}
           </button>
         ))}
@@ -316,7 +316,7 @@ export function MarkdownEditor({ value, onChange }: { value: string; onChange: (
           spellCheck={false}
           placeholder={"## Judul bagian\n\nGaya $\\vec{F} = m\\vec{a}$ ...\n\n$$\nv^2 = v_0^2 + 2a\\,\\Delta x\n$$"}
         />
-        <div className={`h-[28rem] overflow-auto rounded-lg border border-line p-4 md:block ${tab === "preview" ? "" : "hidden"}`}>
+        <div className={`h-[28rem] overflow-auto rounded-control border border-line p-4 md:block ${tab === "preview" ? "" : "hidden"}`}>
           {preview.trim() ? <MarkdownView text={preview} /> : <p className="text-sm text-muted">Pratinjau muncul di sini.</p>}
         </div>
       </div>
@@ -333,5 +333,5 @@ function WaitLine({ info }: { info: NonNullable<WaitInfo> }) {
     return () => clearInterval(t);
   }, []);
   const left = Math.max(0, Math.ceil((info.until - now) / 1000));
-  return <p className="text-xs text-amber-700">{info.message} {left > 0 && `(${left} detik)`}</p>;
+  return <p className="text-xs text-warn-ink">{info.message} {left > 0 && `(${left} detik)`}</p>;
 }
