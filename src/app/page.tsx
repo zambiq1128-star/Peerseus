@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
+import { isMyTurn, joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
 import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
@@ -21,7 +21,7 @@ export default function Home() {
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
-  const myTurn = data.duels.filter((d) => d.status === "pending" && !(d.challengerId === uid ? d.challenger : d.opponent));
+  const myTurn = data.duels.filter((d) => isMyTurn(d, uid));
   const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
   const others = data.courses.filter((c) => !profile!.courseIds.includes(c.id));
 

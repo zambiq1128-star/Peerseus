@@ -274,6 +274,7 @@ export async function submitDuel(duelId: string, uid: string, answers: number[],
   if (!duel) throw new Error("Duel tidak ditemukan");
   const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
   if (!role) throw new Error("Kamu bukan peserta duel ini");
+  if (duel.status === "declined") throw new Error(`${duel.opponentName} menolak duel ini`);
   if (duel[role]) return duel;
 
   duel[role] = scoreSide(duel.questions, answers, timesMs);
@@ -314,6 +315,25 @@ async function finalize(duel: Duel) {
   duel.winnerId = result === 1 ? duel.challengerId : result === 0 ? duel.opponentId : null;
   duel.eloChange = { challenger: dc, opponent: dO };
   await db.set("duels", duel.id, duel);
+}
+
+/** A pending duel waiting on my answer (declined and finished duels never are). */
+export function isMyTurn(d: Duel, uid: string) {
+  return d.status === "pending" && !(d.challengerId === uid ? d.challenger : d.opponent);
+}
+
+/** The opponent can decline a pending challenge they haven't played. Demo peers never decline. */
+export function canDecline(d: Duel, uid: string) {
+  return d.status === "pending" && d.opponentId === uid && !d.opponent && !d.opponentIsBot;
+}
+
+/** Declines a challenge: the duel ends as "declined" and nobody's rating changes. */
+export async function declineDuel(id: string, uid: string) {
+  const d = await db.get<Duel>("duels", id);
+  if (!d || !canDecline(d, uid)) throw new Error("Duel ini sudah tidak bisa ditolak");
+  const declinedAt = Date.now();
+  await db.update("duels", d.id, { status: "declined", declinedAt });
+  return { ...d, status: "declined" as const, declinedAt };
 }
 
 export async function myDuels(uid: string) {
