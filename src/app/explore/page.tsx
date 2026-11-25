@@ -4,6 +4,7 @@ import { useState } from "react";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
+import MaterialsTabs from "@/components/MaterialsTabs";
 import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /** Cards shown at first and added per "Muat lebih banyak". */
@@ -45,7 +46,8 @@ export default function Explore() {
 
   return (
     <Page>
-      <PageHeader title="Jelajah materi" sub="Materi, catatan, dan past paper yang dibagikan mahasiswa lain dari semua mata kuliah." />
+      <PageHeader title="Jelajah materi" sub="Materi, catatan, dan past paper dari semua mata kuliah." />
+      <MaterialsTabs active="/explore" />
 
       {data.materials.length === 0 ? (
         <Empty title="Belum ada materi publik" action={<Link href="/" className="btn-primary">Ke mata kuliahku</Link>}>

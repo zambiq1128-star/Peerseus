@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
@@ -64,17 +65,32 @@ export function Page({ width = "page", children }: { width?: keyof typeof WIDTHS
   return <div className={`mx-auto w-full animate-page-in space-y-6 ${WIDTHS[width]}`}>{children}</div>;
 }
 
+/**
+ * "← label" above a page title. With `href` it links there; without, it goes back in the browser history
+ * (for pages reached from many places, like a profile), falling back to the home page.
+ */
+function BackLink({ href, label }: { href?: string; label: string }) {
+  const router = useRouter();
+  const cls = "text-sm text-muted transition-colors hover:text-ink";
+  if (href) return <Link href={href} className={cls}>← {label}</Link>;
+  return (
+    <button type="button" className={cls} onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
+      ← {label}
+    </button>
+  );
+}
+
 /** Top of every page: optional back link, small label above the title, title, description and actions. */
 export function PageHeader({ title, sub, eyebrow, back, action }: {
   title: React.ReactNode;
   sub?: React.ReactNode;
   eyebrow?: React.ReactNode;
-  back?: { href: string; label: string };
+  back?: { href?: string; label: string };
   action?: React.ReactNode;
 }) {
   return (
     <header>
-      {back && <Link href={back.href} className="text-sm text-muted hover:text-ink">← {back.label}</Link>}
+      {back && <BackLink {...back} />}
       <div className={`flex flex-wrap items-end justify-between gap-3 ${back ? "mt-2" : ""}`}>
         <div className="min-w-0">
           {eyebrow && <div className="eyebrow">{eyebrow}</div>}
