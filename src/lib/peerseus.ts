@@ -101,6 +101,22 @@ export async function myMaterials(uid: string): Promise<Material[]> {
   return [...pub, ...priv].sort((a, b) => b.createdAt - a.createdAt);
 }
 
+/** Newest public materials in these courses, each with whether its quiz is ready for duels (home page). */
+export async function latestMaterials(courseIds: string[], limit = 5): Promise<{ material: Material; quizReady: boolean }[]> {
+  // One query per course: the data layer only filters with == (a user has a handful of courses).
+  const perCourse = await Promise.all(
+    courseIds.map(async (id) => {
+      const [materials, quizzes] = await Promise.all([
+        db.list<Material>("materials", [["courseId", "==", id]]),
+        db.list<Quiz>("quizzes", [["courseId", "==", id]]),
+      ]);
+      const ready = new Set(quizzes.filter((q) => q.status === "published").map((q) => q.materialId));
+      return materials.map((material) => ({ material, quizReady: ready.has(material.id) }));
+    }),
+  );
+  return perCourse.flat().sort((a, b) => b.material.createdAt - a.material.createdAt).slice(0, limit);
+}
+
 /** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */
 export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">) {
   const m: Material = { ...input, id: newId("mat_"), createdAt: Date.now(), reports: 0 };
