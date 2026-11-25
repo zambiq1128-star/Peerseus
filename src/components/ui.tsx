@@ -66,15 +66,16 @@ export function Page({ width = "page", children }: { width?: keyof typeof WIDTHS
 }
 
 /**
- * "← label" above a page title. With `href` it links there; without, it goes back in the browser history
- * (for pages reached from many places, like a profile), falling back to the home page.
+ * "← label" above a page title. With only `href` it links there. Without `href`, or with `history`, it goes
+ * back in the browser history (for pages reached from many places, like a profile or a material opened from
+ * Jelajah, Materiku or a course), falling back to `href` or the home page when there is no history.
  */
-function BackLink({ href, label }: { href?: string; label: string }) {
+function BackLink({ href, label, history }: { href?: string; label: string; history?: boolean }) {
   const router = useRouter();
   const cls = "text-sm text-muted transition-colors hover:text-ink";
-  if (href) return <Link href={href} className={cls}>← {label}</Link>;
+  if (href && !history) return <Link href={href} className={cls}>← {label}</Link>;
   return (
-    <button type="button" className={cls} onClick={() => (window.history.length > 1 ? router.back() : router.push("/"))}>
+    <button type="button" className={cls} onClick={() => (window.history.length > 1 ? router.back() : router.push(href ?? "/"))}>
       ← {label}
     </button>
   );
@@ -85,7 +86,7 @@ export function PageHeader({ title, sub, eyebrow, back, action }: {
   title: React.ReactNode;
   sub?: React.ReactNode;
   eyebrow?: React.ReactNode;
-  back?: { href?: string; label: string };
+  back?: { href?: string; label: string; history?: boolean };
   action?: React.ReactNode;
 }) {
   return (
