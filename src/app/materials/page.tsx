@@ -39,7 +39,7 @@ export default function MyMaterials() {
 
   return (
     <Page>
-      <PageHeader title="Jelajah materi" sub="Materi, catatan, dan past paper dari semua mata kuliah." />
+      <PageHeader title="Jelajah materi" sub="Materi, catatan, past paper, dan referensi dari semua mata kuliah." />
       <MaterialsTabs active="/materials" />
       <p className="text-sm text-muted">Semua materi yang kamu upload. Materi privat hanya bisa kamu lihat. Upload materi baru dari halaman mata kuliah.</p>
       {data.materials.length === 0 ? (

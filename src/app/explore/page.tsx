@@ -46,7 +46,7 @@ export default function Explore() {
 
   return (
     <Page>
-      <PageHeader title="Jelajah materi" sub="Materi, catatan, dan past paper dari semua mata kuliah." />
+      <PageHeader title="Jelajah materi" sub="Materi, catatan, past paper, dan referensi dari semua mata kuliah." />
       <MaterialsTabs active="/explore" />
 
       {data.materials.length === 0 ? (

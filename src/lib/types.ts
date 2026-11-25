@@ -56,8 +56,11 @@ export type Membership = {
   topicStats: Record<string, TopicStat>;
 };
 
-/** Kind of material. Missing on materials from before this field: treat as "materi" (see materialType). */
-export type MaterialType = "materi" | "catatan" | "paper";
+/**
+ * Kind of material. Missing on materials from before this field: treat as "materi" (see materialType).
+ * "paper" = past exam questions; "referensi" = reading material such as scientific papers or example reports.
+ */
+export type MaterialType = "materi" | "catatan" | "paper" | "referensi";
 
 export type Material = {
   id: string;
