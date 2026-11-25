@@ -116,6 +116,25 @@ export type Quiz = {
   reports: number;
 };
 
+/**
+ * One finished solo practice run (kuis mandiri), stored in practiceAttempts. Only its owner can read it,
+ * and it changes no rating or topic stats. `answers` follow `questionIds`; -1 = left empty.
+ */
+export type PracticeAttempt = {
+  id: string;
+  uid: string;
+  quizId: string;
+  materialId: string;
+  courseId: string;
+  questionIds: string[];
+  answers: number[];
+  score: number;
+  total: number;
+  limitMinutes: number;
+  usedMs: number;
+  createdAt: number;
+};
+
 export type DuelSide = {
   answers: number[]; // -1 = timed out
   timesMs: number[];

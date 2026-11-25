@@ -196,7 +196,7 @@ export async function generateQuiz(material: Material, uid: string, count = 8, o
 }
 
 // ---------- Duels ----------
-function shuffle<T>(a: T[]): T[] {
+export function shuffle<T>(a: T[]): T[] {
   const b = [...a];
   for (let i = b.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

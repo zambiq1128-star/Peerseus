@@ -5,9 +5,10 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateQuiz, getMaterial, withUploaderNames, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
-import type { Question, Quiz } from "@/lib/types";
+import { formatDuration, loadRun, myPracticeAttempts } from "@/lib/practice";
+import type { PracticeAttempt, Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
-import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
 import { AttachmentPreview } from "@/components/AttachmentField";
 
@@ -19,8 +20,10 @@ export default function MaterialPage() {
     const found = await getMaterial(id);
     const material = found && (await withUploaderNames([found]))[0];
     const quiz = await db.get<Quiz>("quizzes", `quiz_${id}`);
-    return { material, quiz };
-  }, [id]);
+    // My solo practice history. Fails (and is left empty) until firestore.rules allow practiceAttempts.
+    const attempts = quiz?.status === "published" ? await myPracticeAttempts(uid, id).catch(() => [] as PracticeAttempt[]) : [];
+    return { material, quiz, attempts };
+  }, [id, uid]);
   const [showText, setShowText] = useState(false);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState<WaitInfo>(null);
@@ -29,7 +32,7 @@ export default function MaterialPage() {
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
-  const { material, quiz } = data;
+  const { material, quiz, attempts } = data;
   if (!material) return <NotFound title="Materi tidak ditemukan" />;
   const isUploader = material.uploaderId === uid;
   const isPrivate = material.isPublic === false;
@@ -70,11 +73,16 @@ export default function MaterialPage() {
         <div className="callout flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="font-semibold">Kuis siap: {quiz.questions.length} soal</div>
-            <div className="text-xs text-muted">Duel 6 soal acak, 20 detik per soal. Lawan dipilih yang levelnya mirip.</div>
+            <div className="text-xs text-muted">Duel: 6 soal acak, 20 detik per soal, lawan dengan level mirip. Latihan sendiri: semua soal, waktu kamu atur (maks 2 jam), tanpa rating.</div>
           </div>
-          <Link href={`/duel/new?quiz=${quiz.id}`} className="btn-primary">Mulai duel</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/materials/${material.id}/practice`} className="btn-ghost">{loadRun(uid, quiz.id) ? "Lanjutkan latihan" : "Latihan sendiri"}</Link>
+            <Link href={`/duel/new?quiz=${quiz.id}`} className="btn-primary">Mulai duel</Link>
+          </div>
         </div>
       )}
+
+      {attempts.length > 0 && <PracticeHistory attempts={attempts} />}
 
       {isPrivate && (
         <Empty>Materi privat hanya bisa kamu lihat. Untuk membuat kuis dan dipakai duel, jadikan publik lewat <Link href={`/materials/${material.id}/edit`} className="link">Edit materi</Link>.</Empty>
@@ -132,6 +140,23 @@ export default function MaterialPage() {
         )}
       </div>
     </Page>
+  );
+}
+
+/** My solo practice runs on this material (only I can read them). */
+function PracticeHistory({ attempts }: { attempts: PracticeAttempt[] }) {
+  const best = attempts.reduce((b, a) => (a.score / a.total > b.score / b.total ? a : b));
+  return (
+    <Section title={`Latihanku · skor terbaik ${best.score}/${best.total}`}>
+      <CollapsibleRows items={attempts}>
+        {(a) => (
+          <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
+            <span className="font-semibold tabular-nums">{a.score}/{a.total} <span className="font-normal text-muted">({Math.round((a.score / a.total) * 100)}%)</span></span>
+            <span className="text-xs text-muted">{formatDuration(a.usedMs)} · {timeAgo(a.createdAt)}</span>
+          </div>
+        )}
+      </CollapsibleRows>
+    </Section>
   );
 }
 

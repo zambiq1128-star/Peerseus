@@ -13,6 +13,7 @@ rules_version = '2';
 // public ones stay in materials, which must not hold a private one.
 // Duels: only the opponent can decline (status "declined"), only a pending duel they haven't played,
 // and a declined duel can't change again.
+// Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -116,9 +117,16 @@ service cloud.firestore {
         && (!declines() || validDecline());
     }
 
+    // Kuis mandiri history: one document per finished run, only its owner reads or deletes it.
+    match /practiceAttempts/{id} {
+      allow read, delete: if allowed() && resource.data.uid == request.auth.uid;
+      allow create: if allowed() && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts']) && allowed();
     }
   }
 }
