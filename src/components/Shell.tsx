@@ -51,14 +51,14 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
             const active = n.match(path);
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
-                className={`whitespace-nowrap rounded-control px-2 py-1.5 text-sm font-medium sm:px-2.5 ${active ? "bg-paper text-ink" : "text-muted hover:text-ink"}`}>
+                className={`whitespace-nowrap rounded-control px-2 py-1.5 text-sm font-medium transition-colors sm:px-2.5 ${active ? "bg-paper text-ink" : "text-muted hover:text-ink"}`}>
                 {n.label}
               </Link>
             );
           })}
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          className={`truncate text-sm font-medium ${onProfile ? "text-ink" : "text-muted hover:text-ink"}`}>{firstName}</Link>
+          className={`truncate text-sm font-medium transition-colors ${onProfile ? "text-ink" : "text-muted hover:text-ink"}`}>{firstName}</Link>
       </div>
     </header>
   );

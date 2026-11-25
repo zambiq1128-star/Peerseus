@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { joinCourse, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import type { Course, Membership } from "@/lib/types";
-import { Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
   const { profile, refresh } = useAuth();
@@ -96,8 +96,8 @@ export default function Home() {
 
       {others.length > 0 && (
         <Section title="Mata kuliah lain">
-          <div className="rows">
-            {others.map((c) => (
+          <CollapsibleRows items={others}>
+            {(c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 p-4">
                 <div>
                   <div className="font-medium">{c.code} · {c.name}</div>
@@ -107,8 +107,8 @@ export default function Home() {
                   {busy === c.id ? "…" : "Gabung"}
                 </button>
               </div>
-            ))}
-          </div>
+            )}
+          </CollapsibleRows>
         </Section>
       )}
     </Page>

@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType, myMaterials } from "@/lib/peerseus";
 import type { Course, MaterialType, Quiz } from "@/lib/types";
-import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 type Show = "" | "publik" | "privat" | MaterialType;
 
@@ -55,8 +55,8 @@ export default function MyMaterials() {
             ))}
           </div>
           {shown.length === 0 ? <Empty>Tidak ada materi yang cocok.</Empty> : (
-            <div className="rows">
-              {shown.map((m) => {
+            <CollapsibleRows key={show} items={shown}>
+              {(m) => {
                 const quiz = data.quizzes.get(m.id);
                 const course = data.courses.get(m.courseId);
                 return (
@@ -71,8 +71,8 @@ export default function MyMaterials() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
+              }}
+            </CollapsibleRows>
           )}
         </div>
       )}

@@ -160,7 +160,7 @@ function Review({ quiz, onDone, onRegen, busy, wait }: { quiz: Quiz; onDone: () 
           <textarea className="input font-mono text-xs" rows={2} value={q.question} onChange={(e) => set(i, { question: e.target.value })} aria-label="Teks soal" />
           <div className="grid gap-2 sm:grid-cols-2">
             {q.options.map((o, k) => (
-              <label key={k} className={`block rounded-control border p-2 ${q.answerIndex === k ? "border-good bg-good-soft" : "border-line"}`}>
+              <label key={k} className={`block rounded-control border p-2 transition-colors ${q.answerIndex === k ? "border-good bg-good-soft" : "border-line"}`}>
                 <span className="flex items-center gap-2">
                   <input type="radio" name={`ans-${q.id}`} checked={q.answerIndex === k} onChange={() => set(i, { answerIndex: k })} />
                   <span className="text-sm"><MathText text={o} /></span>

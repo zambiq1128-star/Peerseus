@@ -36,7 +36,7 @@ export default function AcademicFields({ value, onChange, note }: { value: Acade
               key={s.id}
               type="button"
               aria-pressed={value.stage === s.id}
-              className={`rounded-md px-2 py-1.5 text-sm font-medium ${value.stage === s.id ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}
+              className={`rounded-md px-2 py-1.5 text-sm font-medium transition-colors ${value.stage === s.id ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}
               onClick={() => onChange({ ...value, stage: s.id })}
             >
               {s.label}

@@ -43,3 +43,21 @@ Every page that loads data handles three states with the shared blocks in `src/c
 | Error | `ErrorState` (`onRetry`) | Load failed; "Coba lagi" re-runs the load |
 | Missing item | `NotFound` | Unknown material, course, duel or user, with a way back; also `src/app/not-found.tsx` |
 | Crash | `src/app/error.tsx` | Render error on a page; the top bar stays |
+
+## Motion
+
+Subtle and CSS-only. Tune it in the `@theme` block of `src/app/globals.css`:
+
+| Token | Used for |
+| --- | --- |
+| `--default-transition-duration`, `--default-transition-timing-function` | Every `transition` / `transition-colors` (hovers, tabs, chips, nav, inputs) |
+| `--animate-page-in` | Each `Page` and each course tab fades and lifts in |
+| `--animate-row-in` | Leaderboard rows revealed by "Lihat semua" |
+| `--animate-pop`, `--animate-shake` | Correct / wrong answer in a duel |
+| `--motion-expand`, `--motion-ease` (`:root`) | Collapsible lists sliding open |
+
+`prefers-reduced-motion: reduce` turns all of it off.
+
+## Long lists
+
+`CollapsibleRows` (in `ui.tsx`) shows `LIST_LIMIT` (5) rows, then "Lihat semua (N)". It starts collapsed on every visit and is keyed by the active filter so changing a chip collapses it again. Used for Mata kuliah lain, the Materi tab, Materiku, duel history (duels waiting on you are pinned above it) and both lists on a profile. Peringkat uses the same button on a table and keeps your own row visible under the top 5.
