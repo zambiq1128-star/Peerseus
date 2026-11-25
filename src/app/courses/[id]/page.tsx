@@ -127,7 +127,7 @@ export default function CoursePage() {
               {data.members.map((m, i) => (
                 <tr key={m.id} className={`border-t border-line ${m.uid === uid ? "bg-accent-soft font-medium" : ""}`}>
                   <td className="px-4 py-2">{i + 1}</td>
-                  <td className="px-4 py-2">{m.name} <span className="text-xs text-muted">{m.major}{m.isBot ? " · demo" : ""}</span></td>
+                  <td className="px-4 py-2"><Link href={`/users/${m.uid}`} className="hover:underline">{m.name}</Link> <span className="text-xs text-muted">{m.major}{m.isBot ? " · demo" : ""}</span></td>
                   <td className="px-4 py-2 text-muted">{m.wins}/{m.losses}</td>
                   <td className="px-4 py-2 text-right font-semibold">{m.elo}</td>
                 </tr>

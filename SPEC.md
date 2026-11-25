@@ -15,7 +15,8 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 
 | Koleksi / dokumen | Isi |
 | --- | --- |
-| `users/{uid}` | `name`, `major` (kode fakultas, mis. STEI), `stage` (`tpb` atau `jurusan`), `program` (prodi), `dreamProgram` (prodi incaran saat TPB, tidak pernah bersamaan dengan `program`), `semester`, `year`, `bio`, `contact`, `isPublic` (tampil di rekomendasi teman belajar), `isBot`, `courseIds[]`, `createdAt` |
+| `users/{uid}` | `name`, `major` (kode fakultas, mis. STEI), `stage` (`tpb` atau `jurusan`), `program` (prodi), `dreamProgram` (prodi incaran saat TPB, tidak pernah bersamaan dengan `program`), `semester`, `year`, `bio`, `contact`, `isPublic` (tampil di rekomendasi teman belajar), `privacy` (`showProgram`, `showContact`; kosong = tampil), `isBot`, `courseIds[]`, `createdAt` |
+| `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}` |
 | `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports` |
@@ -54,7 +55,8 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 9. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
 10. `/duels`: tantangan masuk dan riwayat duel.
 11. `/opportunities`: **Info**. Beasiswa, lomba, seminar. Filter jenis, fakultas, dan deadline. Tombol "+ Bagikan info".
-12. `/profile`: nama, fakultas/prodi, bio, kontak, pilihan tampil di rekomendasi (`isPublic`), keluar.
+12. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
+13. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
 
 ## 4. Aturan yang berlaku sekarang
 
@@ -62,7 +64,7 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 - **Pemenang duel**: skor lebih tinggi menang. Skor sama, total waktu lebih cepat menang (selisih > 0,5 detik). Selain itu seri.
 - **Elo** per mata kuliah, K = 32, mulai dari 1000 (`src/lib/elo.ts`).
 - **Skor teman belajar**: `0,6 × akurasi dia di topik lemahku + 0,3 × kedekatan Elo + 0,1 × fakultas sama`. Pengguna dengan `isPublic = false` tidak direkomendasikan.
-- **firestore.rules**: semua pengguna yang diizinkan bisa membaca dan menulis semua data app, kecuali `config`. Ini belum memenuhi aturan privasi di bagian 6.
+- **firestore.rules**: profil (`users/{uid}`) hanya bisa ditulis pemiliknya, dan bagian privatnya hanya bisa dibaca pemiliknya (bagian 6). Data lain bisa dibaca dan ditulis semua pengguna yang diizinkan, kecuali `config`.
 
 ## 5. Belum ada
 
@@ -75,9 +77,10 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
    - Dipilih di `/courses/[id]/upload` dan `/materials/[id]/edit`. Jenis tampil di daftar dan halaman materi, dan ada filter jenis di tab Materi `/courses/[id]`.
    - Alasan: 24 dari 40 responden survei latihan dengan soal ujian lalu.
 
-2. **Privasi per item dan profil publik** (Sedang)
-   - `UserProfile.privacy?: { showProgram, showEntryYear, showContact, showAchievements }`, semua boolean. `showProgram` mencakup `program` dan `dreamProgram`. `showContact` adalah tambahan karena `contact` sudah ada dan paling sensitif.
-   - Halaman baru `/users/[id]` untuk melihat profil orang lain. Nama di tab Peringkat dan Teman belajar menaut ke sana.
+2. ~~**Privasi per item dan profil publik**~~ (sudah dibuat)
+   - `UserProfile.privacy?: { showProgram, showContact }` (`Privacy`), semua boolean, kosong = tampil. `showProgram` mencakup `program` dan `dreamProgram`. Daftar field per switch ada di `HIDEABLE` (`src/lib/privacy.ts`).
+   - `showEntryYear` ditambahkan bersama angkatan (#5), dan `showAchievements` bersama pencapaian (#8).
+   - Halaman `/users/[id]` untuk melihat profil orang lain. Nama di tab Peringkat dan Teman belajar menaut ke sana.
    - Penegakan di Firestore Security Rules, lihat bagian 6.
    - Alasan: abstrak menjanjikan "users choose what is public", dan aturan privasi ini wajib.
 
@@ -125,11 +128,11 @@ Juri menilai scope terlalu luas dan feasibility paling lemah. Fitur di bawah men
 
 Field yang disembunyikan tidak boleh bisa dibaca orang lain di level Firestore Security Rules, bukan hanya disembunyikan di UI.
 
-Cara menerapkannya di app ini:
+Cara menerapkannya di app ini (sudah berlaku untuk profil, lihat `src/lib/privacy.ts` dan `firestore.rules`):
 
-- Firestore Security Rules mengizinkan atau menolak baca per dokumen, bukan per field. Jadi field yang disembunyikan disimpan di dokumen terpisah `users/{uid}/private/profile` yang hanya bisa dibaca pemiliknya. Saat profil disimpan, field yang `privacy`-nya mati ditulis ke sana dan dihapus dari `users/{uid}`. Pemilik membaca keduanya dan menggabungkannya.
-- `users/{uid}`, `users/{uid}/private/**`, dan `users/{uid}/achievements/**` hanya bisa ditulis pemiliknya. Pengecualian: profil teman demo (`isBot`) yang ditulis seed.
-- `achievements` bisa dibaca jika pemiliknya, atau `get(users/{uid}).data.privacy.showAchievements == true`.
+- Firestore Security Rules mengizinkan atau menolak baca per dokumen, bukan per field. Jadi field yang disembunyikan disimpan di dokumen terpisah `users/{uid}/private/profile` yang hanya bisa dibaca pemiliknya. Saat profil disimpan, field yang `privacy`-nya mati ditulis ke sana dan dihapus dari `users/{uid}`. Pemilik membaca keduanya dan menggabungkannya. Rules juga menolak `users/{uid}` yang masih memuat field yang disembunyikan.
+- `users/{uid}` dan `users/{uid}/private/profile` hanya bisa ditulis pemiliknya. Pengecualian: profil teman demo (`bot_…` dengan `isBot`) yang ditulis seed. Subkoleksi lain di bawah `users/{uid}` ditolak sampai ditambahkan ke rules (mis. `achievements` di #8).
+- Nanti: `achievements` bisa dibaca jika pemiliknya, atau `get(users/{uid}).data.privacy.showAchievements == true`.
 - `materials` privat: lihat Belum ada #3.
 - `major` (fakultas) tetap terlihat, karena disalin ke `memberships` untuk peringkat dan dipakai filter Info. Jika prodi disembunyikan, rekomendasi teman belajar tidak memakai kecocokan prodi untuk orang itu.
 - `memberships` dan `duels` tetap bisa ditulis peserta lain, karena hasil duel memperbarui Elo kedua pemain.

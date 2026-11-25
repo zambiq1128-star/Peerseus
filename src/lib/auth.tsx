@@ -4,6 +4,7 @@ import { getAuth, GoogleAuthProvider, OAuthProvider, onAuthStateChanged, signInW
 import { ACCESS_DOC, guestListIncludes, isItbAccount, ITB_MICROSOFT_TENANT, NOT_ALLOWED_MESSAGE } from "./access";
 import { firebaseEnabled, getFirebaseApp } from "./firebase";
 import { db, newId } from "./db";
+import { loadOwnProfile, saveOwnProfile } from "./privacy";
 import { ensureSeeded } from "./seed";
 import type { UserProfile } from "./types";
 
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     await ensureSeeded();
-    setProfile(await db.get<UserProfile>("users", id));
+    setProfile(await loadOwnProfile(id));
   }, []);
 
   useEffect(() => {
@@ -149,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!uid) return;
       const base: UserProfile = profile ?? { id: uid, name: authName || "Mahasiswa", major: "", year: 1, isPublic: true, courseIds: [], createdAt: Date.now() };
       const next = { ...base, ...p, id: uid };
-      await db.set("users", uid, next);
+      await saveOwnProfile(next);
       setProfile(next);
     },
     async logout() {
