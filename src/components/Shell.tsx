@@ -17,7 +17,7 @@ const NAV = [
 ];
 
 export function Logo() {
-  return <span className="text-lg font-extrabold tracking-tight">Peerseus</span>;
+  return <span className="font-display text-xl font-bold sm:text-2xl uppercase leading-none tracking-tight">Peer<span className="text-cyan">seus</span></span>;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -40,26 +40,28 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Top bar on every signed-in page: logo, the three main sections, and the profile link. */
+/** Top bar on every signed-in page (JRPG menu style): logo, the three main sections, and the profile link. */
 function AppHeader({ path, firstName }: { path: string; firstName: string }) {
   const onProfile = path === "/profile";
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-surface px-4">
-      <div className="mx-auto flex max-w-page items-center gap-2 py-3 sm:gap-4">
-        <Link href="/" aria-label="Peerseus, ke beranda"><Logo /></Link>
-        <nav aria-label="Menu utama" className="flex flex-1 gap-0.5 sm:gap-1">
-          {NAV.map((n) => {
+    <header className="sticky top-0 z-20 animate-slide-down border-b-2 border-volt bg-navy px-4 text-white">
+      <div className="mx-auto flex max-w-page items-center gap-1 py-2.5 sm:gap-4">
+        <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left"><Logo /></Link>
+        <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-1.5 sm:pl-3">
+          {NAV.map((n, i) => {
             const active = n.match(path);
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
-                className={`whitespace-nowrap rounded-control px-2 py-1.5 text-sm font-medium transition-colors sm:px-2.5 ${active ? "bg-paper text-ink" : "text-muted hover:text-ink"}`}>
+                style={{ animationDelay: `${60 + i * 60}ms` }}
+                className={`animate-slide-left whitespace-nowrap px-2.5 py-1.5 font-display text-[13px] uppercase tracking-wide transition duration-200 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] [transition-timing-function:var(--ease-overshoot)] hover:-skew-x-6 hover:translate-x-0.5 focus-visible:bg-white focus-visible:text-navy sm:px-5 sm:text-base sm:tracking-wider ${active ? "bg-volt text-white" : "text-white/80 hover:bg-navy-3 hover:text-cyan"}`}>
                 {n.label}
               </Link>
             );
           })}
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          className={`truncate text-sm font-medium transition-colors ${onProfile ? "text-ink" : "text-muted hover:text-ink"}`}>{firstName}</Link>
+          style={{ animationDelay: "240ms" }}
+          className={`animate-slide-right max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-200 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] [transition-timing-function:var(--ease-overshoot)] hover:-skew-x-6 focus-visible:bg-white focus-visible:text-navy sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-cyan text-navy" : "bg-navy-3 text-cyan hover:bg-cyan hover:text-navy"}`}>{firstName}</Link>
       </div>
     </header>
   );

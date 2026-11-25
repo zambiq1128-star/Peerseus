@@ -41,6 +41,15 @@
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 
+  /* JRPG menu look (navbar, hero, later pages): deep navy, electric blue and cyan. Original design, no game assets. */
+  --color-navy: #050b1f;       /* deep background */
+  --color-navy-2: #0a1330;     /* raised panels on navy */
+  --color-navy-3: #14214d;     /* borders / hover on navy */
+  --color-volt: #1e6bff;       /* electric blue, white text on it passes AA */
+  --color-cyan: #3ef0ff;       /* highlight, always on navy or volt */
+  --font-display: var(--font-oswald), "Arial Narrow", Impact, sans-serif; /* oversized condensed headings */
+  --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   /* Motion: every `transition` utility uses these defaults */
   --default-transition-duration: 160ms;
   --default-transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -51,6 +60,14 @@
   --animate-pop: pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-shake: shake 260ms ease-in-out;
 
+  /* JRPG slide-ins: fast, with a slight overshoot. */
+  --animate-slide-left: slide-left 420ms var(--ease-overshoot) backwards;
+  --animate-slide-right: slide-right 420ms var(--ease-overshoot) backwards;
+  --animate-slide-down: slide-down 380ms var(--ease-overshoot) backwards;
+
+  @keyframes slide-left { from { opacity: 0; transform: translateX(-48px) skewX(-12deg); } }
+  @keyframes slide-right { from { opacity: 0; transform: translateX(48px) skewX(-12deg); } }
+  @keyframes slide-down { from { opacity: 0; transform: translateY(-100%); } }
   @keyframes page-in { from { opacity: 0; transform: translateY(6px); } }
   @keyframes row-in { from { opacity: 0; transform: translateY(-4px); } }
   @keyframes pop { 50% { transform: scale(1.02); } }
@@ -77,6 +94,23 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
 }
+
+/*
+ * JRPG menu components (parallelogram buttons, diagonal dividers, condensed headings).
+ * Shapes use clip-path, so a focus ring would be cut off: focus-visible swaps the colors instead.
+ */
+@utility jrpg-title { @apply font-display font-bold uppercase leading-[0.9] tracking-tight; }
+@utility jrpg-btn {
+  @apply inline-flex items-center justify-center gap-2 px-7 py-2.5 font-display text-base font-semibold uppercase tracking-wider transition duration-200 disabled:opacity-50;
+  clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  transition-timing-function: var(--ease-overshoot);
+}
+@utility jrpg-btn-volt { @apply jrpg-btn bg-volt text-white hover:-skew-x-6 hover:translate-x-1 hover:bg-cyan hover:text-navy focus-visible:bg-white focus-visible:text-navy; }
+@utility jrpg-btn-cyan { @apply jrpg-btn bg-cyan text-navy hover:-skew-x-6 hover:translate-x-1 hover:bg-white focus-visible:bg-white; }
+/* Cut the bottom edge of a dark block on a slant. */
+@utility jrpg-diagonal { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3.5vw), 0 100%); }
+/* Tilted chip for small facts (counts, labels). */
+@utility jrpg-tag { @apply inline-block bg-navy-3 px-4 py-1 font-display text-sm uppercase tracking-widest text-cyan; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
 
 /* Component classes. Change the look here, not in the pages. */
 @utility card { @apply rounded-card border border-line bg-surface p-5 transition-colors; }
