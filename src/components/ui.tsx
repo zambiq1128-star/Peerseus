@@ -65,7 +65,7 @@ const WIDTHS = { narrow: "max-w-narrow", page: "max-w-page", wide: "max-w-wide" 
  * narrow = forms and focused screens, page = default, wide = editor + preview.
  */
 export function Page({ width = "page", children }: { width?: keyof typeof WIDTHS; children: React.ReactNode }) {
-  return <div className={`mx-auto w-full space-y-6 ${WIDTHS[width]}`}>{children}</div>;
+  return <div className={`mx-auto w-full animate-page-in space-y-6 ${WIDTHS[width]}`}>{children}</div>;
 }
 
 /** Top of every page: optional back link, small label above the title, title, description and actions. */
@@ -103,6 +103,51 @@ export function Section({ title, action, children }: { title?: React.ReactNode; 
       )}
       {children}
     </section>
+  );
+}
+
+/** How many rows a long list shows before "Lihat semua". */
+export const LIST_LIMIT = 5;
+
+/**
+ * A bordered list that shows the first `limit` rows and slides the rest open with "Lihat semua (N)".
+ * `pinned` rows always show above the list (e.g. duels waiting on you). Starts collapsed on every visit;
+ * give it a `key` that changes with the active filter to collapse it again when the filter changes.
+ */
+export function CollapsibleRows<T>({ items, children, pinned, limit = LIST_LIMIT }: {
+  items: T[];
+  children: (item: T) => React.ReactNode;
+  pinned?: React.ReactNode;
+  limit?: number;
+}) {
+  const [open, setOpen] = useState(false);
+  const extra = items.slice(limit);
+  return (
+    <div className="rows">
+      {pinned}
+      {items.slice(0, limit).map(children)}
+      {extra.length > 0 && (
+        <>
+          <div className="expand" data-open={open} inert={!open}>
+            <div>
+              <div className="divide-y divide-line border-b border-line">{extra.map(children)}</div>
+            </div>
+          </div>
+          <ShowMoreButton open={open} total={items.length} onClick={() => setOpen(!open)} />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The footer toggle of a collapsible list or table. */
+export function ShowMoreButton({ open, total, onClick }: { open: boolean; total: number; onClick: () => void }) {
+  return (
+    <button type="button" aria-expanded={open} onClick={onClick}
+      className="flex w-full items-center justify-center gap-1.5 rounded-b-card px-4 py-2.5 text-sm font-medium text-accent transition-colors hover:bg-paper">
+      {open ? "Tampilkan lebih sedikit" : `Lihat semua (${total})`}
+      <span aria-hidden className={`inline-block transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
+    </button>
   );
 }
 

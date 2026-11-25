@@ -93,11 +93,11 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
         <div className="mb-4 h-1 rounded-full bg-line">
           <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
         </div>
-        <div className="card !p-6">
+        <div key={i} className="card animate-page-in !p-6">
           <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
           <div className="mt-5 grid gap-2">
             {q.options.map((o, k) => {
-              const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "border-good bg-good-soft" : k === picked ? "border-bad bg-bad-soft" : "opacity-50";
+              const state = picked === null ? "hover:border-accent" : k === q.answerIndex ? "animate-pop border-good bg-good-soft" : k === picked ? "animate-shake border-bad bg-bad-soft" : "opacity-50";
               return (
                 <button key={k} disabled={picked !== null} onClick={() => choose(k)} className={`rounded-control border border-line p-3 text-left text-sm transition ${state}`}>
                   <span className="mr-2 font-semibold text-muted">{"ABCD"[k]}</span><MathText text={o} />

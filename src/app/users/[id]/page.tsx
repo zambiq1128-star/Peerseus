@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
-import { AccountBadge, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
  * Someone's profile as other people see it. Reads only users/{id} (never the private part), so fields the
@@ -60,8 +60,8 @@ export default function UserPage() {
 
       <Section title="Mata kuliah">
         {data.memberships.length === 0 ? <Empty>Belum ikut mata kuliah.</Empty> : (
-          <div className="rows">
-            {data.memberships.map((m) => {
+          <CollapsibleRows items={data.memberships}>
+            {(m) => {
               const c = data.courses.get(m.courseId);
               return (
                 <Link key={m.id} href={`/courses/${m.courseId}`} className="flex items-center justify-between gap-3 p-3 hover:bg-paper">
@@ -69,21 +69,21 @@ export default function UserPage() {
                   <span className="text-sm"><span className="text-xs text-muted">rating </span><b>{m.elo}</b></span>
                 </Link>
               );
-            })}
-          </div>
+            }}
+          </CollapsibleRows>
         )}
       </Section>
 
       <Section title="Materi yang dibagikan">
         {data.materials.length === 0 ? <Empty>Belum ada materi.</Empty> : (
-          <div className="rows">
-            {data.materials.map((m) => (
+          <CollapsibleRows items={data.materials}>
+            {(m) => (
               <Link key={m.id} href={`/materials/${m.id}`} className="block p-3 hover:bg-paper">
                 <div className="text-sm font-medium">{m.title}</div>
                 <div className="text-xs text-muted">{MATERIAL_TYPES[materialType(m)]} · {data.courses.get(m.courseId)?.code ?? m.courseId} · {timeAgo(m.createdAt)}</div>
               </Link>
-            ))}
-          </div>
+            )}
+          </CollapsibleRows>
         )}
       </Section>
     </Page>

@@ -5,8 +5,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS } from "@/lib/peerseus";
-import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
-import { Empty, ErrorState, NotFound, Page, PageHeader, Spinner, TopicBar, useAsync } from "@/components/ui";
+import type { Course, Material, MaterialType, Membership, Quiz } from "@/lib/types";
+import { CollapsibleRows, Empty, ErrorState, LIST_LIMIT, NotFound, Page, PageHeader, ShowMoreButton, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
 
 const TABS = { materi: "Materi", peringkat: "Peringkat", partner: "Teman belajar" } as const;
@@ -78,13 +78,13 @@ export default function CoursePage() {
 
       <div role="tablist" className="flex gap-4 border-b border-line">
         {(Object.keys(TABS) as Tab[]).map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px border-b-2 pb-2 text-sm font-medium ${tab === t ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}>
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px border-b-2 pb-2 text-sm font-medium transition-colors ${tab === t ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}>
             {TABS[t]}
           </button>
         ))}
       </div>
 
-      {tab === "materi" && (
+      {tab === "materi" && <div className="animate-page-in">{
         data.materials.length === 0 ? (
           <Empty title="Belum ada materi" action={joined && <Link href={`/courses/${id}/upload`} className="btn-primary">Upload materi</Link>}>
             Jadilah yang pertama upload.
@@ -99,8 +99,8 @@ export default function CoursePage() {
               ))}
             </div>
             {shown.length === 0 ? <Empty>Belum ada {MATERIAL_TYPES[kind as MaterialType].toLowerCase()} di mata kuliah ini.</Empty> : (
-              <div className="rows">
-                {shown.map((m) => {
+              <CollapsibleRows key={kind} items={shown}>
+                {(m) => {
                   const quiz = data.quizzes.find((x) => x.materialId === m.id);
                   return (
                     <Link key={m.id} href={`/materials/${m.id}`} className="row-link">
@@ -113,34 +113,59 @@ export default function CoursePage() {
                       </span>
                     </Link>
                   );
-                })}
-              </div>
+                }}
+              </CollapsibleRows>
             )}
           </div>
         )
-      )}
+      }</div>}
 
-      {tab === "peringkat" && (
-        <div className="overflow-x-auto rounded-card border border-line">
-          <table className="w-full text-sm">
-            <thead className="bg-paper text-left text-xs text-muted">
-              <tr><th className="px-4 py-2">#</th><th className="px-4 py-2">Nama</th><th className="px-4 py-2">Menang/Kalah</th><th className="px-4 py-2 text-right">Rating</th></tr>
-            </thead>
-            <tbody>
-              {data.members.map((m, i) => (
-                <tr key={m.id} className={`border-t border-line ${m.uid === uid ? "bg-accent-soft font-medium" : ""}`}>
-                  <td className="px-4 py-2">{i + 1}</td>
-                  <td className="px-4 py-2"><Link href={`/users/${m.uid}`} className="hover:underline">{m.name}</Link> <span className="text-xs text-muted">{m.major}{m.isBot ? " · demo" : ""}</span></td>
-                  <td className="px-4 py-2 text-muted">{m.wins}/{m.losses}</td>
-                  <td className="px-4 py-2 text-right font-semibold">{m.elo}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {tab === "peringkat" && <Leaderboard key="peringkat" members={data.members} uid={uid} />}
+
+      {tab === "partner" && (
+        <div key="partner" className="animate-page-in">
+          {joined ? <PartnerList courseId={id} /> : <Empty>Gabung mata kuliah dulu untuk dapat rekomendasi.</Empty>}
         </div>
       )}
-
-      {tab === "partner" && (joined ? <PartnerList courseId={id} /> : <Empty>Gabung mata kuliah dulu untuk dapat rekomendasi.</Empty>)}
     </Page>
+  );
+}
+
+/** Top 5, then (while collapsed) a gap and my own row if I'm below the cut, then "Lihat semua". */
+function Leaderboard({ members, uid }: { members: Membership[]; uid: string }) {
+  const [open, setOpen] = useState(false);
+  const mine = members.findIndex((m) => m.uid === uid);
+  const shown = open ? members : members.slice(0, LIST_LIMIT);
+  const pinMine = !open && mine >= LIST_LIMIT;
+  const row = (m: Membership, i: number, animate = false) => (
+    <tr key={m.id} className={`border-t border-line ${m.uid === uid ? "bg-accent-soft font-medium" : ""} ${animate ? "animate-row-in" : ""}`}>
+      <td className="px-4 py-2">{i + 1}</td>
+      <td className="px-4 py-2"><Link href={`/users/${m.uid}`} className="hover:underline">{m.name}</Link> <span className="text-xs text-muted">{m.major}{m.isBot ? " · demo" : ""}</span></td>
+      <td className="px-4 py-2 text-muted">{m.wins}/{m.losses}</td>
+      <td className="px-4 py-2 text-right font-semibold">{m.elo}</td>
+    </tr>
+  );
+  return (
+    <div className="animate-page-in overflow-x-auto rounded-card border border-line">
+      <table className="w-full text-sm">
+        <thead className="bg-paper text-left text-xs text-muted">
+          <tr><th className="px-4 py-2">#</th><th className="px-4 py-2">Nama</th><th className="px-4 py-2">Menang/Kalah</th><th className="px-4 py-2 text-right">Rating</th></tr>
+        </thead>
+        <tbody>
+          {shown.map((m, i) => row(m, i, i >= LIST_LIMIT))}
+          {pinMine && (
+            <>
+              <tr aria-hidden className="border-t border-line"><td colSpan={4} className="px-4 py-1 text-center text-muted">…</td></tr>
+              {row(members[mine], mine)}
+            </>
+          )}
+        </tbody>
+        {members.length > LIST_LIMIT && (
+          <tfoot>
+            <tr className="border-t border-line"><td colSpan={4} className="p-0"><ShowMoreButton open={open} total={members.length} onClick={() => setOpen(!open)} /></td></tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
   );
 }

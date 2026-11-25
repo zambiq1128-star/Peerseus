@@ -206,7 +206,7 @@ export default function MaterialComposer({ value, onChange }: { value: string; o
         <div className="mb-3 flex flex-wrap gap-1 text-sm">
           {([["pdf", "Upload PDF"], ["file", "File .tex / .md / .txt"], ["paste", "Tempel teks"]] as const).map(([k, l]) => (
             <button key={k} type="button" onClick={() => setTab(k)} disabled={running}
-              className={`rounded-md px-3 py-1.5 font-medium ${tab === k ? "bg-ink text-surface" : "text-ink-soft hover:bg-paper"}`}>{l}</button>
+              className={`rounded-md px-3 py-1.5 font-medium transition-colors ${tab === k ? "bg-ink text-surface" : "text-ink-soft hover:bg-paper"}`}>{l}</button>
           ))}
         </div>
 
@@ -303,7 +303,7 @@ export function MarkdownEditor({ value, onChange }: { value: string; onChange: (
     <div>
       <div className="mb-2 flex gap-1 text-sm md:hidden">
         {(["edit", "preview"] as const).map((k) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1 font-medium ${tab === k ? "bg-ink text-surface" : "text-ink-soft"}`}>
+          <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1 font-medium transition-colors ${tab === k ? "bg-ink text-surface" : "text-ink-soft"}`}>
             {k === "edit" ? "Edit" : "Pratinjau"}
           </button>
         ))}
