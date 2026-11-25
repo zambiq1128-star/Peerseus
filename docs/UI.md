@@ -60,4 +60,4 @@ Subtle and CSS-only. Tune it in the `@theme` block of `src/app/globals.css`:
 
 ## Long lists
 
-`CollapsibleRows` (in `ui.tsx`) shows `LIST_LIMIT` (5) rows, then "Lihat semua (N)". It starts collapsed on every visit and is keyed by the active filter so changing a chip collapses it again. Used for Mata kuliah lain, the Materi tab, Materiku, duel history (duels waiting on you are pinned above it) and both lists on a profile. Peringkat uses the same button on a table and keeps your own row visible under the top 5.
+`CollapsibleRows` (in `ui.tsx`) shows `LIST_LIMIT` (5) rows, then "Lihat semua (N)". It starts collapsed on every visit and is keyed by the active filter so changing a chip collapses it again. Used for the Materi tab, Materiku, duel history (duels waiting on you are pinned above it) and both lists on a profile. Peringkat uses the same button on a table and keeps your own row visible under the top 5.
