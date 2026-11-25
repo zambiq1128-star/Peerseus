@@ -45,9 +45,9 @@ export default function EditMaterial() {
     if (!text.trim()) return setErr("Isi materi tidak boleh kosong.");
     setBusy(true);
     try {
-      // Drop the attachment before a material goes private (Drive links are readable by anyone who has them).
+      // Team Drive files never go into privateMaterials (they are readable by anyone with the link), and own-Drive links never go public.
       const file = await attachmentToSave(attachment, isPrivate);
-      const m = await setMaterialPublic(isPrivate ? { ...material!, attachment: null } : material!, !isPrivate);
+      const m = await setMaterialPublic({ ...material!, attachment: file }, !isPrivate);
       await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim(), attachment: file });
       await cleanUpAttachment(material!.attachment, file);
       router.push(`/materials/${id}`);

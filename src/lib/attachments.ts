@@ -77,4 +77,25 @@ export async function deleteAttachment(a: Attachment): Promise<void> {
 /** Drive ids are letters, digits, - and _. Anything else is not put in a URL. */
 const validId = (id: string) => /^[A-Za-z0-9_-]{10,200}$/.test(id);
 export const previewUrl = (a: Attachment) => (validId(a.driveFileId) ? `https://drive.google.com/file/d/${a.driveFileId}/preview` : null);
-export const openUrl = (a: Attachment) => (validId(a.driveFileId) ? `https://drive.google.com/file/d/${a.driveFileId}/view` : null);
+/** open?id= works for files, Google Docs/Sheets/Slides and folders alike. */
+export const openUrl = (a: Attachment) => (validId(a.driveFileId) ? `https://drive.google.com/open?id=${a.driveFileId}` : null);
+
+/**
+ * The file id in a Google Drive or Docs link (private materials link to the uploader's own Drive), or null.
+ * Accepts drive.google.com/file/d/ID/..., docs.google.com/document|spreadsheets|presentation/d/ID/...,
+ * .../folders/ID and ...?id=ID.
+ */
+export function driveIdFromLink(link: string): string | null {
+  let u: URL;
+  try {
+    u = new URL(link.trim());
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" || !["drive.google.com", "docs.google.com"].includes(u.hostname)) return null;
+  const id = /\/d\/([A-Za-z0-9_-]+)/.exec(u.pathname)?.[1] ?? /\/folders\/([A-Za-z0-9_-]+)/.exec(u.pathname)?.[1] ?? u.searchParams.get("id") ?? "";
+  return validId(id) ? id : null;
+}
+
+/** A pasted own-Drive link as an attachment. */
+export const ownDriveAttachment = (driveFileId: string): Attachment => ({ driveFileId, name: "", mimeType: "", size: 0, ownDrive: true });

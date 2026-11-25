@@ -72,7 +72,7 @@ export default function Upload() {
           onChange={setText}
           keepsPdf={!!attachmentCfg?.enabled && !isPrivate}
           // A PDF read into the editor is also offered as the attachment, unless one is already picked.
-          onPdf={(f) => { if (!attachment && attachmentCfg?.enabled && !checkAttachment(f, attachmentCfg.maxBytes)) setAttachment({ kind: "new", file: f }); }}
+          onPdf={(f) => { if (!attachment && !isPrivate && attachmentCfg?.enabled && !checkAttachment(f, attachmentCfg.maxBytes)) setAttachment({ kind: "new", file: f }); }}
         />
         <AttachmentField value={attachment} onChange={setAttachment} isPrivate={isPrivate} config={attachmentCfg} />
         <PrivateField checked={isPrivate} onChange={setIsPrivate} />

@@ -159,7 +159,7 @@ Total sekitar 10 menit. Semua langkah pakai **akun Gmail tim** (bukan akun ITB).
 3. Di Google Drive tim muncul folder **Peerseus Lampiran** (dibuat otomatis saat upload pertama). Jangan dihapus atau diganti nama; kalau tidak ketemu, app membuat folder baru dengan nama itu.
 
 Yang perlu diketahui:
-- File lampiran bisa dibuka **siapa pun yang punya link-nya** (tanpa login), supaya pratinjau jalan untuk akun ITB. Karena itu **materi privat tidak bisa punya lampiran**; saat materi dijadikan privat, lampirannya dihapus dari Drive.
+- File lampiran bisa dibuka **siapa pun yang punya link-nya** (tanpa login), supaya pratinjau jalan untuk akun ITB. Karena itu **materi privat tidak memakai Drive tim**. Di materi privat, kolomnya berganti jadi "Link file di Google Drive-mu": pengguna upload sendiri ke Drive pribadinya dengan akses **Dibatasi (Restricted)**, lalu menempel link-nya. Saat materi dijadikan privat, lampiran di Drive tim dihapus; saat dijadikan publik, link Drive pribadi dilepas. Link pribadi ini tidak butuh env apa pun.
 - Mengganti atau menghapus lampiran lewat **Edit materi** juga menghapus file lamanya dari Drive.
 - Kuota Drive gratis 15 GB, dipakai bersama Gmail dan Foto akun tim.
 - File dikirim langsung dari browser ke Google Drive (tidak lewat Vercel, yang membatasi 4,5 MB per request). Server hanya membuka sesi upload lalu membagikan file-nya.

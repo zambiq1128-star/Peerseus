@@ -84,8 +84,12 @@ export type Material = {
   reports: number;
 };
 
-/** A file in the team's Google Drive folder, shared "anyone with the link can view" (src/lib/drive.ts). */
-export type Attachment = { driveFileId: string; name: string; mimeType: string; size: number };
+/**
+ * A file in Google Drive. Public materials: a file in the team's folder, shared "anyone with the link can view"
+ * (src/lib/drive.ts). Private materials: `ownDrive` = a link the uploader pasted to a file in their own Drive,
+ * left "Restricted" so only they can open it (name, mimeType and size unknown: "", "", 0).
+ */
+export type Attachment = { driveFileId: string; name: string; mimeType: string; size: number; ownDrive?: boolean };
 
 export type Question = {
   id: string;
