@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MATERIAL_TYPES } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
+import { Ransom } from "./Ransom";
 
 /**
  * Counts from 0 up to `target` (eased) so a result number can "roll in".
@@ -119,7 +120,9 @@ export function PageHeader({ title, sub, eyebrow, back, action }: {
       <div className={`flex flex-wrap items-end justify-between gap-3 ${back ? "mt-2" : ""}`}>
         <div className="min-w-0">
           {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>
+          {typeof title === "string"
+            ? <Ransom as="h1" text={title} className="text-[1.7rem] sm:text-5xl" />
+            : <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{title}</h1>}
           {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
         </div>
         {action && <div className="flex flex-wrap gap-2">{action}</div>}

@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
+import { Anton, Archivo_Black, Bebas_Neue, Oswald, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import Shell from "@/components/Shell";
 
 const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin"] });
 
-// Condensed display type of the JRPG menu look (navbar, hero).
+// Display fonts of the Persona-style experiment: Anton is the main heavy condensed face, the four
+// together are mixed letter by letter in the "ransom note" headings (components/Ransom.tsx).
+const anton = Anton({ variable: "--font-anton", weight: "400", subsets: ["latin"] });
+const bebas = Bebas_Neue({ variable: "--font-bebas", weight: "400", subsets: ["latin"] });
+const archivo = Archivo_Black({ variable: "--font-archivo", weight: "400", subsets: ["latin"] });
 const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -16,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${jakarta.variable} ${oswald.variable}`}>
+    <html lang="id" className={`${jakarta.variable} ${anton.variable} ${bebas.variable} ${archivo.variable} ${oswald.variable}`}>
       <body className="font-sans antialiased">
         <AuthProvider>
           <Shell>{children}</Shell>

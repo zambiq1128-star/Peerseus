@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, QuestionProposal } from "@/lib/types";
+import { Ransom } from "@/components/Ransom";
+import { Splat, Starburst } from "@/components/Decor";
 import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
@@ -16,30 +18,37 @@ export default function Home() {
   );
 }
 
-/** JRPG-menu hero: full-bleed navy block with a slanted bottom edge, oversized heading and parallelogram buttons. */
+/**
+ * Hero: black block with a slanted bottom edge, a big red slab with halftone dots, an original ink splat and
+ * starburst, and a ransom-note heading. Everything decorative is aria-hidden; the heading reads as plain text.
+ */
 function Hero() {
   const { profile } = useAuth();
   const n = profile!.courseIds.length;
   return (
-    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-6 overflow-hidden bg-navy px-4 pb-24 pt-10 text-white sm:-mt-8 sm:pb-32 sm:pt-14">
-      {/* Decorative: blue slab, cyan stripe, faint diagonal lines. */}
+    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-8 overflow-hidden bg-black px-4 pb-28 pt-10 text-white sm:-mt-8 sm:pb-36 sm:pt-14">
+      {/* Decorative layers */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-24 top-0 h-full w-2/3 animate-slide-right bg-volt/25 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute -right-10 top-0 h-full w-1/3 animate-slide-right bg-cyan/15 [animation-delay:90ms] [clip-path:polygon(40%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_14px)]" />
+        <div className="absolute -right-24 top-0 h-full w-2/3 animate-slide-right bg-accent [clip-path:polygon(34%_0,100%_0,100%_100%,0_100%)]" />
+        <div className="absolute -right-24 top-0 h-full w-2/3 opacity-40 [background:radial-gradient(#0a0a0a_1.6px,transparent_2px)_0_0/9px_9px] [clip-path:polygon(34%_0,100%_0,100%_100%,0_100%)]" />
+        <div className="absolute right-[34%] top-0 hidden h-full w-3 bg-white sm:block [clip-path:polygon(70%_0,100%_0,30%_100%,0_100%)]" />
+        <div className="absolute inset-0 opacity-[0.08] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_16px)]" />
+        <Splat seed={7} className="absolute -right-10 bottom-4 h-56 w-56 animate-slam text-white [animation-delay:350ms] sm:right-16 sm:top-10 sm:h-80 sm:w-80" />
+        <Splat seed={19} className="absolute -right-6 bottom-8 h-48 w-48 animate-slam text-black [animation-delay:450ms] sm:right-20 sm:top-14 sm:h-72 sm:w-72" />
+        <Starburst seed={3} className="absolute right-4 top-6 h-24 w-24 animate-slam text-white [animation-delay:560ms] sm:right-[30%] sm:top-auto sm:bottom-24 sm:h-32 sm:w-32" />
+        <Starburst seed={11} points={9} className="absolute bottom-16 left-[46%] hidden h-14 w-14 animate-slam text-accent [animation-delay:640ms] sm:block" />
       </div>
       <div className="relative mx-auto max-w-page">
         <p className="jrpg-tag animate-slide-left">Halo, {profile!.name.split(" ")[0]}</p>
-        <h1 id="hero-title" className="jrpg-title mt-3 text-[clamp(3.25rem,14vw,8.5rem)]">
-          <span className="block animate-slide-left [animation-delay:80ms]">Mata</span>
-          <span className="block animate-slide-left text-cyan [animation-delay:160ms]">kuliahku</span>
+        <h1 id="hero-title" className="mt-4 animate-slide-left text-[clamp(2.4rem,11.5vw,6.5rem)] [animation-delay:100ms]">
+          <Ransom text={"Mata\nkuliahku"} />
         </h1>
-        <p className="mt-5 max-w-md animate-slide-left text-base text-white/85 [animation-delay:240ms] sm:text-lg">
+        <p className="mt-6 max-w-md animate-slide-left text-base font-medium text-white [animation-delay:260ms] sm:text-lg">
           Pilih mata kuliah untuk buka materi dan mulai duel.{n > 0 && ` ${n} mata kuliah siap dijelajahi.`}
         </p>
-        <div className="mt-7 flex flex-wrap gap-4">
-          <Link href="/courses" className="jrpg-btn-cyan animate-slide-left [animation-delay:320ms]">Atur mata kuliah</Link>
-          <Link href="/explore" className="jrpg-btn-volt animate-slide-left [animation-delay:400ms]">Jelajah materi</Link>
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link href="/courses" className="jrpg-btn-volt animate-slide-left [animation-delay:340ms]">Atur mata kuliah</Link>
+          <Link href="/explore" className="jrpg-btn-cyan animate-slide-left [animation-delay:420ms]">Jelajah materi</Link>
         </div>
       </div>
     </section>
