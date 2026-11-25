@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FACULTIES } from "@/lib/itb";
+import { MATERIAL_TYPES } from "@/lib/peerseus";
+import type { MaterialType } from "@/lib/types";
 
 /** Faculty/school codes (the profile's `major` field). */
 export const MAJORS = FACULTIES;
@@ -26,6 +28,18 @@ export function PageTitle({ title, sub, action }: { title: string; sub?: string;
         {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
       </div>
       {action}
+    </div>
+  );
+}
+
+/** Jenis materi on the upload and edit forms. */
+export function MaterialTypeField({ value, onChange }: { value: MaterialType; onChange: (t: MaterialType) => void }) {
+  return (
+    <div>
+      <label className="label" htmlFor="mtype">Jenis</label>
+      <select id="mtype" className="input" value={value} onChange={(e) => onChange(e.target.value as MaterialType)}>
+        {Object.entries(MATERIAL_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+      </select>
     </div>
   );
 }

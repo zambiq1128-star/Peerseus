@@ -18,7 +18,7 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `users/{uid}` | `name`, `major` (kode fakultas, mis. STEI), `stage` (`tpb` atau `jurusan`), `program` (prodi), `dreamProgram` (prodi incaran saat TPB, tidak pernah bersamaan dengan `program`), `semester`, `year`, `bio`, `contact`, `isPublic` (tampil di rekomendasi teman belajar), `isBot`, `courseIds[]`, `createdAt` |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}` |
-| `materials/{id}` | `courseId`, `title`, `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports` |
+| `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
 | `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
 | `opportunities/{id}` | `title`, `type` (`beasiswa`, `lomba`, `seminar`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
@@ -34,7 +34,7 @@ File tidak disimpan di Firebase Storage. PDF dan file lain diubah jadi teks Mark
 | `username`, `jurusan`, `angkatan` | `name`, `major` + `stage` + `program`/`dreamProgram`, angkatan belum ada (lihat Belum ada #5) |
 | `socials{}` | `contact` (satu teks, mis. LINE / IG / WA) |
 | `users/{uid}/enrolledCourses/{code}` | `memberships/{courseId}_{uid}` + `users.courseIds` |
-| `repository/{id}` | `materials/{id}` (repositori bersama per mata kuliah) |
+| `repository/{id}`, `tipe` | `materials/{id}` (repositori bersama per mata kuliah), `type` |
 | `courses/{code}` + `data/courses.json` | `courses/{id}` + `src/lib/seed.ts` + `src/lib/curriculum.ts`. Tidak ada field fakultas karena kurikulum disimpan per prodi |
 | `duels.players[]`, `winnerUid` | `participants[]`, `winnerId` |
 | `posts/{id}` | `opportunities/{id}` |
@@ -47,8 +47,8 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 2. **Data diri** (layar yang sama): nama, fakultas, TPB/jurusan, prodi atau prodi incaran. Untuk akun ITB diisi otomatis dari NIM di email dan tetap bisa diubah.
 3. `/courses`: **Mata Kuliah**. Pengguna baru diarahkan ke sini. Semester ditebak dari NIM, mata kuliah semester ini diisi dari Kurikulum 2024, bisa dihapus, dan ada pencarian untuk menambah. Mata kuliah yang dihapus menyimpan ratingnya.
 4. `/`: **Mata kuliahku**. Daftar mata kuliah dengan rating, tantangan duel yang menunggu jawaban, dan mata kuliah lain untuk digabung.
-5. `/courses/[id]`: tab Materi, Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
-6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks), diubah per halaman jadi Markdown + LaTeX dengan Gemini.
+5. `/courses/[id]`: tab Materi (dengan filter jenis: Materi, Catatan, Past paper), Peringkat, Teman belajar. Tombol "Upload materi" dan "Mulai duel".
+6. `/courses/[id]/upload`: upload materi (PDF, .tex, .md, .txt, atau tempel teks) dan pilih jenisnya, diubah per halaman jadi Markdown + LaTeX dengan Gemini.
 7. `/materials/[id]`: baca materi. Uploader membuat kuis (Gemini, 8 soal pilihan ganda), mengecek, lalu mempublikasikan. Ada tombol lapor materi/kuis. Edit di `/materials/[id]/edit`.
 8. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
 9. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
@@ -70,9 +70,9 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
 
 ### Prioritas untuk demo
 
-1. **Jenis materi dan past paper** (Kecil)
-   - `Material.type?: "materi" | "catatan" | "paper"`. Kosong dianggap `"materi"`, jadi materi lama tetap jalan.
-   - Dipilih di `/courses/[id]/upload` dan `/materials/[id]/edit`. Badge dan filter jenis di tab Materi `/courses/[id]`.
+1. ~~**Jenis materi dan past paper**~~ (sudah dibuat)
+   - `Material.type?: "materi" | "catatan" | "paper"` (`MaterialType`). Kosong dianggap `"materi"` (`materialType()`), jadi materi lama tetap jalan. Label di `MATERIAL_TYPES`.
+   - Dipilih di `/courses/[id]/upload` dan `/materials/[id]/edit`. Jenis tampil di daftar dan halaman materi, dan ada filter jenis di tab Materi `/courses/[id]`.
    - Alasan: 24 dari 40 responden survei latihan dengan soal ujian lalu.
 
 2. **Privasi per item dan profil publik** (Sedang)

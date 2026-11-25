@@ -4,7 +4,7 @@ import type { CourseInfo } from "./curriculum";
 import { db, newId } from "./db";
 import { eloDelta, START_ELO } from "./elo";
 import { ensureSeeded } from "./seed";
-import type { Course, Duel, DuelSide, Material, Membership, Question, Quiz, UserProfile } from "./types";
+import type { Course, Duel, DuelSide, Material, MaterialType, Membership, Question, Quiz, UserProfile } from "./types";
 
 export const DUEL_QUESTIONS = 6;
 export const SECONDS_PER_QUESTION = 20;
@@ -69,6 +69,10 @@ export const courseMembers = async (courseId: string) =>
   (await db.list<Membership>("memberships", [["courseId", "==", courseId]])).filter((m) => !m.left);
 
 // ---------- Materials & quizzes ----------
+/** Labels in display order. "paper" = past exam questions (soal ujian tahun lalu). */
+export const MATERIAL_TYPES: Record<MaterialType, string> = { materi: "Materi", catatan: "Catatan", paper: "Past paper" };
+export const materialType = (m: Pick<Material, "type">): MaterialType => m.type ?? "materi";
+
 /** Files are processed in the browser; only the resulting text is stored (no Firebase Storage). */
 export async function createMaterial(input: Omit<Material, "id" | "createdAt" | "reports">) {
   const m: Material = { ...input, id: newId("mat_"), createdAt: Date.now(), reports: 0 };
@@ -76,7 +80,7 @@ export async function createMaterial(input: Omit<Material, "id" | "createdAt" | 
   return m;
 }
 
-export async function updateMaterial(id: string, patch: Pick<Material, "title" | "topics" | "text">) {
+export async function updateMaterial(id: string, patch: Pick<Material, "title" | "type" | "topics" | "text">) {
   await db.update("materials", id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 
