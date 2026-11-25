@@ -1,6 +1,6 @@
 "use client";
 import {
-  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where,
+  getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, query, where,
   type QueryConstraint,
 } from "firebase/firestore";
 import { firebaseEnabled, getFirebaseApp } from "./firebase";
@@ -12,6 +12,7 @@ export interface Db {
   list<T>(col: string, filters?: Filter[]): Promise<T[]>;
   set<T extends object>(col: string, id: string, data: T): Promise<void>;
   update(col: string, id: string, data: Record<string, unknown>): Promise<void>;
+  remove(col: string, id: string): Promise<void>;
 }
 
 // ---------- Firestore implementation ----------
@@ -32,6 +33,9 @@ function firestoreDb(): Db {
     },
     async update(col, id, data) {
       await updateDoc(doc(fs(), col, id), stripUndefined(data));
+    },
+    async remove(col, id) {
+      await deleteDoc(doc(fs(), col, id));
     },
   };
 }
@@ -93,6 +97,11 @@ function localDb(): Db {
       // Firestore-style dotted paths are supported
       for (const [k, v] of Object.entries(stripUndefined(data))) setPath(cur, k, v);
       c[id] = cur;
+      writeCol(col, c);
+    },
+    async remove(col, id) {
+      const c = readCol(col);
+      delete c[id];
       writeCol(col, c);
     },
   };

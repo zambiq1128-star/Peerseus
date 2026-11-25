@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { courseMembers, joinCourse, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
 import { Empty, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
@@ -21,14 +21,16 @@ export default function CoursePage() {
   const joined = profile!.courseIds.includes(id);
 
   const { data, reload } = useAsync(async () => {
-    const [course, materials, quizzes, members] = await Promise.all([
+    const [course, materials, mine, quizzes, members] = await Promise.all([
       db.get<Course>("courses", id),
       db.list<Material>("materials", [["courseId", "==", id]]),
+      // My private materials (only mine are readable), shown to me alongside the public ones.
+      db.list<Material>(PRIVATE_MATERIALS, [["uploaderId", "==", uid]]),
       db.list<Quiz>("quizzes", [["courseId", "==", id]]),
       courseMembers(id),
     ]);
-    return { course, materials: materials.sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
-  }, [id]);
+    return { course, materials: [...materials, ...mine.filter((m) => m.courseId === id)].sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
+  }, [id, uid]);
 
   if (!data) return <Spinner />;
   if (!data.course) return <Empty>Mata kuliah tidak ditemukan.</Empty>;
@@ -102,7 +104,7 @@ export default function CoursePage() {
                   return (
                     <Link key={m.id} href={`/materials/${m.id}`} className="flex items-center justify-between gap-3 p-4 hover:bg-paper">
                       <div>
-                        <div className="font-medium">{m.title}</div>
+                        <div className="font-medium">{m.title}{m.isPublic === false && <span className="badge ml-2">Privat</span>}</div>
                         <div className="text-xs text-muted">{MATERIAL_TYPES[materialType(m)]} · {m.topics.join(", ")} · oleh {m.uploaderName}</div>
                       </div>
                       <span className="badge shrink-0">

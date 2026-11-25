@@ -3,19 +3,19 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { materialType, updateMaterial } from "@/lib/peerseus";
-import type { Material, MaterialType } from "@/lib/types";
+import { getMaterial, materialType, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
+import type { MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
-import { Empty, MaterialTypeField, PageTitle, Spinner, useAsync } from "@/components/ui";
+import { Empty, MaterialTypeField, PageTitle, PrivateField, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
   const { id } = useParams<{ id: string }>();
   const { profile } = useAuth();
   const router = useRouter();
-  const { data: material } = useAsync(() => db.get<Material>("materials", id), [id]);
+  const { data: material } = useAsync(() => getMaterial(id), [id]);
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MaterialType>("materi");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,6 +25,7 @@ export default function EditMaterial() {
     if (!material) return;
     setTitle(material.title);
     setType(materialType(material));
+    setIsPrivate(material.isPublic === false);
     setTopics(material.topics.join(", "));
     setText(material.text);
   }, [material]);
@@ -39,7 +40,8 @@ export default function EditMaterial() {
     if (!text.trim()) return setErr("Isi materi tidak boleh kosong.");
     setBusy(true);
     try {
-      await updateMaterial(id, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim() });
+      const m = await setMaterialPublic(material!, !isPrivate);
+      await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim() });
       router.push(`/materials/${id}`);
     } catch (e) {
       setErr((e as Error).message);
@@ -58,6 +60,7 @@ export default function EditMaterial() {
           <MaterialTypeField value={type} onChange={setType} />
         </div>
         <MaterialComposer value={text} onChange={setText} />
+        <PrivateField checked={isPrivate} onChange={setIsPrivate} />
         <p className="text-xs text-muted">Kuis yang sudah ada tidak berubah otomatis setelah materi diedit.</p>
         {err && <p className="text-sm text-bad">{err}</p>}
         <div className="flex justify-end gap-2">

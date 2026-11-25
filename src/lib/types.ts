@@ -60,6 +60,8 @@ export type Material = {
   courseId: string;
   title: string;
   type?: MaterialType;
+  /** false = private: stored in privateMaterials, only the uploader can read it (src/lib/peerseus.ts). Missing = public. */
+  isPublic?: boolean;
   description: string;
   topics: string[];
   text: string;

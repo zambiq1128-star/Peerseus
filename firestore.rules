@@ -9,6 +9,8 @@ rules_version = '2';
 // Profiles: only the owner writes users/{uid}; fields the owner hid live in users/{uid}/private/profile,
 // which only the owner can read (src/lib/privacy.ts). Firestore rules allow or deny whole documents,
 // so a hidden field must not be in users/{uid} at all, and the rules refuse a profile that still has one.
+// Private materials (Materiku) live in privateMaterials, readable and writable only by their uploader;
+// public ones stay in materials, which must not hold a private one.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -66,9 +68,28 @@ service cloud.firestore {
       }
     }
 
+    // Public materials. Private ones (isPublic == false) belong in privateMaterials.
+    match /materials/{id} {
+      allow read, delete: if allowed();
+      allow create, update: if allowed() && request.resource.data.get('isPublic', true) == true;
+    }
+
+    match /privateMaterials/{id} {
+      function mine() {
+        return allowed() && resource.data.uploaderId == request.auth.uid;
+      }
+      function staysMine() {
+        return allowed() && request.resource.data.uploaderId == request.auth.uid
+          && request.resource.data.get('isPublic', true) == false;
+      }
+      allow read, delete: if mine();
+      allow create: if staysMine();
+      allow update: if mine() && staysMine();
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if col != 'config' && col != 'users' && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials']) && allowed();
     }
   }
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { createMaterial } from "@/lib/peerseus";
 import MaterialComposer from "@/components/MaterialComposer";
-import { MaterialTypeField, PageTitle } from "@/components/ui";
+import { MaterialTypeField, PageTitle, PrivateField } from "@/components/ui";
 import type { MaterialType } from "@/lib/types";
 
 export default function Upload() {
@@ -14,6 +14,7 @@ export default function Upload() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [type, setType] = useState<MaterialType>("materi");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
   const [text, setText] = useState("");
   const [agree, setAgree] = useState(false);
@@ -30,6 +31,7 @@ export default function Upload() {
         courseId: id,
         title: title.trim(),
         type,
+        isPublic: !isPrivate,
         description: "",
         topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
         text: text.trim(),
@@ -58,6 +60,7 @@ export default function Upload() {
           <MaterialTypeField value={type} onChange={setType} />
         </div>
         <MaterialComposer value={text} onChange={setText} />
+        <PrivateField checked={isPrivate} onChange={setIsPrivate} />
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-1" />
           <span className="text-muted">Materi ini buatan saya atau boleh dibagikan (bukan buku/soal berhak cipta tanpa izin).</span>

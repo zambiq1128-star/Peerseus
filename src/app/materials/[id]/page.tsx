@@ -4,8 +4,8 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { generateQuiz, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
-import type { Material, Question, Quiz } from "@/lib/types";
+import { generateQuiz, getMaterial, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import type { Question, Quiz } from "@/lib/types";
 import type { WaitInfo } from "@/lib/convert";
 import { Empty, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
@@ -15,7 +15,7 @@ export default function MaterialPage() {
   const { profile } = useAuth();
   const uid = profile!.id;
   const { data, reload } = useAsync(async () => {
-    const material = await db.get<Material>("materials", id);
+    const material = await getMaterial(id);
     const quiz = await db.get<Quiz>("quizzes", `quiz_${id}`);
     return { material, quiz };
   }, [id]);
@@ -29,6 +29,7 @@ export default function MaterialPage() {
   const { material, quiz } = data;
   if (!material) return <Empty>Materi tidak ditemukan.</Empty>;
   const isUploader = material.uploaderId === uid;
+  const isPrivate = material.isPublic === false;
 
   async function gen() {
     setBusy(true);
@@ -55,6 +56,7 @@ export default function MaterialPage() {
         <Link href={`/courses/${material.courseId}`} className="text-sm text-muted hover:text-ink">← Kembali</Link>
         <h1 className="mt-2 text-xl font-bold">{material.title}</h1>
         <p className="text-sm text-muted">
+          {isPrivate && <span className="badge mr-2">Privat</span>}
           {MATERIAL_TYPES[materialType(material)]} · {material.topics.join(", ")} · oleh {material.uploaderName} · {timeAgo(material.createdAt)}
           {isUploader && <> · <Link href={`/materials/${material.id}/edit`} className="font-medium text-accent">Edit materi</Link></>}
         </p>
@@ -71,7 +73,11 @@ export default function MaterialPage() {
         </div>
       )}
 
-      {!quiz && (isUploader ? (
+      {isPrivate && (
+        <Empty>Materi privat hanya bisa kamu lihat. Untuk membuat kuis dan dipakai duel, jadikan publik lewat <Link href={`/materials/${material.id}/edit`} className="text-accent">Edit materi</Link>.</Empty>
+      )}
+
+      {!quiz && !isPrivate && (isUploader ? (
         <div className="card flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="font-semibold">Buat kuis dari materi ini</div>
@@ -111,7 +117,7 @@ export default function MaterialPage() {
         )}
       </section>
 
-      <div className="flex justify-end gap-4 text-xs text-muted">
+      <div className={`flex justify-end gap-4 text-xs text-muted ${isPrivate ? "hidden" : ""}`}>
         <button className="underline" onClick={() => report("materi")} disabled={reported === "materi"}>
           {reported === "materi" ? "Laporan terkirim" : "Laporkan materi"}
         </button>
