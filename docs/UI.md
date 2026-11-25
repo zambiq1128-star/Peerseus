@@ -18,7 +18,7 @@ Pages use token names only (`bg-surface`, `text-muted`, `rounded-card`, `max-w-p
 Every signed-in page is the top bar, then one `Page`:
 
 ```
-Top bar:  Peerseus · Mata Kuliah · Duel · Info ............ [first name → Profil]
+Top bar:  Peerseus · Mata Kuliah · Duel · Jelajah ........... [first name → Profil]
 Page:     PageHeader (← back link, eyebrow, title, description, actions)
           Section (small title + optional action)
           Section ...
@@ -29,7 +29,7 @@ Page widths (`Page width=...`):
 | Width | Token | Routes |
 | --- | --- | --- |
 | `narrow` | `--container-narrow` | `/courses`, `/profile`, `/users/[id]`, `/duel/new`, `/duel/[id]` |
-| `page` (default) | `--container-page` | `/`, `/courses/[id]`, `/materials`, `/materials/[id]`, `/duels`, `/opportunities` |
+| `page` (default) | `--container-page` | `/`, `/courses/[id]`, `/materials`, `/materials/[id]`, `/duels`, `/explore` |
 | `wide` | `--container-wide` | `/courses/[id]/upload`, `/materials/[id]/edit` (editor + preview) |
 
 ## States

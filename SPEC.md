@@ -23,7 +23,7 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 | `privateMaterials/{id}` | Materi privat (Materiku): field sama dengan `materials` plus `isPublic: false`. Hanya bisa dibaca dan ditulis pengunggahnya. Id tetap sama saat dipindah dari/ke `materials` |
 | `quizzes/quiz_{materialId}` | `materialId`, `courseId`, `title`, `status` (`draft` atau `published`), `questions[]`, `createdBy`, `createdAt`, `generator` (`gemini`, `fallback`, `seed`), `reports` |
 | `duels/{id}` | `courseId`, `quizId`, `quizTitle`, `challengerId/Name`, `opponentId/Name`, `opponentIsBot`, `status` (`pending`, `completed`, `declined`), `questions[]`, `challenger`, `opponent` (jawaban, waktu, skor), `winnerId` (`null` = seri), `eloChange`, `participants[]`, `createdAt` |
-| `opportunities/{id}` | `title`, `type` (`beasiswa`, `lomba`, `seminar`, `lainnya`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
+| `opportunities/{id}` (tidak dipakai halaman mana pun sejak Info dihapus) | `title`, `type` (`beasiswa`, `lomba`, `seminar`, `lainnya`), `organizer`, `majors[]` (kosong = semua fakultas), `deadline` (YYYY-MM-DD), `link`, `description`, `postedBy`, `createdAt` |
 | `config/access` | `guestEmails[]`. Hanya bisa diubah di console |
 | `meta/seed` | Versi data contoh |
 
@@ -43,7 +43,7 @@ File tidak disimpan di Firebase Storage. PDF dan file lain diubah jadi teks Mark
 
 ## 3. Alur halaman
 
-Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opportunities`). Profil dan keluar ada di bawah nama pengguna.
+Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Jelajah** (`/explore`). Profil dan keluar ada di bawah nama pengguna.
 
 1. **Masuk** (layar di `Shell`, muncul di route mana pun selama belum login): "Masuk dengan akun ITB" (Microsoft) atau "Masuk dengan Google" untuk tamu.
 2. **Data diri** (layar yang sama): nama, fakultas, TPB/jurusan, prodi atau prodi incaran. Untuk akun ITB diisi otomatis dari NIM di email dan tetap bisa diubah.
@@ -56,7 +56,7 @@ Navigasi hanya tiga: **Mata Kuliah** (`/`), **Duel** (`/duels`), **Info** (`/opp
 9. `/duel/new?course=…|quiz=…&opponent=…`: pilih kuis dan lawan. Lawan diurutkan dari rating terdekat dan yang terdekat dipilih otomatis, jadi duel bisa dimulai dengan satu klik.
 10. `/duel/[id]`: main (6 soal acak, 20 detik per soal), lalu hasil: skor, perubahan rating, topik yang salah, dan teman belajar yang kuat di topik itu.
 11. `/duels`: tantangan masuk dan riwayat duel.
-12. `/opportunities`: **Info**. Beasiswa, lomba, seminar. Filter jenis, fakultas, dan deadline. Tombol "+ Bagikan info".
+12. `/explore`: **Jelajah materi**. Semua materi publik dari semua mata kuliah (hanya koleksi `materials`, tidak pernah `privateMaterials`), terbaru dulu. Cari berdasarkan judul, topik, mata kuliah, atau pengunggah, filter jenis (Materi, Catatan, Past paper), dan feed kartu yang bisa di-scroll dengan "Muat lebih banyak". Menggantikan halaman Info (`/opportunities`), yang dihapus; koleksi `opportunities` dan seed-nya dibiarkan tapi tidak dipakai halaman mana pun.
 13. `/profile`: nama, fakultas/prodi, bio, kontak, pengaturan "Yang bisa dilihat orang lain" (prodi, kontak, tampil di rekomendasi), keluar.
 14. `/users/[id]`: profil seseorang seperti dilihat orang lain: nama, fakultas/prodi, semester, bio, kontak (yang tidak disembunyikan), mata kuliah dengan rating, dan materi yang dibagikan. Nama di tab Peringkat dan Teman belajar menaut ke sini.
 
@@ -98,7 +98,7 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
    - `UserProfile.entryYear?: number`, diisi dari NIM (`readNim(...).entryYear`) saat daftar, dan di `/profile` untuk profil lama. Bisa diubah dan disembunyikan (`showEntryYear`). Field `year` yang lama dibiarkan.
    - `UserProfile.isItbVerified?: boolean`, ditulis app saat login dan saat menyimpan profil, dan divalidasi di rules (`honestItbFlag`: harus sama dengan `isItb()` dari token). Akun ITB diberi badge "✓ ITB" dan tamu badge "Tamu" (`AccountBadge`) di Profil, `/users/[id]`, dan daftar teman belajar.
 
-6. ~~**Kategori Info "lainnya"**~~ (sudah dibuat)
+6. ~~**Kategori Info "lainnya"**~~ (sudah dibuat, lalu halaman Info diganti Jelajah materi)
    - `OpportunityType` ditambah `"lainnya"`, beserta filter dan form "+ Bagikan info".
 
 ### Usul ditunda
@@ -136,5 +136,5 @@ Cara menerapkannya di app ini (sudah berlaku untuk profil, lihat `src/lib/privac
 - `users/{uid}` dan `users/{uid}/private/profile` hanya bisa ditulis pemiliknya. Pengecualian: profil teman demo (`bot_…` dengan `isBot`) yang ditulis seed. Subkoleksi lain di bawah `users/{uid}` ditolak sampai ditambahkan ke rules (mis. `achievements` di #8).
 - Nanti: `achievements` bisa dibaca jika pemiliknya, atau `get(users/{uid}).data.privacy.showAchievements == true`.
 - Materi privat: `privateMaterials/{id}` hanya bisa dibaca dan ditulis pengunggahnya, dan `materials` menolak dokumen dengan `isPublic == false`.
-- `major` (fakultas) tetap terlihat, karena disalin ke `memberships` untuk peringkat dan dipakai filter Info. Jika prodi disembunyikan, rekomendasi teman belajar tidak memakai kecocokan prodi untuk orang itu.
+- `major` (fakultas) tetap terlihat, karena disalin ke `memberships` untuk peringkat dan dulu dipakai filter Info (halaman Info sudah dihapus). Jika prodi disembunyikan, rekomendasi teman belajar tidak memakai kecocokan prodi untuk orang itu.
 - `memberships` dan `duels` tetap bisa ditulis peserta lain, karena hasil duel memperbarui Elo kedua pemain.

@@ -1,12 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { FACULTIES } from "@/lib/itb";
 import { MATERIAL_TYPES } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
-
-/** Faculty/school codes (the profile's `major` field). */
-export const MAJORS = FACULTIES;
 
 /** Loading state: shown while a page or block fetches its data. */
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
