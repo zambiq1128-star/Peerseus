@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { db } from "@/lib/db";
-import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import { MATERIAL_TYPES, materialType, withUploaderNames } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
 import MaterialsTabs from "@/components/MaterialsTabs";
 import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -24,7 +24,7 @@ export default function Explore() {
       db.list<Quiz>("quizzes"),
     ]);
     return {
-      materials: materials.filter((m) => m.isPublic !== false).sort((a, b) => b.createdAt - a.createdAt),
+      materials: (await withUploaderNames(materials.filter((m) => m.isPublic !== false))).sort((a, b) => b.createdAt - a.createdAt),
       courses: new Map(courses.map((c) => [c.id, c])),
       quizReady: new Set(quizzes.filter((q) => q.status === "published").map((q) => q.materialId)),
     };
@@ -124,14 +124,36 @@ function Feed({ items, courses, quizReady }: { items: Material[]; courses: Map<s
 
 /** A plain-text teaser of Markdown + LaTeX: drops headings, emphasis, links, code and math markers. */
 function preview(text: string) {
-  return text
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/\$\$[\s\S]*?\$\$/g, " [rumus] ")
-    .replace(/\$([^$\n]+)\$/g, "$1")
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
-    .replace(/^[#>\-*+\s|]+/gm, "")
-    .replace(/[*_`\\|]/g, "")
+  return plainTex(
+    text
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/g, " [rumus] ")
+      .replace(/\$([^$\n]+)\$|\\\((.+?)\\\)/g, (_, a: string | undefined, b: string | undefined) => a ?? b ?? "")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^[#>\-*+\s|]+/gm, ""),
+  )
+    .replace(/[*_`|]/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 240);
+}
+
+/** Common LaTeX symbols, shown as the character itself in snippets. */
+const TEX_SYMBOLS: Record<string, string> = {
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ", epsilon: "ε", theta: "θ", lambda: "λ", mu: "μ",
+  pi: "π", rho: "ρ", sigma: "σ", Sigma: "Σ", tau: "τ", phi: "φ", omega: "ω", Omega: "Ω",
+  cdot: "·", times: "×", pm: "±", le: "≤", leq: "≤", ge: "≥", geq: "≥", neq: "≠", approx: "≈", infty: "∞", to: "→", rightarrow: "→", sqrt: "√",
+};
+
+/** Inline LaTeX as readable text, e.g. "10\,\mathrm{m/s}^2" → "10 m/s^2", "\frac{\Delta x}{\Delta t}" → "Δx/Δt". */
+function plainTex(text: string) {
+  const group = String.raw`\{((?:[^{}]|\{[^{}]*\})*)\}`; // {…}, with one level of nested braces
+  return text
+    .replace(/\\\\|\\[,;:!> ]|~/g, " ")
+    .replace(/\\(?:mathrm|text|textbf|textit|mathbf|mathit|mathsf|operatorname|emph|vec|hat|bar|overline|underline|dot|ddot|tilde|boldsymbol|left|right)(?![a-zA-Z])\s*/g, "")
+    .replace(new RegExp(String.raw`\\[dt]?frac\s*${group}\s*${group}`, "g"), "$1/$2")
+    .replace(/\\(?:begin|end)\s*\{[^{}]*\}/g, " ")
+    // Known symbols become the character; other commands before a {…} (\section{Bab}) keep only the argument.
+    .replace(/\\([a-zA-Z]+)(?=(\{)?)/g, (_, cmd: string, arg?: string) => TEX_SYMBOLS[cmd] ?? (arg ? "" : cmd))
+    .replace(/[{}]/g, "");
 }

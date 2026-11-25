@@ -105,6 +105,18 @@ export async function getMaterial(id: string): Promise<Material | null> {
   }
 }
 
+/**
+ * A material keeps a copy of the uploader's name from upload time. Show the current name from
+ * users/{id} instead, so renames carry over (same as courseMembers). One read per distinct uploader;
+ * the stored name stays as a fallback when the user document is gone.
+ */
+export async function withUploaderNames<T extends Pick<Material, "uploaderId" | "uploaderName">>(materials: T[]): Promise<T[]> {
+  const ids = [...new Set(materials.map((m) => m.uploaderId))];
+  const users = await Promise.all(ids.map((id) => db.get<UserProfile>("users", id).catch(() => null)));
+  const names = new Map(ids.map((id, i) => [id, users[i]?.name]));
+  return materials.map((m) => ({ ...m, uploaderName: names.get(m.uploaderId) || m.uploaderName }));
+}
+
 /** Everything I uploaded, public and private, newest first. */
 export async function myMaterials(uid: string): Promise<Material[]> {
   const [pub, priv] = await Promise.all([
@@ -127,7 +139,9 @@ export async function latestMaterials(courseIds: string[], limit = 5): Promise<{
       return materials.map((material) => ({ material, quizReady: ready.has(material.id) }));
     }),
   );
-  return perCourse.flat().sort((a, b) => b.material.createdAt - a.material.createdAt).slice(0, limit);
+  const latest = perCourse.flat().sort((a, b) => b.material.createdAt - a.material.createdAt).slice(0, limit);
+  const named = await withUploaderNames(latest.map((x) => x.material));
+  return latest.map((x, i) => ({ ...x, material: named[i] }));
 }
 
 /** Files are processed in the browser into text (no Firebase Storage); an original file can go along as an attachment in Google Drive. */
