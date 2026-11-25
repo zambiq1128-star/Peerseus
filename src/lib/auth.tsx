@@ -34,9 +34,13 @@ const LOCAL_UID_KEY = "peerseus:uid";
  * Only ITB accounts and listed guests get in (see access.ts).
  * Firestore rules and the AI routes check the same on the server.
  */
-async function allowed(u: User): Promise<boolean> {
+async function itbAccount(u: User): Promise<boolean> {
   const { signInProvider } = await u.getIdTokenResult();
-  if (isItbAccount({ email: u.email, emailVerified: u.emailVerified, signInProvider })) return true;
+  return isItbAccount({ email: u.email, emailVerified: u.emailVerified, signInProvider });
+}
+
+async function allowed(u: User): Promise<boolean> {
+  if (await itbAccount(u)) return true;
   if (!u.emailVerified) return false;
   try {
     // firestore.rules only let allowed users read this document, so a refusal means "not a guest".
@@ -79,15 +83,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authEmail, setAuthEmail] = useState("");
   const [authError, setAuthError] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  /** ITB account (true) or listed guest (false); undefined in local demo mode. Stored as isItbVerified. */
+  const [itb, setItb] = useState<boolean | undefined>(undefined);
 
-  const load = useCallback(async (id: string | null) => {
+  const load = useCallback(async (id: string | null, itbVerified?: boolean) => {
     setUid(id);
+    setItb(itbVerified);
     if (!id) {
       setProfile(null);
       return;
     }
     await ensureSeeded();
-    setProfile(await loadOwnProfile(id));
+    let p = await loadOwnProfile(id);
+    if (p && itbVerified !== undefined && p.isItbVerified !== itbVerified) {
+      // Profiles from before this field, or an account that changed: keep the badge right.
+      p = { ...p, isItbVerified: itbVerified };
+      await saveOwnProfile(p);
+    }
+    setProfile(p);
   }, []);
 
   useEffect(() => {
@@ -102,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setAuthName(u?.displayName ?? "");
         setAuthEmail(u?.email ?? "");
-        await load(u?.uid ?? null);
+        await load(u?.uid ?? null, u ? await itbAccount(u) : undefined);
         setLoading(false);
       });
     }
@@ -126,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setAuthName(user.displayName ?? "");
     setAuthEmail(user.email ?? "");
-    await load(user.uid);
+    await load(user.uid, await itbAccount(user));
   }
 
   const value: AuthState = {
@@ -149,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async saveProfile(p) {
       if (!uid) return;
       const base: UserProfile = profile ?? { id: uid, name: authName || "Mahasiswa", major: "", year: 1, isPublic: true, courseIds: [], createdAt: Date.now() };
-      const next = { ...base, ...p, id: uid };
+      const next = { ...base, ...p, id: uid, ...(itb !== undefined && { isItbVerified: itb }) };
       await saveOwnProfile(next);
       setProfile(next);
     },

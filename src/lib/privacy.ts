@@ -10,6 +10,7 @@ import type { Privacy, UserProfile } from "./types";
  */
 export const HIDEABLE: Record<keyof Privacy, (keyof UserProfile)[]> = {
   showProgram: ["program", "dreamProgram"],
+  showEntryYear: ["entryYear"],
   showContact: ["contact"],
 };
 

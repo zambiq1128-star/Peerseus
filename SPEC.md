@@ -15,8 +15,8 @@ Bagian "Belum ada" berisi fitur dari daftar awal yang belum dibangun, diurutkan 
 
 | Koleksi / dokumen | Isi |
 | --- | --- |
-| `users/{uid}` | `name`, `major` (kode fakultas, mis. STEI), `stage` (`tpb` atau `jurusan`), `program` (prodi), `dreamProgram` (prodi incaran saat TPB, tidak pernah bersamaan dengan `program`), `semester`, `year`, `bio`, `contact`, `isPublic` (tampil di rekomendasi teman belajar), `privacy` (`showProgram`, `showContact`; kosong = tampil), `isBot`, `courseIds[]`, `createdAt` |
-| `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
+| `users/{uid}` | `name`, `major` (kode fakultas, mis. STEI), `stage` (`tpb` atau `jurusan`), `program` (prodi), `dreamProgram` (prodi incaran saat TPB, tidak pernah bersamaan dengan `program`), `semester`, `entryYear` (angkatan), `year` (lama, tidak dipakai), `bio`, `contact`, `isPublic` (tampil di rekomendasi teman belajar), `privacy` (`showProgram`, `showEntryYear`, `showContact`; kosong = tampil), `isItbVerified` (akun ITB = true, tamu = false), `isBot`, `courseIds[]`, `createdAt` |
+| `users/{uid}/private/profile` | Field profil yang disembunyikan pemiliknya (`program`, `dreamProgram`, `entryYear`, `contact`). Hanya bisa dibaca dan ditulis pemiliknya |
 | `courses/{id}` | `code`, `name`, `description`, `sks`. `id` = kode huruf kecil, mis. `if2110`. Diisi dari `src/lib/seed.ts` dan dari Kurikulum 2024 (`src/lib/curriculum.ts`) saat mahasiswa memilih mata kuliah |
 | `memberships/{courseId}_{uid}` | Mata kuliah yang diikuti: `courseId`, `uid`, `name`, `major`, `isBot`, `left`, `elo`, `wins`, `losses`, `draws`, `topicStats{topik: {correct, total}}` |
 | `materials/{id}` | `courseId`, `title`, `type` (`materi`, `catatan`, `paper`; kosong = `materi`), `description`, `topics[]`, `text` (Markdown + LaTeX), `format`, `fileUrl`, `fileName`, `mimeType`, `uploaderId`, `uploaderName`, `createdAt`, `updatedAt`, `reports`. Hanya materi publik |
@@ -33,7 +33,7 @@ File tidak disimpan di Firebase Storage. PDF dan file lain diubah jadi teks Mark
 
 | Daftar awal | Di app |
 | --- | --- |
-| `username`, `jurusan`, `angkatan` | `name`, `major` + `stage` + `program`/`dreamProgram`, angkatan belum ada (lihat Belum ada #5) |
+| `username`, `jurusan`, `angkatan` | `name`, `major` + `stage` + `program`/`dreamProgram`, `entryYear` |
 | `socials{}` | `contact` (satu teks, mis. LINE / IG / WA) |
 | `users/{uid}/enrolledCourses/{code}` | `memberships/{courseId}_{uid}` + `users.courseIds` |
 | `repository/{id}`, `tipe` | `materials/{id}` (repositori bersama per mata kuliah), `type` |
@@ -81,7 +81,7 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
 
 2. ~~**Privasi per item dan profil publik**~~ (sudah dibuat)
    - `UserProfile.privacy?: { showProgram, showContact }` (`Privacy`), semua boolean, kosong = tampil. `showProgram` mencakup `program` dan `dreamProgram`. Daftar field per switch ada di `HIDEABLE` (`src/lib/privacy.ts`).
-   - `showEntryYear` ditambahkan bersama angkatan (#5), dan `showAchievements` bersama pencapaian (#8).
+   - `showEntryYear` ditambahkan bersama angkatan (#5). `showAchievements` menyusul bersama pencapaian (#8).
    - Halaman `/users/[id]` untuk melihat profil orang lain. Nama di tab Peringkat dan Teman belajar menaut ke sana.
    - Penegakan di Firestore Security Rules, lihat bagian 6.
    - Alasan: abstrak menjanjikan "users choose what is public", dan aturan privasi ini wajib.
@@ -94,9 +94,9 @@ Diurutkan dari yang paling penting untuk demo. Ukuran: **Kecil** (beberapa jam),
 4. ~~**Materi terbaru di beranda**~~ (sudah dibuat)
    - Bagian "Materi terbaru di mata kuliahku" di `/`: 5 materi publik terbaru dari mata kuliah di `courseIds` (`latestMaterials()`), dengan kode mata kuliah, jenis, pengunggah, dan tanda "Kuis siap duel".
 
-5. **Angkatan dan tanda akun ITB** (Kecil)
-   - `UserProfile.entryYear?: number`, diisi dari NIM (`readNim(...).entryYear`) dan bisa diubah. Field `year` yang lama dibiarkan.
-   - `UserProfile.isItbVerified?: boolean`, ditulis saat menyimpan profil dan divalidasi di rules (`request.resource.data.isItbVerified == isItb()`). Tamu diberi badge "Tamu".
+5. ~~**Angkatan dan tanda akun ITB**~~ (sudah dibuat)
+   - `UserProfile.entryYear?: number`, diisi dari NIM (`readNim(...).entryYear`) saat daftar, dan di `/profile` untuk profil lama. Bisa diubah dan disembunyikan (`showEntryYear`). Field `year` yang lama dibiarkan.
+   - `UserProfile.isItbVerified?: boolean`, ditulis app saat login dan saat menyimpan profil, dan divalidasi di rules (`honestItbFlag`: harus sama dengan `isItb()` dari token). Tamu diberi badge "Tamu" di `/users/[id]` dan daftar teman belajar.
 
 6. **Kategori Info "lainnya"** (Kecil)
    - `OpportunityType` ditambah `"lainnya"`, beserta filter dan form "+ Bagikan info".

@@ -49,7 +49,13 @@ service cloud.firestore {
     function respectsPrivacy(d) {
       let p = d.get('privacy', {});
       return (p.get('showProgram', true) == true || !d.keys().hasAny(['program', 'dreamProgram']))
+        && (p.get('showEntryYear', true) == true || !d.keys().hasAny(['entryYear']))
         && (p.get('showContact', true) == true || !d.keys().hasAny(['contact']));
+    }
+
+    // The ITB/guest badge must match the sign-in token (missing = unknown, e.g. demo peers and old profiles).
+    function honestItbFlag(d) {
+      return !d.keys().hasAny(['isItbVerified']) || d.isItbVerified == isItb();
     }
 
     function isOwner(uid) {
@@ -61,7 +67,8 @@ service cloud.firestore {
       // Demo peers (bot_...) are written by the seed, run by whoever signs in first.
       allow write: if allowed()
         && (isOwner(uid) || (uid.matches('bot_.*') && request.resource.data.get('isBot', false) == true))
-        && respectsPrivacy(request.resource.data);
+        && respectsPrivacy(request.resource.data)
+        && honestItbFlag(request.resource.data);
 
       match /private/{doc} {
         allow read, write: if allowed() && isOwner(uid);
