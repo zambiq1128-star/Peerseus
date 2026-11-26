@@ -77,9 +77,9 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
         <div className="card space-y-5 text-center !p-8">
           <div className="eyebrow">{duel.challengerId === uid ? "Kamu menantang" : "Kamu ditantang"}</div>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
-            <span className="animate-slide-left font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">Kamu</span>
-            <span className="animate-slam font-display text-6xl font-bold italic text-plum [animation-delay:200ms] sm:text-7xl">VS</span>
-            <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold uppercase tracking-tight text-bad sm:text-5xl">{opp}</h1>
+            <span className="animate-slide-left font-display text-4xl font-bold sm:text-5xl">Kamu</span>
+            <span className="animate-slam font-display text-6xl font-bold text-plum [animation-delay:200ms] sm:text-7xl">VS</span>
+            <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold text-bad sm:text-5xl">{opp}</h1>
           </div>
           <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
           <button className="btn-primary w-full !py-3 !text-lg" onClick={() => setStarted(true)}>Mulai duel</button>
@@ -168,20 +168,20 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         <h1 className={`mt-1 animate-slam text-7xl sm:text-8xl ${tone} ${done && won ? "animate-glow" : ""}`}>{verdict}</h1>
         <div className="mt-6 flex items-end justify-center gap-5 sm:gap-10">
           <div className="animate-slide-left [animation-delay:150ms]">
-            <div className="text-xs font-semibold uppercase tracking-widest text-muted">Kamu</div>
+            <div className="text-xs font-semibold text-muted">Kamu</div>
             <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-plum" : "text-bad") : ""}`}>{myScore}</div>
             <div className="mt-1 text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div>
           </div>
-          <div className="pb-8 font-display text-3xl italic text-muted">VS</div>
+          <div className="pb-8 font-display text-3xl text-muted">VS</div>
           <div className="animate-slide-right [animation-delay:150ms]">
-            <div className="max-w-[8rem] truncate text-xs font-semibold uppercase tracking-widest text-muted">{oppName}</div>
+            <div className="max-w-[8rem] truncate text-xs font-semibold text-muted">{oppName}</div>
             <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-bad" : "text-plum") : "text-ink-soft"}`}>{theirs ? theirScore : "?"}</div>
             <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : "belum main"}</div>
           </div>
         </div>
         {done && (
-          <div className={`mx-auto mt-6 inline-block animate-slam bg-navy-3 px-6 py-2 [animation-delay:700ms] [clip-path:polygon(14px_0,100%_0,calc(100%-14px)_100%,0_100%)] ${delta >= 0 ? "text-plum" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
-            <span className="mr-3 text-xs font-semibold uppercase tracking-widest text-muted">Rating</span>
+          <div className={`mx-auto mt-6 inline-block animate-slam bg-butter px-6 py-2 [animation-delay:700ms] border-[1.5px] border-ink [border-radius:14px_18px_12px_20px/18px_12px_20px_14px] ${delta >= 0 ? "text-plum" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
+            <span className="mr-3 text-xs font-semibold text-muted">Rating</span>
             <span aria-hidden className="font-display text-5xl font-bold tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
           </div>
         )}

@@ -17,7 +17,7 @@
   --color-canvas: #fdf8f0;     /* paper cream */
   --color-surface: #ffffff;
   --color-paper: #f6eedf;
-  --color-line: #cfc4b0;       /* soft pencil for dividers */
+  --color-line: #a8997f;       /* soft pencil: dividers and option borders (~3:1 on white) */
 
   /* Pastel palette */
   --color-pink: #f7b8d2;
