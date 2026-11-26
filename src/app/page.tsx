@@ -115,7 +115,7 @@ function HomeBody() {
                   </div>
                   <div className="text-right">
                     <div className="font-pixel text-xs text-muted">Rating</div>
-                    <div className="font-pixel text-lg font-semibold">{m?.elo ?? "-"}</div>
+                    <div className="font-num text-2xl leading-none">{m?.elo ?? "-"}</div>
                   </div>
                 </Link>
               );

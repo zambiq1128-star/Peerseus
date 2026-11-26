@@ -150,7 +150,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span className="font-medium">Soal {k + 1} dari {items.length} <span className="text-muted">· {q.topic}</span></span>
-          <span className={`font-pixel font-semibold tabular-nums ${left <= 60_000 ? "text-bad" : ""}`} aria-label="Sisa waktu">Sisa {formatClock(left)}</span>
+          <span className={`font-num text-lg tabular-nums ${left <= 60_000 ? "text-bad" : ""}`} aria-label="Sisa waktu">Sisa {formatClock(left)}</span>
         </div>
         <div className="h-1 rounded-full bg-line">
           <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(1, left / (run.limitMinutes * 60_000))) * 100}%` }} />

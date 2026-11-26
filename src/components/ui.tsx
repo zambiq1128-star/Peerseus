@@ -73,19 +73,35 @@ export function ErrorState({ message, onRetry, title = "Gagal memuat data", hint
   );
 }
 
+/** The dark world: an empty black room with one pixel dialog in the middle (404 and crashes). Noise sits behind the dialog. */
+export function DarkRoom({ title, children, action }: { title: string; children?: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="world-dark relative -mx-4 -my-6 grid min-h-[calc(100dvh-3rem)] place-items-center overflow-hidden px-4 py-16 sm:-my-8 sm:min-h-[calc(100dvh-3.6rem)]">
+      <div aria-hidden className="noise-layer" />
+      <div className="warp-field absolute inset-0">
+        <DoodleField spots={[
+          { kind: "star", fill: "none", x: "12%", y: "22%", size: 44, rot: -12, float: true },
+          { kind: "heart", fill: "none", x: "80%", y: "18%", size: 40, rot: 10, delay: 1.2 },
+          { kind: "cloud", fill: "none", x: "70%", y: "72%", size: 56, float: true, delay: 2 },
+          { kind: "spiral", fill: "none", x: "16%", y: "70%", size: 42, rot: 20, delay: 0.6, hideOnPhone: true },
+        ]} />
+      </div>
+      <div role="alert" className="dialog relative z-10 w-full max-w-narrow !p-6 text-center [--dialog-bg:var(--color-surface)]">
+        <div className="glitch dialog-title !text-lg">{title}</div>
+        {children && <div className="mt-2 text-sm text-muted">{children}</div>}
+        {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
+      </div>
+    </div>
+  );
+}
+
 /** A missing or off-limits item (material, course, duel, user) and the way back. Also used by the 404 page. */
 export function NotFound({ title, back = { href: "/", label: "Ke beranda" }, children }: {
   title: string;
   back?: { href: string; label: string };
   children?: React.ReactNode;
 }) {
-  return (
-    <div className="world-mono -mx-4 -my-6 min-h-[calc(100dvh-3rem)] sm:min-h-[calc(100dvh-3.6rem)] px-4 py-16 sm:-my-8">
-      <Page width="narrow">
-        <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
-      </Page>
-    </div>
-  );
+  return <DarkRoom title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</DarkRoom>;
 }
 
 const WIDTHS = { narrow: "max-w-narrow", page: "max-w-page", wide: "max-w-wide" } as const;

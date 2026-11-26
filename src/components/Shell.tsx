@@ -9,8 +9,7 @@ import { academicOf, academicPatch, FACULTIES, readNim, suggestAcademic, type Ac
 import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 import LoginScreen, { loginStyles as ls } from "./Login";
-import { DoodleField } from "./Doodles";
-import { Spinner } from "./ui";
+import { Doodle, DoodleField } from "./Doodles";
 
 const NAV = [
   { href: "/", label: "Mata Kuliah", match: (p: string) => p === "/" || p.startsWith("/courses") || p.startsWith("/materials/") },
@@ -31,7 +30,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     if (redirect) router.replace(COURSES_PAGE);
   }, [redirect, router]);
 
-  if (loading || redirect) return <div className="world-mono grid min-h-screen place-items-center"><Spinner /></div>;
+  if (loading || redirect) return <LoadingScreen />;
   if (!uid || !profile || !profile.major) return <SignIn />;
 
   return (
@@ -42,20 +41,32 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Loading: an empty white screen with one slowly blinking doodle. After three seconds the screen dims to grey. */
+function LoadingScreen() {
+  return (
+    <div role="status" className="world-mono loading-dim grid min-h-screen place-items-center">
+      <div className="flex flex-col items-center gap-3">
+        <span className="doodle-blink" style={{ animationDuration: "2.8s" }}><Doodle kind="spiral" fill="none" size={52} /></span>
+        <span className="loading-text text-sm">Memuat…</span>
+      </div>
+    </div>
+  );
+}
+
 /** Top bar on every signed-in page: a pastel paper strip with tiny doodles; the current section is circled in pencil. */
-function AppHeader({ path, firstName }: { path: string; firstName: string }) {
+function AppHeader({ path, firstName, dark = false }: { path: string; firstName: string; dark?: boolean }) {
   const onProfile = path === "/profile";
   return (
-    <header className="sticky top-0 z-20 animate-slide-down bg-pink px-4 text-ink">
-      <DoodleField className="hidden sm:block" spots={[
+    <header className={`sticky top-0 z-20 px-4 text-ink ${dark ? "border-b border-[#5c1a22] bg-black" : "animate-slide-down bg-pink"}`}>
+      {!dark && <DoodleField className="hidden sm:block" spots={[
         { kind: "p-star", fill: "butter", x: "47%", y: "14%", size: 22, delay: 0.4 },
         { kind: "p-heart", fill: "pink", x: "63%", y: "34%", size: 22, float: true },
         { kind: "p-cloud", fill: "sky", x: "73%", y: "8%", size: 36, float: true, delay: 1.2 },
         { kind: "p-sword", fill: "sky", x: "86%", y: "30%", size: 24, delay: 2 },
-      ]} />
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-[3px] h-[6px] border-b-2 border-ink [filter:url(#pencil)]" />
+      ]} />}
+      {!dark && <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-[3px] h-[6px] border-b-2 border-ink [filter:url(#pencil)]" />}
       <div className="relative mx-auto flex max-w-page items-center gap-1 py-2 sm:gap-4">
-        <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left transition hover:rotate-[-4deg]"><Logo /></Link>
+        <Link href="/" aria-label="Peerseus, ke beranda" className={`animate-slide-left transition hover:rotate-[-4deg] ${dark ? "[filter:grayscale(1)_brightness(2.2)]" : ""}`}><Logo /></Link>
         <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-5 sm:pl-5">
           {NAV.map((n, i) => {
             const active = n.match(path);
@@ -63,8 +74,9 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${60 + i * 60}ms` }}
                 className="pick relative animate-slide-left whitespace-nowrap px-2 py-1.5 font-pixel text-[11px] font-semibold leading-none transition [--pick-x:-15px] max-sm:before:hidden hover:animate-wobble focus-visible:bg-surface min-[400px]:px-2.5 min-[400px]:text-xs sm:px-4 sm:text-base">
-                {active && <span aria-hidden className="pointer-events-none absolute -inset-x-0.5 -inset-y-1 rotate-[-2deg] rounded-[50%] border-2 border-ink [filter:url(#pencil)]" />}
-                {active && <span aria-hidden className="pointer-events-none absolute -inset-x-1 -inset-y-0.5 rotate-[3deg] rounded-[50%] border border-ink/70 [filter:url(#pencil)]" />}
+                {active && dark && <span aria-hidden className="pointer-events-none absolute inset-x-1 bottom-0 border-b-2 border-ink" />}
+                {active && !dark && <span aria-hidden className="pointer-events-none absolute -inset-x-0.5 -inset-y-1 rotate-[-2deg] rounded-[50%] border-2 border-ink [filter:url(#pencil)]" />}
+                {active && !dark && <span aria-hidden className="pointer-events-none absolute -inset-x-1 -inset-y-0.5 rotate-[3deg] rounded-[50%] border border-ink/70 [filter:url(#pencil)]" />}
                 <span className={`relative ${active ? "" : "text-ink-soft"}`}>{n.label}</span>
               </Link>
             );
@@ -72,10 +84,17 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
           style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[6rem] shrink-0 truncate border-[1.5px] border-ink px-2.5 py-1 font-pixel text-[11px] font-semibold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
+          className={`animate-slide-right max-w-[6rem] shrink-0 truncate border-[1.5px] border-ink px-2.5 py-1 font-pixel text-[11px] font-semibold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-sm ${dark ? "bg-black" : onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
       </div>
     </header>
   );
+}
+
+/** The same bar for the dark world (lost duel): black, grey text, no pastel, no doodles. */
+export function DarkHeader() {
+  const { profile } = useAuth();
+  const path = usePathname();
+  return <AppHeader dark path={path} firstName={profile?.name.split(" ")[0] ?? "Profil"} />;
 }
 
 /** One screen: sign in, then fill the profile fields we actually need. */

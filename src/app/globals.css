@@ -49,6 +49,7 @@
   --container-wide: 64rem;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-num: var(--font-num-var), "Courier New", monospace; /* numbers: VT323, unambiguous digits */
   --font-pixel: var(--font-pixel-var), "Courier New", monospace; /* pixel type: labels, badges, menu, numbers */
   --font-display: var(--font-gaegu), "Patrick Hand", "Comic Sans MS", cursive; /* handwriting, headings only */
 
@@ -96,6 +97,11 @@
   @keyframes tremble { 0%, 84%, 100% { transform: none; text-shadow: none; } 86% { transform: translate(1px, -1px); text-shadow: 2px 0 rgb(255 40 70 / 0.55), -2px 0 rgb(0 220 255 / 0.3); } 89% { transform: translate(-1px, 1px); } 92% { transform: translate(1px, 0); text-shadow: -2px 0 rgb(255 40 70 / 0.55); } 95% { transform: translate(0, -1px); text-shadow: none; } }
   @keyframes static-shift { 0% { background-position: 0 0; } 25% { background-position: -37px 21px; } 50% { background-position: 19px -43px; } 75% { background-position: -23px -11px; } 100% { background-position: 0 0; } }
   @keyframes static-flicker { 0%, 100% { opacity: 0.14; } 40% { opacity: 0.2; } 70% { opacity: 0.1; } }
+  @keyframes glitch { 0%, 91%, 100% { transform: none; text-shadow: none; clip-path: none; } 92% { transform: translate(-2px, 0); text-shadow: 3px 0 rgb(255 40 70 / 0.8), -3px 0 rgb(0 230 255 / 0.7); } 94% { transform: translate(2px, 1px); text-shadow: -3px 0 rgb(255 40 70 / 0.8), 3px 0 rgb(0 230 255 / 0.7); clip-path: inset(0 0 55% 0); } 96% { transform: translate(0, -1px); text-shadow: 2px 0 rgb(255 40 70 / 0.6); clip-path: inset(40% 0 0 0); } 98% { transform: none; text-shadow: none; clip-path: none; } }
+  @keyframes warp { 0%, 100% { transform: skewX(-7deg) scaleY(1.12); } 22% { transform: skewX(6deg) scaleY(0.9) translateX(2px); } 48% { transform: skewX(-11deg) scaleY(1.2); } 71% { transform: skewX(3deg) scaleY(1.05) translateX(-2px); } }
+  @keyframes dim { to { background-color: #8a8a8a; } }
+  @keyframes dim-ink { to { color: #1b1b1b; } }
+  @keyframes dark-flip { 0%, 100% { filter: none; } 8%, 70% { filter: invert(1) hue-rotate(180deg) contrast(1.6) brightness(0.55) saturate(0.4); } 76% { filter: none; } 82% { filter: invert(1) brightness(0.5); } 88% { filter: none; } }
   @keyframes wobble { 20% { transform: rotate(-2.2deg) scale(1.03); } 45% { transform: rotate(1.8deg) scale(1.03); } 70% { transform: rotate(-0.8deg); } }
 }
 
@@ -143,6 +149,16 @@
   animation: static-shift 0.5s steps(1) infinite, static-flicker 2.4s ease-in-out infinite;
 }
 .vignette-red { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgb(125 15 28 / 0.35) 100%); }
+
+/* Dark room (404, errors): one dialog in an empty black room; doodles are warped and now and then tear in red and cyan. */
+.glitch { animation: glitch 7s steps(1, end) infinite; }
+.warp-field svg { filter: drop-shadow(2px 0 rgb(255 40 70 / 0.65)) drop-shadow(-2px 0 rgb(0 220 255 / 0.4)); animation: warp 6s steps(1, end) infinite; transform-origin: center bottom; }
+.warp-field .doodle-float, .warp-field .doodle-blink { animation-duration: 7s; }
+/* Loading: white, quiet; after three seconds the whole screen slowly dims to grey. */
+.loading-dim { background: #fff; animation: dim 9s ease-in 3s forwards; }
+.loading-dim .loading-text { color: var(--color-muted); animation: dim-ink 9s ease-in 3s forwards; }
+/* The rare doodle that briefly "turns dark" in the pastel world: a short inverted flash, then back. */
+.doodle-dark { animation: dark-flip 1.4s steps(1, end) 1; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

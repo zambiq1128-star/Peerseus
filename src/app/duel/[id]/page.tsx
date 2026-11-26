@@ -10,6 +10,7 @@ import { ErrorState, NotFound, Page, Section, Spinner, useAsync, useCountUp } fr
 import DeclineDuel from "@/components/DeclineDuel";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
+import { DarkHeader } from "@/components/Shell";
 
 export default function DuelPage() {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +101,7 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
       <div>
         <div className="mb-2 flex items-center justify-between text-sm">
           <span className="font-medium">Soal {i + 1} dari {duel.questions.length} <span className="text-muted">· {q.topic}</span></span>
-          <span className={`font-pixel text-3xl font-bold tabular-nums ${left <= 5 ? "inline-block animate-tick text-bad" : "text-plum"}`}>{Math.max(left, 0)}<span className="ml-1 text-sm font-medium uppercase tracking-wider text-muted">detik</span></span>
+          <span className={`font-num text-4xl tabular-nums ${left <= 5 ? "inline-block animate-tick text-bad" : "text-plum"}`}>{Math.max(left, 0)}<span className="ml-1 text-sm font-medium uppercase tracking-wider text-muted">detik</span></span>
         </div>
         <div className="mb-4 h-1.5 bg-line">
           <div className={`h-1.5 transition-all ${left <= 5 ? "bg-bad" : "bg-cyan"}`} style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
@@ -170,20 +171,20 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         <div className="mt-6 flex items-end justify-center gap-5 sm:gap-10">
           <div className="animate-slide-left [animation-delay:150ms]">
             <div className="text-xs font-semibold text-muted">Kamu</div>
-            <div className={`font-pixel text-7xl font-bold leading-none tabular-nums sm:text-8xl ${done && !draw ? (won ? "text-plum" : "text-bad") : ""}`}>{myScore}</div>
+            <div className={`font-num text-8xl leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-plum" : "text-bad") : ""}`}>{myScore}</div>
             <div className="mt-1 text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div>
           </div>
           <div className="pb-6 font-pixel text-2xl text-muted">VS</div>
           <div className="animate-slide-right [animation-delay:150ms]">
             <div className="max-w-[8rem] truncate text-xs font-semibold text-muted">{oppName}</div>
-            <div className={`font-pixel text-7xl font-bold leading-none tabular-nums sm:text-8xl ${done && !draw ? (won ? "text-bad" : "text-plum") : "text-ink-soft"}`}>{theirs ? theirScore : "?"}</div>
+            <div className={`font-num text-8xl leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-bad" : "text-plum") : "text-ink-soft"}`}>{theirs ? theirScore : "?"}</div>
             <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : "belum main"}</div>
           </div>
         </div>
         {done && (
           <div className={`mx-auto mt-6 inline-block animate-slam bg-butter px-6 py-2 [animation-delay:700ms] border-[1.5px] border-ink [border-radius:14px_18px_12px_20px/18px_12px_20px_14px] ${delta >= 0 ? "text-plum" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
             <span className="mr-3 font-pixel text-xs text-muted">Rating</span>
-            <span aria-hidden className="font-pixel text-4xl font-bold tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
+            <span aria-hidden className="font-num text-5xl tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
           </div>
         )}
         {declined && <p className="mt-4 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
@@ -236,9 +237,9 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
     <div className="world-dark fixed inset-0 z-30 overflow-y-auto overflow-x-clip">
       <div aria-hidden className="noise-layer" />
       <div aria-hidden className="vignette-red" />
-      <div className="relative z-10 px-4 py-4 sm:py-6">
-        <div className="mx-auto mb-4 max-w-narrow"><Link href="/duels" className="pick font-pixel text-xs text-ink-soft [--pick-x:-14px] hover:text-ink">Daftar duel</Link></div>
-        {body}
+      <div className="relative z-10">
+        <DarkHeader />
+        <div className="px-4 py-4 sm:py-6">{body}</div>
       </div>
     </div>
   );

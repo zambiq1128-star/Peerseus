@@ -1,3 +1,6 @@
+"use client";
+import { useEffect, useState } from "react";
+
 /**
  * Small original doodles (stars, clouds, hearts, spirals, scribbles) drawn as pencil line art.
  * Purely decorative: every export is aria-hidden. Fills come from the pastel tokens; inside `.world-mono`
@@ -67,12 +70,29 @@ export type DoodleSpot = { kind: DoodleKind; fill?: "pink" | "lavender" | "sky" 
 
 /** Absolutely positioned layer of doodles; put it inside a `relative` box. */
 export function DoodleField({ spots, className = "" }: { spots: DoodleSpot[]; className?: string }) {
+  const [dark, setDark] = useState<number | null>(null);
+  // Now and then (every 45-120 s) one doodle flashes dark for ~1.4 s. Never with reduced motion, and never in the dark world itself.
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let t1: ReturnType<typeof setTimeout>, t2: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      t1 = setTimeout(() => {
+        if (document.visibilityState === "visible" && !document.querySelector(".world-dark")) {
+          setDark(Math.floor(Math.random() * spots.length));
+          t2 = setTimeout(() => setDark(null), 1500);
+        }
+        schedule();
+      }, 45_000 + Math.random() * 75_000);
+    };
+    schedule();
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [spots.length]);
   return (
     <div aria-hidden="true" className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
       {spots.map((d, i) => (
         <span key={i} style={{ left: d.x, top: d.y, ["--r" as string]: `${d.rot ?? 0}deg`, rotate: `${d.rot ?? 0}deg`, animationDelay: `${d.delay ?? 0}s` }}
           className={`absolute ${d.float ? "doodle-float" : "doodle-blink"} ${d.hideOnPhone ? "hidden sm:block" : ""}`}>
-          <Doodle kind={d.kind} fill={d.fill} size={d.size ?? 40} />
+          <Doodle kind={d.kind} fill={d.fill} size={d.size ?? 40} className={dark === i ? "doodle-dark" : ""} />
         </span>
       ))}
     </div>

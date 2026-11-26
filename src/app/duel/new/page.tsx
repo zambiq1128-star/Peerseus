@@ -84,7 +84,7 @@ function NewDuel() {
                 <span className="font-medium">{o.name}</span>
                 <span className="text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
               </span>
-              <span className="font-pixel text-sm font-semibold">{o.elo}</span>
+              <span className="font-num text-base">{o.elo}</span>
             </label>
           ))}
         </div>
