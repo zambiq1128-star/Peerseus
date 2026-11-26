@@ -29,14 +29,22 @@ function Hero() {
         <div className="absolute -bottom-16 left-[8%] h-56 w-72 -rotate-6 bg-mint/45 [border-radius:45%_55%_40%_60%/55%_45%_58%_42%]" />
         <div className="absolute right-[26%] top-[46%] h-32 w-44 rotate-3 bg-butter/60 [border-radius:55%_45%_52%_48%/45%_55%_45%_55%]" />
       </div>
-      <DoodleField spots={[
-        { kind: "p-star", fill: "butter", x: "6%", y: "14%", size: 45, float: true },
-        { kind: "p-cloud", fill: "sky", x: "70%", y: "10%", size: 78, float: true, delay: 1 },
-        { kind: "p-heart", fill: "pink", x: "88%", y: "52%", size: 45, delay: 0.6 },
-        { kind: "spiral", fill: "none", x: "52%", y: "76%", size: 42, rot: -8, delay: 2.2, hideOnPhone: true },
-        { kind: "scribble", x: "4%", y: "72%", size: 64, rot: -4, delay: 1.4, hideOnPhone: true },
-        { kind: "sparkle", fill: "lavender", x: "80%", y: "82%", size: 28, float: true, delay: 3 },
-        { kind: "p-sword", fill: "sky", x: "92%", y: "16%", size: 36, delay: 2.6 },
+      {/* Phones: icons live only in the empty strips above the badge row and below the buttons, never over text. */}
+      <DoodleField className="sm:hidden" spots={[
+        { kind: "p-star", fill: "butter", x: "54%", y: "6px", size: 28, float: true },
+        { kind: "p-sword", fill: "sky", x: "calc(100% - 52px)", y: "6px", size: 30, delay: 2.6 },
+        { kind: "p-heart", fill: "pink", x: "12%", y: "calc(100% - 44px)", size: 30, delay: 0.6 },
+        { kind: "p-cloud", fill: "sky", x: "calc(100% - 100px)", y: "calc(100% - 50px)", size: 56, float: true, delay: 1 },
+        { kind: "sparkle", fill: "lavender", x: "46%", y: "calc(100% - 38px)", size: 24, float: true, delay: 3 },
+      ]} />
+      <DoodleField className="hidden sm:block" spots={[
+        { kind: "p-star", fill: "butter", x: "calc(100% - 15rem)", y: "14%", size: 45, float: true },
+        { kind: "p-cloud", fill: "sky", x: "calc(100% - 9rem)", y: "10%", size: 78, float: true, delay: 1 },
+        { kind: "p-heart", fill: "pink", x: "calc(100% - 5rem)", y: "52%", size: 45, delay: 0.6 },
+        { kind: "spiral", fill: "none", x: "52%", y: "calc(100% - 4.5rem)", size: 42, rot: -8, delay: 2.2 },
+        { kind: "scribble", x: "4%", y: "calc(100% - 4.5rem)", size: 64, rot: -4, delay: 1.4 },
+        { kind: "sparkle", fill: "lavender", x: "calc(100% - 9rem)", y: "calc(100% - 4rem)", size: 28, float: true, delay: 3 },
+        { kind: "p-sword", fill: "sky", x: "calc(100% - 3rem)", y: "1.5rem", size: 36, delay: 2.6 },
       ]} />
       <div className="relative mx-auto max-w-page">
         <p className="badge-strong animate-slide-left !px-4 !text-base">Halo, {profile!.name.split(" ")[0]}</p>
