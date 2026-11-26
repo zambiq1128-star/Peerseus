@@ -264,7 +264,7 @@ export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, 
               {job.units.map((u) => (
                 <button key={u.n} type="button" title={u.error ?? ""} disabled={u.status !== "failed" || running} onClick={() => retryOne(u.n)}
                   className={`min-w-8 rounded border px-1.5 py-0.5 text-xs tabular-nums ${
-                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-bad-soft" : u.status === "working" ? "border-accent text-cyan" : "border-line text-muted"}`}>
+                    u.status === "done" ? "border-good text-good" : u.status === "failed" ? "border-bad text-bad hover:bg-bad-soft" : u.status === "working" ? "border-accent text-plum" : "border-line text-muted"}`}>
                   {u.n}{u.status === "failed" ? " ↻" : ""}
                 </button>
               ))}
@@ -293,7 +293,7 @@ export default function MaterialComposer({ value, onChange, onPdf: onPdfPicked, 
       <div>
         <div className="mb-1 flex items-center justify-between gap-2">
           <label className="label !mb-0">Isi materi (Markdown + LaTeX)</label>
-          <button type="button" className="text-xs font-medium text-cyan disabled:opacity-50" disabled={running || !value.trim()}
+          <button type="button" className="text-xs font-medium text-plum disabled:opacity-50" disabled={running || !value.trim()}
             onClick={() => void tidyText(value)}>
             Rapikan isi editor dengan AI
           </button>

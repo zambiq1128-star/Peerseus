@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, QuestionProposal } from "@/lib/types";
+import { DoodleField } from "@/components/Doodles";
 import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
@@ -16,30 +17,39 @@ export default function Home() {
   );
 }
 
-/** JRPG-menu hero: full-bleed navy block with a slanted bottom edge, oversized heading and parallelogram buttons. */
+/** Pastel hero: soft paper blobs, small doodles that drift and blink, a big handwritten heading. */
 function Hero() {
   const { profile } = useAuth();
   const n = profile!.courseIds.length;
   return (
-    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-6 overflow-hidden bg-navy px-4 pb-24 pt-10 text-white sm:-mt-8 sm:pb-32 sm:pt-14">
-      {/* Decorative: blue slab, cyan stripe, faint diagonal lines. */}
+    <section aria-labelledby="hero-title" className="relative -mx-4 -mt-6 mb-6 overflow-hidden px-4 pb-14 pt-10 sm:-mt-8 sm:pb-20 sm:pt-14">
+      {/* Decorative: wobbly pastel blobs and doodles. */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-24 top-0 h-full w-2/3 animate-slide-right bg-volt/25 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute -right-10 top-0 h-full w-1/3 animate-slide-right bg-cyan/15 [animation-delay:90ms] [clip-path:polygon(40%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_14px)]" />
+        <div className="absolute -right-16 -top-10 h-72 w-72 rotate-12 bg-lavender/45 [border-radius:58%_42%_55%_45%/48%_56%_44%_52%]" />
+        <div className="absolute -bottom-16 left-[8%] h-56 w-72 -rotate-6 bg-mint/45 [border-radius:45%_55%_40%_60%/55%_45%_58%_42%]" />
+        <div className="absolute right-[26%] top-[46%] h-32 w-44 rotate-3 bg-butter/60 [border-radius:55%_45%_52%_48%/45%_55%_45%_55%]" />
       </div>
+      <DoodleField spots={[
+        { kind: "star", fill: "butter", x: "6%", y: "14%", size: 38, rot: -10, float: true },
+        { kind: "cloud", fill: "sky", x: "70%", y: "10%", size: 70, rot: 3, float: true, delay: 1 },
+        { kind: "heart", fill: "pink", x: "88%", y: "52%", size: 40, rot: 12, delay: 0.6 },
+        { kind: "spiral", fill: "none", x: "52%", y: "76%", size: 42, rot: -8, delay: 2.2, hideOnPhone: true },
+        { kind: "scribble", x: "4%", y: "72%", size: 64, rot: -4, delay: 1.4, hideOnPhone: true },
+        { kind: "sparkle", fill: "lavender", x: "80%", y: "82%", size: 28, float: true, delay: 3 },
+        { kind: "star", fill: "pink", x: "93%", y: "20%", size: 22, rot: 14, delay: 2.6 },
+      ]} />
       <div className="relative mx-auto max-w-page">
-        <p className="jrpg-tag animate-slide-left">Halo, {profile!.name.split(" ")[0]}</p>
-        <h1 id="hero-title" className="jrpg-title mt-3 text-[clamp(3.25rem,14vw,8.5rem)]">
+        <p className="badge-strong animate-slide-left !px-4 !text-base">Halo, {profile!.name.split(" ")[0]}</p>
+        <h1 id="hero-title" className="mt-3 text-[clamp(3.5rem,15vw,8rem)] leading-[0.95]">
           <span className="block animate-slide-left [animation-delay:80ms]">Mata</span>
-          <span className="block animate-slide-left text-cyan [animation-delay:160ms]">kuliahku</span>
+          <span className="block animate-slide-left text-plum [animation-delay:160ms]">kuliahku</span>
         </h1>
-        <p className="mt-5 max-w-md animate-slide-left text-base text-white/85 [animation-delay:240ms] sm:text-lg">
+        <p className="mt-5 max-w-md animate-slide-left text-base text-ink-soft [animation-delay:240ms] sm:text-lg">
           Pilih mata kuliah untuk buka materi dan mulai duel.{n > 0 && ` ${n} mata kuliah siap dijelajahi.`}
         </p>
         <div className="mt-7 flex flex-wrap gap-4">
-          <Link href="/courses" className="jrpg-btn-cyan animate-slide-left [animation-delay:320ms]">Atur mata kuliah</Link>
-          <Link href="/explore" className="jrpg-btn-volt animate-slide-left [animation-delay:400ms]">Jelajah materi</Link>
+          <Link href="/courses" className="btn-primary animate-slide-left [animation-delay:320ms]">Atur mata kuliah</Link>
+          <Link href="/explore" className="btn-lavender animate-slide-left [animation-delay:400ms]">Jelajah materi</Link>
         </div>
       </div>
     </section>

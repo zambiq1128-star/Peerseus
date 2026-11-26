@@ -2,93 +2,121 @@
 
 /*
  * Design tokens: the one place to restyle Peerseus.
- * Pages only use these names (bg-surface, text-muted, rounded-card, max-w-page, ...) and the
- * component classes below, so a new visual design is mostly a matter of changing values here.
+ * OMORI-ish experiment (original art, no game assets): two worlds.
+ *  - Pastel world (everything after sign-in): paper cream, pencil outlines, small doodles.
+ *  - Monochrome world (sign-in, loading, 404, error): add the class `world-mono` (see below).
+ * Pages only use token names (bg-surface, text-muted, ...) and the component classes below.
  */
 @theme {
-  /* Text */
-  --color-ink: #f4f8ff;        /* main text */
-  --color-ink-soft: #c5d2ee;   /* secondary text that still needs contrast */
-  --color-muted: #93a6d1;      /* hints, meta lines, inactive nav (>= 6:1 on the panels) */
+  /* Text: soft black pencil */
+  --color-ink: #2a2a2a;
+  --color-ink-soft: #4a4640;
+  --color-muted: #6a645a;      /* >= 5:1 on cream and on white */
 
-  /* Surfaces (dark navy, JRPG menu look) */
-  --color-canvas: #050b1f;     /* page background */
-  --color-surface: #0b1633;    /* cards, inputs, panels */
-  --color-paper: #08112a;      /* subtle fill: table head, quiet blocks */
-  --color-line: #1c2f5e;       /* borders and dividers */
+  /* Surfaces */
+  --color-canvas: #fdf8f0;     /* paper cream */
+  --color-surface: #ffffff;
+  --color-paper: #f6eedf;
+  --color-line: #cfc4b0;       /* soft pencil for dividers */
 
-  /* Brand */
-  --color-accent: #1e6bff;     /* fills only; use cyan for accent-coloured text on dark */
-  --color-accent-soft: rgb(30 107 255 / 0.18);
-  --color-on-accent: #ffffff;  /* text on accent */
+  /* Pastel palette */
+  --color-pink: #f7b8d2;
+  --color-lavender: #c9b8f0;
+  --color-sky: #a8d8f0;
+  --color-mint: #b8e8c8;
+  --color-butter: #f8e8a0;
+  --color-plum: #6a4fb0;       /* lavender family, dark enough for TEXT on cream (>= 5:1) */
 
-  /* Status (lightened so they read on navy) */
-  --color-good: #3ddc97;
-  --color-good-soft: rgb(61 220 151 / 0.14);
-  --color-bad: #ff7a90;
-  --color-bad-soft: rgb(255 122 144 / 0.14);
-  --color-warn: #fbbf24;
-  --color-warn-ink: #fcd34d;   /* warning text */
+  /* Brand (fills) */
+  --color-accent: #f7b8d2;
+  --color-accent-soft: rgb(247 184 210 / 0.4);
+  --color-on-accent: #2a2a2a;
+
+  /* Status: pastel fills, strong enough text. good = mint/green, bad = rose/crimson (clearly not the pink accent) */
+  --color-good: #1f6f45;
+  --color-good-soft: #d3f1de;
+  --color-bad: #a61e3f;
+  --color-bad-soft: #fcd9df;
+  --color-warn: #e8c14a;
+  --color-warn-ink: #7a5600;
 
   /* Shape */
-  --radius-card: 0.25rem;      /* cards, lists, empty boxes (corners are also cut by clip-path) */
-  --radius-control: 0.125rem;  /* buttons, inputs */
+  --radius-card: 0.9rem;
+  --radius-control: 0.7rem;
 
-  /* Page widths (max-w-narrow / max-w-page / max-w-wide) */
-  --container-narrow: 36rem;   /* forms and focused screens */
-  --container-page: 56rem;     /* default */
-  --container-wide: 64rem;     /* editor + preview */
+  --container-narrow: 36rem;
+  --container-page: 56rem;
+  --container-wide: 64rem;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-gaegu), "Patrick Hand", "Comic Sans MS", cursive; /* handwriting, headings only */
 
-  /* JRPG menu look (navbar, hero, later pages): deep navy, electric blue and cyan. Original design, no game assets. */
-  --color-navy: #050b1f;       /* deep background */
-  --color-navy-2: #0a1330;     /* raised panels on navy */
-  --color-navy-3: #14214d;     /* borders / hover on navy */
-  --color-volt: #1e6bff;       /* electric blue, white text on it passes AA */
-  --color-cyan: #3ef0ff;       /* highlight, always on navy or volt */
-  --font-display: var(--font-oswald), "Arial Narrow", Impact, sans-serif; /* oversized condensed headings */
+  /* Kept names so older markup still resolves: dark ink and pastel stand-ins. */
+  --color-navy: #2a2a2a;
+  --color-navy-2: #f6eedf;
+  --color-navy-3: #f1e8d6;     /* quiet hover / chip fill */
+  --color-volt: #c9b8f0;
+  --color-cyan: #c9b8f0;       /* fills only; use text-plum for lavender text */
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Motion: every `transition` utility uses these defaults */
-  --default-transition-duration: 160ms;
+  --default-transition-duration: 180ms;
   --default-transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* Animations (animate-page-in, animate-row-in, animate-pop, animate-shake) */
-  --animate-page-in: page-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-  --animate-row-in: row-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-  --animate-pop: pop 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --animate-shake: shake 260ms ease-in-out;
+  --animate-page-in: page-in 320ms ease-out backwards;
+  --animate-row-in: row-in 240ms ease-out backwards;
+  --animate-pop: pop 300ms ease-out;
+  --animate-shake: shake 300ms ease-in-out;
 
-  /* JRPG slide-ins: fast, with a slight overshoot. */
-  --animate-slide-left: slide-left 420ms var(--ease-overshoot) backwards;
-  --animate-slide-right: slide-right 420ms var(--ease-overshoot) backwards;
-  --animate-slide-down: slide-down 380ms var(--ease-overshoot) backwards;
+  /* Soft entrances: fade + a little wobble. */
+  --animate-slide-left: slide-left 520ms ease-out backwards;
+  --animate-slide-right: slide-right 520ms ease-out backwards;
+  --animate-slide-down: slide-down 480ms ease-out backwards;
+  --animate-slam: slam 560ms var(--ease-overshoot) backwards;
+  --animate-glow: glow 2600ms ease-in-out infinite;
+  --animate-tick: tick 900ms ease-in-out infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-blink: blink 4.5s ease-in-out infinite;
+  --animate-wobble: wobble 560ms ease-in-out;
 
-  /* Duel drama: big numbers slam in, the winner glows, the clock pulses when time is short. */
-  --animate-slam: slam 520ms var(--ease-overshoot) backwards;
-  --animate-glow: glow 1800ms ease-in-out infinite;
-  --animate-tick: tick 700ms ease-in-out infinite;
-
-  @keyframes slam { from { opacity: 0; transform: scale(2.2) skewX(-8deg); } }
-  @keyframes glow { 50% { filter: brightness(1.25) drop-shadow(0 0 18px currentColor); } }
-  @keyframes tick { 50% { transform: scale(1.12); } }
-  @keyframes slide-left { from { opacity: 0; transform: translateX(-48px) skewX(-12deg); } }
-  @keyframes slide-right { from { opacity: 0; transform: translateX(48px) skewX(-12deg); } }
-  @keyframes slide-down { from { opacity: 0; transform: translateY(-100%); } }
-  @keyframes page-in { from { opacity: 0; transform: translateY(6px); } }
+  @keyframes slam { from { opacity: 0; transform: scale(1.5) rotate(-5deg); } }
+  @keyframes glow { 50% { filter: brightness(1.06) drop-shadow(0 0 10px currentColor); } }
+  @keyframes tick { 50% { transform: scale(1.08) rotate(-2deg); } }
+  @keyframes slide-left { from { opacity: 0; transform: translateX(-14px) rotate(-1.5deg); } }
+  @keyframes slide-right { from { opacity: 0; transform: translateX(14px) rotate(1.5deg); } }
+  @keyframes slide-down { from { opacity: 0; transform: translateY(-14px) rotate(-0.5deg); } }
+  @keyframes page-in { from { opacity: 0; transform: translateY(6px) rotate(-0.3deg); } }
   @keyframes row-in { from { opacity: 0; transform: translateY(-4px); } }
-  @keyframes pop { 50% { transform: scale(1.02); } }
-  @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+  @keyframes pop { 50% { transform: scale(1.02) rotate(0.4deg); } }
+  @keyframes shake { 25% { transform: translateX(-3px) rotate(-0.5deg); } 75% { transform: translateX(3px) rotate(0.5deg); } }
+  @keyframes float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-7px) rotate(var(--r, 0deg)); } }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes wobble { 20% { transform: rotate(-2.2deg) scale(1.03); } 45% { transform: rotate(1.8deg) scale(1.03); } 70% { transform: rotate(-0.8deg); } }
 }
 
-/* Motion tokens used outside Tailwind utilities (collapsible lists). */
 :root {
   --motion-expand: 280ms;
   --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --stroke: 2px;               /* pencil line width */
+  --hatch: 0.5;                /* opacity of the diagonal hatching that replaces shadows */
+  --display-weight: 700;
+  color-scheme: light;
 }
 
-/* Anyone who asked their OS for less motion gets none. */
+/* Monochrome world: clean white, hair-thin black pencil, no color, no hatching. */
+.world-mono {
+  --stroke: 1px;
+  --pencil: url(#pencil-thin);
+  --hatch: 0;
+  --display-weight: 400;
+  --color-canvas: #fff; --color-surface: #fff; --color-paper: #fff; --color-navy-3: #f3f3f3; --color-navy-2: #fff;
+  --color-line: #c9c9c9; --color-muted: #666; --color-ink-soft: #3a3a3a; --color-plum: #2a2a2a;
+  --color-pink: #fff; --color-lavender: #fff; --color-sky: #fff; --color-mint: #fff; --color-butter: #fff;
+  --color-accent: #fff; --color-accent-soft: #fff; --color-volt: #fff; --color-cyan: #fff;
+  --color-good-soft: #fff; --color-bad-soft: #fff;
+  background: #fff;
+  color: var(--color-ink);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -98,86 +126,104 @@
   }
 }
 
+/* Paper: cream with a faint fibre grain (inline SVG noise, no asset). */
 body {
-  background: var(--color-canvas);
+  background-color: var(--color-canvas);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .38  0 0 0 0 .28  0 0 0 .09 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   color: var(--color-ink);
 }
 
-/*
- * JRPG menu components (parallelogram buttons, diagonal dividers, condensed headings).
- * Shapes use clip-path, so a focus ring would be cut off: focus-visible swaps the colors instead.
- */
-@utility jrpg-title { @apply font-display font-bold uppercase leading-[0.9] tracking-tight; }
-@utility jrpg-btn {
-  @apply inline-flex items-center justify-center gap-2 px-7 py-2.5 font-display text-base font-semibold uppercase tracking-wider transition duration-200 disabled:opacity-50;
-  clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
-  transition-timing-function: var(--ease-overshoot);
-}
-@utility jrpg-btn-volt { @apply jrpg-btn bg-volt text-white hover:-skew-x-6 hover:translate-x-1 hover:bg-cyan hover:text-navy focus-visible:bg-white focus-visible:text-navy; }
-@utility jrpg-btn-cyan { @apply jrpg-btn bg-cyan text-navy hover:-skew-x-6 hover:translate-x-1 hover:bg-white focus-visible:bg-white; }
-/* Cut the bottom edge of a dark block on a slant. */
-@utility jrpg-diagonal { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 3.5vw), 0 100%); }
-/* Tilted chip for small facts (counts, labels). */
-@utility jrpg-tag { @apply inline-block bg-navy-3 px-4 py-1 font-display text-sm uppercase tracking-widest text-cyan; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-
-/* Component classes. Change the look here, not in the pages. */
-:root { color-scheme: dark; } /* native selects, scrollbars and date pickers follow the dark theme */
 @layer base {
-  h1 { font-family: var(--font-display); text-transform: uppercase; letter-spacing: -0.005em; }
-  ::placeholder { color: var(--color-muted); opacity: 0.7; }
-  :focus-visible { outline: 2px solid var(--color-cyan); outline-offset: 2px; }
+  h1 { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: 0; line-height: 1.08; }
+  ::placeholder { color: var(--color-muted); opacity: 0.75; }
+  :focus-visible { outline: 3px solid var(--color-plum); outline-offset: 2px; }
 }
 
-@utility card {
-  @apply border border-line bg-surface p-5 transition duration-200 hover:border-cyan;
-  border-radius: var(--radius-card);
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+/*
+ * Hand-drawn outlines. Boxes (card, rows, callout, btn, nav) draw their line on ::before, wobbled by the SVG
+ * filter #pencil (defined once in layout.tsx), so text stays crisp. The "shadow" is ::after: diagonal hatching.
+ */
+@layer components {
+  .card, .callout, .btn, .btn-primary, .btn-ghost, .btn-lavender, .sketch { position: relative; isolation: isolate; }
+  .card::before, .callout::before, .btn::before, .btn-primary::before, .btn-ghost::before, .btn-lavender::before, .sketch::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--fill, var(--color-surface));
+    border: var(--stroke) solid var(--color-ink);
+    border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px;
+    filter: var(--pencil, url(#pencil));
+    transition: border-color 200ms, background-color 200ms;
+  }
+  .card::after, .callout::after, .btn::after, .btn-primary::after, .btn-ghost::after, .btn-lavender::after, .sketch::after {
+    content: ""; position: absolute; inset: 0; z-index: -2;
+    transform: translate(var(--hx, 5px), var(--hy, 6px));
+    background: repeating-linear-gradient(135deg, var(--color-ink) 0 1.4px, transparent 1.4px 6px);
+    border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px;
+    opacity: var(--hatch);
+    filter: var(--pencil, url(#pencil));
+    transition: transform 180ms, opacity 180ms;
+  }
+  .card:hover::before { border-color: var(--color-plum); }
+  /* Cards sit a hair crooked, like pasted in by hand (-1deg to 1deg). */
+  .card { padding: 1.25rem; rotate: -0.5deg; transition: rotate 220ms var(--ease-overshoot), translate 220ms; }
+  .card:nth-child(3n + 2) { rotate: 0.6deg; }
+  .card:nth-child(3n) { rotate: -0.9deg; }
+  .card:nth-child(4n) { rotate: 0.9deg; }
+  .card:hover { rotate: 0deg; translate: 0 -2px; }
+  .callout { --fill: var(--color-butter); padding: 1.25rem; }
+
+  .rows {
+    position: relative; isolation: isolate; overflow: clip;
+    border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px;
+  }
+  .rows::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    border: var(--stroke) solid var(--color-ink);
+    border-radius: inherit;
+  }
 }
-@utility callout {
-  @apply border border-accent bg-accent-soft p-5;
-  border-radius: var(--radius-card);
-  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
-}
-/* Buttons: parallelogram via clip-path (so the focus ring is the cyan outline-free colour swap below). */
+
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 px-6 py-2 font-display text-sm font-semibold uppercase tracking-wider transition duration-200 disabled:cursor-not-allowed disabled:opacity-50;
-  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
-  transition-timing-function: var(--ease-overshoot);
+  @apply inline-flex items-center justify-center gap-2 px-6 py-2 font-display text-xl font-bold leading-tight text-ink disabled:cursor-not-allowed disabled:opacity-50;
+  --fill: var(--btn-bg, var(--color-surface));
+  --hx: 3px; --hy: 4px;
+  &:hover:not(:disabled) { animation: var(--animate-wobble); }
+  &:active:not(:disabled) { translate: 2px 3px; --hx: 1px; --hy: 1px; }
 }
-@utility btn-primary { @apply btn bg-accent text-on-accent hover:-skew-x-6 hover:translate-x-1 hover:bg-cyan hover:text-navy focus-visible:bg-white focus-visible:text-navy; }
-/* Ghost: thin cyan edge drawn by a slightly smaller parallelogram laid on a cyan one; transparent look on navy. */
-@utility btn-ghost {
-  @apply btn relative isolate bg-cyan text-cyan hover:-skew-x-6 hover:translate-x-1 hover:text-navy focus-visible:text-navy;
-  &::before { content: ""; position: absolute; inset: 1px; z-index: -1; background: var(--color-canvas); clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); transition: background-color 200ms; }
-  &:hover::before, &:focus-visible::before { background: var(--color-cyan); }
-  &:disabled::before { background: var(--color-canvas); }
-}
+@utility btn-primary { @apply btn; --btn-bg: var(--color-pink); }
+@utility btn-ghost { @apply btn; --btn-bg: var(--color-surface); }
+@utility btn-lavender { @apply btn; --btn-bg: var(--color-lavender); }
+
 @utility input {
-  @apply w-full border border-accent/50 bg-canvas px-3 py-2 text-sm text-ink outline-none transition;
-  border-radius: var(--radius-control);
-  &:focus { border-color: var(--color-cyan); box-shadow: 0 0 0 3px rgb(62 240 255 / 0.22), 0 0 14px rgb(62 240 255 / 0.25); }
+  @apply w-full bg-surface px-3 py-2 text-sm text-ink outline-none transition;
+  border: var(--stroke) solid var(--color-ink);
+  border-radius: 12px 16px 11px 17px / 16px 11px 17px 12px;
+  &:focus { border-width: 4px; padding: calc(0.5rem - 2px) calc(0.75rem - 2px); border-color: var(--color-lavender); box-shadow: 0 0 0 1.5px var(--color-ink); }
 }
 @utility label { @apply mb-1 block text-sm font-medium text-ink-soft; }
-@utility link { @apply font-medium text-cyan transition-colors hover:underline; }
-@utility badge { @apply inline-flex items-center bg-navy-3 px-3 py-0.5 text-xs font-semibold text-ink-soft; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-/* Colored badges repeat the shape on purpose: composing `badge` would fight over the colors. */
-@utility badge-accent { @apply inline-flex items-center bg-accent-soft px-3 py-0.5 text-xs font-semibold text-cyan; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-@utility badge-strong { @apply inline-flex items-center bg-accent px-3 py-0.5 text-xs font-semibold text-on-accent; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-@utility badge-good { @apply inline-flex items-center bg-good-soft px-3 py-0.5 text-xs font-semibold text-good; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-@utility badge-bad { @apply inline-flex items-center bg-bad-soft px-3 py-0.5 text-xs font-semibold text-bad; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-/* Filter pills (material type, Materiku filters) */
-@utility chip { @apply inline-block bg-navy-3 px-4 py-1 text-xs font-semibold text-muted transition duration-200 hover:text-cyan; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-@utility chip-active { @apply inline-block bg-cyan px-4 py-1 text-xs font-bold text-navy transition duration-200; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-/* Segmented control (two to three options in one row) and underlined tabs */
-@utility seg { @apply px-4 py-1.5 font-display text-sm font-semibold uppercase tracking-wider text-ink-soft transition duration-200 hover:bg-navy-3 hover:text-cyan disabled:opacity-50; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-@utility seg-active { @apply px-4 py-1.5 font-display text-sm font-semibold uppercase tracking-wider bg-cyan text-navy; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-@utility tab { @apply -mb-px px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-wider text-muted transition duration-200 hover:text-cyan; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
-@utility tab-active { @apply -mb-px bg-accent px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-wider text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); box-shadow: inset 0 -3px 0 var(--color-cyan); }
-/* Bordered list with dividers between rows; a cyan strip slides in on the left of the hovered row. */
-@utility rows { @apply divide-y divide-line border border-line bg-surface; border-radius: var(--radius-card); }
-@utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-navy-3; box-shadow: inset 0 0 0 0 var(--color-cyan); &:hover { box-shadow: inset 4px 0 0 0 var(--color-cyan); } }
-@utility section-title { @apply font-display text-lg font-semibold uppercase tracking-wider text-ink; }
-@utility eyebrow { @apply text-xs font-semibold uppercase tracking-[0.2em] text-cyan; }
+@utility link { @apply font-semibold text-plum underline decoration-wavy decoration-from-font underline-offset-4 transition-colors hover:decoration-solid; }
+
+/* Stickers and paper cut-outs: pastel fill, pencil edge, slightly turned. */
+@utility badge { @apply inline-flex items-center bg-sky px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility badge-accent { @apply inline-flex items-center bg-lavender px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
+@utility badge-strong { @apply inline-flex items-center bg-pink px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility badge-good { @apply inline-flex items-center bg-good-soft px-3 py-0.5 text-xs font-semibold text-good; border: 1.5px solid var(--color-good); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
+@utility badge-bad { @apply inline-flex items-center bg-bad-soft px-3 py-0.5 text-xs font-semibold text-bad; border: 1.5px solid var(--color-bad); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility chip { @apply inline-block bg-surface px-4 py-1 text-xs font-semibold text-ink-soft transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: -0.8deg; &:hover { animation: var(--animate-wobble); } }
+@utility chip-active { @apply inline-block bg-butter px-4 py-1 text-xs font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: 0.8deg; }
+@utility seg { @apply bg-surface px-4 py-1.5 font-display text-lg font-bold text-ink-soft transition duration-200 hover:bg-butter hover:text-ink disabled:opacity-50; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
+@utility seg-active { @apply bg-pink px-4 py-1.5 font-display text-lg font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
+@utility tab { @apply -mb-px bg-paper px-5 pb-1.5 pt-1 font-display text-xl font-bold text-muted transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
+@utility tab-active { @apply -mb-px bg-lavender px-5 pb-1.5 pt-1 font-display text-xl font-bold text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
+
+/* Dividers use soft pencil; row hover = a pastel highlighter stripe. */
+@utility rows { @apply divide-y divide-line bg-surface; }
+@utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-butter/50; }
+@utility section-title { @apply font-display text-2xl font-bold text-ink; }
+@utility eyebrow { @apply font-display text-lg font-bold leading-none text-plum; }
+
+/* Doodles: aria-hidden decoration (see Doodles.tsx). Float gently, blink slowly. */
+@utility doodle-float { animation: var(--animate-float); }
+@utility doodle-blink { animation: var(--animate-blink); }
 
 /*
  * Collapsible rows: extra rows sit in .expand and slide open by animating the grid row from 0fr to 1fr.
@@ -199,7 +245,7 @@ body {
 .md ol { list-style: decimal; padding-left: 1.4em; }
 .md li + li { margin-top: 0.25em; }
 .md li > ul, .md li > ol { margin-top: 0.25em; }
-.md a { color: var(--color-cyan); text-decoration: underline; }
+.md a { color: var(--color-plum); text-decoration: underline; }
 .md blockquote { border-left: 3px solid var(--color-line); padding-left: 0.9em; color: var(--color-ink-soft); }
 .md code { background: var(--color-navy-3); border-radius: 4px; padding: 0.1em 0.3em; font-size: 0.85em; }
 .md pre { background: var(--color-canvas); border: 1px solid var(--color-line); border-radius: 8px; padding: 0.8em; overflow-x: auto; }
@@ -213,3 +259,9 @@ body {
 .md .katex, .md-inline .katex { font-size: 1.05em; }
 .md-inline ol, .md-inline ul { display: inline; padding: 0; }
 .md-inline li { display: inline; }
+
+/* Monochrome world details: no tilt, and "selected" is shown with ink instead of pastel. */
+.world-mono .card { rotate: 0deg; translate: none; }
+.world-mono .seg-active, .world-mono .chip-active { background: var(--color-ink); color: #fff; }
+.world-mono .btn-ghost:hover:not(:disabled)::before, .world-mono .btn-primary:hover:not(:disabled)::before { background: var(--color-navy-3); }
+.world-mono .badge, .world-mono .badge-accent, .world-mono .badge-strong { rotate: 0deg; }

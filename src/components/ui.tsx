@@ -1,4 +1,5 @@
 "use client";
+import { DoodleField } from "./Doodles";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -33,7 +34,7 @@ export function useCountUp(target: number, ms = 1100, delay = 0) {
 export function Spinner({ label = "Memuat…" }: { label?: string }) {
   return (
     <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted">
-      <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-accent" />
+      <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-ink" />
       {label}
     </div>
   );
@@ -42,10 +43,16 @@ export function Spinner({ label = "Memuat…" }: { label?: string }) {
 /** Empty state: nothing to show yet, ideally with the next step as `action`. */
 export function Empty({ title, action, children }: { title?: string; action?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="rounded-card border border-dashed border-cyan/60 p-6 text-center text-sm text-muted">
-      {title && <div className="font-semibold text-ink">{title}</div>}
-      {children && <div className={title ? "mt-1" : ""}>{children}</div>}
-      {action && <div className="mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
+    <div className="relative overflow-hidden rounded-card border-2 border-dashed border-ink/60 p-6 text-center text-sm text-muted">
+      <DoodleField spots={[
+        { kind: "cloud", fill: "sky", x: "6%", y: "12%", size: 34, rot: -4, float: true },
+        { kind: "star", fill: "butter", x: "88%", y: "14%", size: 24, rot: 10, delay: 0.8 },
+        { kind: "heart", fill: "pink", x: "90%", y: "62%", size: 22, rot: -8, float: true, delay: 1.6 },
+        { kind: "scribble", x: "5%", y: "66%", size: 34, rot: 6, delay: 2.4 },
+      ]} />
+      {title && <div className="relative font-display text-2xl font-bold text-ink">{title}</div>}
+      {children && <div className={`relative ${title ? "mt-1" : ""}`}>{children}</div>}
+      {action && <div className="relative mt-4 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
   );
 }
@@ -58,8 +65,8 @@ export function ErrorState({ message, onRetry, title = "Gagal memuat data", hint
   hint?: string;
 }) {
   return (
-    <div role="alert" className="rounded-card border border-bad bg-bad-soft p-6 text-center text-sm">
-      <div className="font-semibold text-bad">{title}</div>
+    <div role="alert" className="rounded-card border-2 border-bad bg-bad-soft p-6 text-center text-sm">
+      <div className="font-display text-2xl font-bold text-bad">{title}</div>
       <p className="mt-1 text-muted">{hint}{message && <span className="mt-2 block break-words text-xs">{message}</span>}</p>
       {onRetry && <button type="button" className="btn-ghost mt-4" onClick={onRetry}>Coba lagi</button>}
     </div>
@@ -73,9 +80,11 @@ export function NotFound({ title, back = { href: "/", label: "Ke beranda" }, chi
   children?: React.ReactNode;
 }) {
   return (
-    <Page width="narrow">
-      <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
-    </Page>
+    <div className="world-mono -mx-4 -my-6 min-h-[calc(100dvh-3.5rem)] px-4 py-16 sm:-my-8">
+      <Page width="narrow">
+        <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
+      </Page>
+    </div>
   );
 }
 
@@ -181,7 +190,7 @@ export function CollapsibleRows<T>({ items, children, pinned, limit = LIST_LIMIT
 export function ShowMoreButton({ open, total, onClick }: { open: boolean; total: number; onClick: () => void }) {
   return (
     <button type="button" aria-expanded={open} onClick={onClick}
-      className="flex w-full items-center justify-center gap-1.5 rounded-b-card px-4 py-2.5 text-sm font-medium text-cyan transition-colors hover:bg-navy-3">
+      className="flex w-full items-center justify-center gap-1.5 rounded-b-card px-4 py-2.5 text-sm font-medium text-plum transition-colors hover:bg-navy-3">
       {open ? "Tampilkan lebih sedikit" : `Lihat semua (${total})`}
       <span aria-hidden className={`inline-block transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
     </button>

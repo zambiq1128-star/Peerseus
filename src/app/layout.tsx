@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Oswald, Plus_Jakarta_Sans } from "next/font/google";
+import { Gaegu, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import Shell from "@/components/Shell";
 
 const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin"] });
 
-// Condensed display type of the JRPG menu look (navbar, hero).
-const oswald = Oswald({ variable: "--font-oswald", subsets: ["latin"] });
+// Handwriting for headings only; body, quiz and materials stay in the sans font.
+const gaegu = Gaegu({ variable: "--font-gaegu", subsets: ["latin"], weight: ["300", "400", "700"] });
 
 export const metadata: Metadata = {
   title: "Peerseus — Academic Odyssey with your Peers",
@@ -16,8 +16,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="id" className={`${jakarta.variable} ${oswald.variable}`}>
+    <html lang="id" className={`${jakarta.variable} ${gaegu.variable}`}>
       <body className="font-sans antialiased">
+        {/* Pencil wobble for hand-drawn outlines (used by filter: url(#pencil) in globals.css). Decorative only. */}
+        <svg aria-hidden="true" focusable="false" width="0" height="0" style={{ position: "absolute" }}>
+          <filter id="pencil" x="-10%" y="-50%" width="120%" height="200%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="4" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+          <filter id="pencil-thin" x="-10%" y="-50%" width="120%" height="200%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="1" seed="9" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="1.2" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </svg>
         <AuthProvider>
           <Shell>{children}</Shell>
         </AuthProvider>
