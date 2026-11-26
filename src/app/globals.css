@@ -210,10 +210,19 @@ body::before {
     transition: transform 150ms var(--default-transition-timing-function), box-shadow 150ms var(--default-transition-timing-function);
   }
   &:nth-child(even)::before { clip-path: var(--p5-cut-b); }
-  &:hover::before { transform: var(--card-hover-transform, translate(-2px, -2px) rotate(-0.4deg)); box-shadow: 9px 9px 0 var(--color-accent); }
+  /*
+   * Hover effects only on devices that really hover (mouse): a touch must never tilt the frame.
+   * Default = slide the frame and its shadow (independent of card height). Short cards opt in to a
+   * tilt with .card-rot; a tilt on a tall card would swing its far edge across the text.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    &:hover::before { transform: var(--card-hover-transform, translate(-3px, -3px)); box-shadow: 10px 10px 0 var(--color-accent); }
+  }
 }
+/* Short cards: the frame tilts a little (text stays upright). */
+@utility card-rot { --card-hover-transform: translate(-2px, -2px) rotate(-0.4deg); }
 /* Compact title-only cards (home course cards): the whole card tilts, as before. */
-@utility card-tilt { @apply transition duration-150; --card-hover-transform: none; &:hover { transform: translate(-2px, -2px) rotate(-0.4deg); } }
+@utility card-tilt { @apply transition duration-150; --card-hover-transform: none; @media (hover: hover) and (pointer: fine) { &:hover { transform: translate(-2px, -2px) rotate(-0.4deg); } } }
 @utility callout {
   @apply border-[3px] border-white bg-accent p-5 text-white;
   box-shadow: 6px 6px 0 #fff;
