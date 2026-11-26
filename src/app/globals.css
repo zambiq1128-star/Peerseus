@@ -172,11 +172,15 @@ body {
   }
   .btn::after, .btn-primary::after, .btn-ghost::after, .btn-lavender::after { border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px; filter: var(--pencil, url(#pencil)); }
   .card:hover::before { border-color: var(--edge, var(--color-plum)); }
-  /* Cards sit a hair crooked, like pasted in by hand (-1deg to 1deg). */
-  .card { padding: 1.25rem; rotate: -0.5deg; transition: rotate 220ms var(--ease-overshoot), translate 220ms; }
-  .card:nth-child(3n + 2) { rotate: 0.6deg; }
-  .card:nth-child(3n) { rotate: -0.9deg; }
-  .card:nth-child(4n) { rotate: 0.9deg; }
+  /*
+   * Cards sit a hair crooked (-1deg to 1deg). Tall cards (rendered material, forms, previews, long lists) must stay
+   * straight: a 6000px card turned 0.5deg sticks out ~50px sideways, which makes the whole page pan left and right.
+   */
+  .card { padding: 1.25rem; min-width: 0; max-width: 100%; }
+  .card:not(:has(.md, iframe, form, textarea, table, .rows, details)) { rotate: -0.5deg; transition: rotate 220ms var(--ease-overshoot), translate 220ms; }
+  .card:not(:has(.md, iframe, form, textarea, table, .rows, details)):nth-child(3n + 2) { rotate: 0.6deg; }
+  .card:not(:has(.md, iframe, form, textarea, table, .rows, details)):nth-child(3n) { rotate: -0.9deg; }
+  .card:not(:has(.md, iframe, form, textarea, table, .rows, details)):nth-child(4n) { rotate: 0.9deg; }
   .card:hover { rotate: 0deg; translate: 0 -2px; }
   .callout { --fill: var(--color-butter); padding: 1.25rem; }
 
@@ -243,7 +247,8 @@ body {
 .expand > * { min-height: 0; overflow: hidden; }
 
 /* Rendered Markdown + LaTeX materials */
-.md { font-size: 0.9rem; line-height: 1.7; overflow-wrap: anywhere; }
+.md { font-size: 0.9rem; line-height: 1.7; overflow-wrap: anywhere; min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.md img, .md svg:not(.katex svg) { max-width: 100%; height: auto; }
 .md > * + * { margin-top: 0.75em; }
 .md h1, .md h2, .md h3, .md h4 { font-family: inherit; text-transform: none; letter-spacing: normal; }
 .md h1 { font-size: 1.35rem; font-weight: 700; margin-top: 1.2em; }
@@ -261,7 +266,8 @@ body {
 .md pre code { padding: 0; background: none; }
 .md hr { border-color: var(--color-line); }
 .md-table { overflow-x: auto; }
-.md table { border-collapse: collapse; font-size: 0.85rem; }
+.md table { border-collapse: collapse; font-size: 0.85rem; width: max-content; max-width: none; overflow-wrap: normal; }
+.md th, .md td { min-width: 4.5rem; }
 .md th, .md td { border: 1px solid var(--color-line); padding: 0.35em 0.6em; text-align: left; }
 .md th { background: var(--color-navy-3); font-weight: 600; }
 .md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.2em 0; }

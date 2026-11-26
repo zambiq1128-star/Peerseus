@@ -169,7 +169,7 @@ export function AttachmentPreview({ attachment }: { attachment: Attachment }) {
       <iframe
         src={src}
         title={attachment.name}
-        className={`w-full rounded-control border border-line bg-paper ${isPdf ? "h-[75vh]" : "h-[60vh]"}`}
+        className={`w-full max-w-full [touch-action:pan-y] rounded-control border border-line bg-paper ${isPdf ? "h-[75vh]" : "h-[60vh]"}`}
         loading="lazy"
       />
     </section>

@@ -35,9 +35,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   if (!uid || !profile || !profile.major) return <SignIn />;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen w-full max-w-full flex-col overflow-x-clip">
       <AppHeader path={path} firstName={profile.name.split(" ")[0]} />
-      <main className="flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <main className="min-w-0 flex-1 px-4 py-6 sm:py-8">{children}</main>
     </div>
   );
 }
