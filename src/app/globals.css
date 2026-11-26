@@ -98,8 +98,8 @@
    * Jagged, irregular outlines for cards and panels. The polygon reaches 6px past the box on the right and
    * bottom on purpose: that is where the offset red shadow sits, so the same ragged edge cuts both.
    */
-  --p5-cut-a: polygon(0 14px, 14px 0, 42% 5px, 68% 0, calc(100% - 12px) 3px, calc(100% + 6px) 14px, calc(100% + 2px) 58%, calc(100% + 6px) calc(100% - 22px), calc(100% - 16px) calc(100% + 6px), 58% calc(100% + 2px), 26% calc(100% + 6px), 10px calc(100% + 6px), 0 calc(100% - 10px), 0 72%, 4px 48%, 0 34%);
-  --p5-cut-b: polygon(0 6px, 8px 0, 30% 4px, 55% 0, 82% 5px, calc(100% - 4px) 0, calc(100% + 6px) 18px, calc(100% + 3px) 40%, calc(100% + 6px) 66%, calc(100% + 6px) calc(100% - 10px), calc(100% - 22px) calc(100% + 6px), 70% calc(100% + 3px), 40% calc(100% + 6px), 18px calc(100% + 2px), 0 calc(100% - 18px), 5px 60%, 0 42%);
+  --p5-cut-a: polygon(0 14px, 14px 0, 42% 5px, 68% 0, calc(100% - 12px) 3px, calc(100% + 6px) 14px, calc(100% + 2px) min(58%, 60px), calc(100% + 6px) calc(100% - 22px), calc(100% - 16px) calc(100% + 6px), 58% calc(100% + 2px), 26% calc(100% + 6px), 10px calc(100% + 6px), 0 calc(100% - 10px), 0 min(72%, 80px), 4px min(48%, 50px), 0 min(34%, 36px));
+  --p5-cut-b: polygon(0 6px, 8px 0, 30% 4px, 55% 0, 82% 5px, calc(100% - 4px) 0, calc(100% + 6px) 18px, calc(100% + 3px) min(40%, 44px), calc(100% + 6px) min(66%, 70px), calc(100% + 6px) calc(100% - 10px), calc(100% - 22px) calc(100% + 6px), 70% calc(100% + 3px), 40% calc(100% + 6px), 18px calc(100% + 2px), 0 calc(100% - 18px), 5px min(60%, 64px), 0 min(42%, 44px));
 }
 
 /* Anyone who asked their OS for less motion gets none. */
