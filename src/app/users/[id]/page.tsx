@@ -53,7 +53,7 @@ export default function UserPage() {
       </div>
 
       {isMe && (
-        <div className="card flex flex-wrap items-center justify-between gap-3 !bg-paper text-sm">
+        <div className="card flex flex-wrap items-center justify-between gap-3 [--card-bg:var(--color-paper)] text-sm">
           <span>Ini profilmu seperti dilihat orang lain.</span>
           <Link href="/profile" className="btn-ghost">Atur profil</Link>
         </div>

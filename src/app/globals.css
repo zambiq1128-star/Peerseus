@@ -191,12 +191,29 @@ body::before {
 
 /* Card and panel: thick white border, sharp red offset shadow, ragged outline (alternates between two shapes). */
 @utility card {
-  @apply border-[3px] border-white bg-surface p-5 transition duration-150;
-  box-shadow: 6px 6px 0 var(--color-accent);
-  clip-path: var(--p5-cut-a);
-  &:nth-child(even) { clip-path: var(--p5-cut-b); }
-  &:hover { transform: translate(-2px, -2px) rotate(-0.4deg); box-shadow: 9px 9px 0 var(--color-accent); }
+  /*
+   * The frame (white border, red shadow, ragged outline, black fill) is the ::before layer, so the hover tilt moves
+   * only that decorative layer. The element itself and everything inside it (text, KaTeX, images, iframes)
+   * is never transformed and stays sharp. Override the fill / border with --card-bg / --card-border.
+   */
+  @apply relative isolate p-5;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--card-bg, var(--color-surface));
+    border: 3px solid var(--card-border, #fff);
+    box-shadow: 6px 6px 0 var(--color-accent);
+    clip-path: var(--p5-cut-a);
+    transition: transform 150ms var(--default-transition-timing-function), box-shadow 150ms var(--default-transition-timing-function);
+  }
+  &:nth-child(even)::before { clip-path: var(--p5-cut-b); }
+  &:hover::before { transform: var(--card-hover-transform, translate(-2px, -2px) rotate(-0.4deg)); box-shadow: 9px 9px 0 var(--color-accent); }
 }
+/* Compact title-only cards (home course cards): the whole card tilts, as before. */
+@utility card-tilt { @apply transition duration-150; --card-hover-transform: none; &:hover { transform: translate(-2px, -2px) rotate(-0.4deg); } }
 @utility callout {
   @apply border-[3px] border-white bg-accent p-5 text-white;
   box-shadow: 6px 6px 0 #fff;

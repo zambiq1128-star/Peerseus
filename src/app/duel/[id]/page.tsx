@@ -155,7 +155,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const delta = done ? (meC ? duel.eloChange!.challenger : duel.eloChange!.opponent) : 0;
 
   const tone = !done ? "text-ink-soft" : won ? "text-cyan" : draw ? "text-ink" : "text-bad";
-  const edge = !done ? "!border-line" : won ? "!border-cyan" : draw ? "!border-line" : "!border-bad";
+  const edge = !done ? "[--card-border:var(--color-line)]" : won ? "[--card-border:var(--color-cyan)]" : draw ? "[--card-border:var(--color-line)]" : "[--card-border:var(--color-bad)]";
   const myScore = useCountUp(mine.score, 700, 300);
   const theirScore = useCountUp(theirs ? theirs.score : 0, 700, 450);
   const shownDelta = useCountUp(delta, 1400, 800);
@@ -163,7 +163,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
 
   return (
     <Page width="narrow">
-      <div className={`card overflow-hidden border-2 text-center !p-8 ${edge}`}>
+      <div className={`card [overflow:clip] [overflow-clip-margin:12px] text-center !p-8 ${edge}`}>
         <div className="eyebrow">{declined ? `${oppName} menolak duel ini` : !done ? `Menunggu ${oppName}` : `Duel melawan ${oppName}`}</div>
         <h1 className={`mt-1 animate-slam text-7xl sm:text-8xl ${tone} ${done && won ? "animate-glow" : ""}`}>{verdict}</h1>
         <div className="mt-6 flex items-end justify-center gap-5 sm:gap-10">
