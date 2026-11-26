@@ -3,9 +3,45 @@
  * Purely decorative: every export is aria-hidden. Fills come from the pastel tokens; inside `.world-mono`
  * those tokens turn white, so the same doodles become empty line drawings.
  */
-export type DoodleKind = "star" | "cloud" | "heart" | "spiral" | "scribble" | "sparkle" | "moon";
+export type DoodleKind = "star" | "cloud" | "heart" | "spiral" | "scribble" | "sparkle" | "moon" | "p-star" | "p-heart" | "p-cloud" | "p-sword";
 
-const PATHS: Record<DoodleKind, string> = {
+/*
+ * Tiny original pixel-art icons (drawn here, not taken from any game). Legend: k = ink outline, a = main fill,
+ * w = white highlight, g = gold. '.' is empty. Rendered as crisp SVG rects, so they stay pixel-sharp at any size.
+ */
+const PIXELS: Record<string, { grid: string[]; fill: string }> = {
+  "p-star": { fill: "butter", grid: ["....k....", "...kak...", "...kak...", "kkkkakkkk", "kaaaaaaak", ".kaawaak.", "..kaaak..", ".kaakaak.", ".kkk.kkk."] },
+  "p-heart": { fill: "pink", grid: [".kkk.kkk.", "kaaakaaak", "kaawaaaak", "kaaaaaaak", ".kaaaaak.", "..kaaak..", "...kak...", "....k...."] },
+  "p-cloud": { fill: "sky", grid: ["....kkk......", "...kaaakkk...", ".kkkaaaaaak..", "kaaaaaaaaaakk", "kaaaaaaaaaaak", ".kkkkkkkkkkk."] },
+  "p-sword": { fill: "sky", grid: ["......kkk", ".....kwak", "....kwak.", "...kwak..", "kk.kak...", "kgkak....", ".kgk.....", "kgk......", ".k......."] },
+};
+const PIXEL_COLOR: Record<string, (fill: string) => string> = {
+  k: () => "var(--color-ink)", a: (f) => `var(--color-${f})`, w: () => "#ffffff", g: () => "var(--color-butter)",
+};
+
+function PixelIcon({ kind, fill, size, className }: { kind: string; fill?: string; size: number; className?: string }) {
+  const { grid, fill: dflt } = PIXELS[kind];
+  const f = fill && fill !== "none" ? fill : dflt;
+  const cols = grid[0].length;
+  const rects: React.ReactNode[] = [];
+  grid.forEach((row, y) => {
+    let x = 0;
+    while (x < cols) {
+      const c = row[x];
+      if (c === ".") { x++; continue; }
+      let n = 1;
+      while (x + n < cols && row[x + n] === c) n++;
+      rects.push(<rect key={`${x}-${y}`} x={x} y={y} width={n} height={1} fill={PIXEL_COLOR[c](f)} />);
+      x += n;
+    }
+  });
+  return (
+    <svg aria-hidden="true" focusable="false" viewBox={`0 0 ${cols} ${grid.length}`} width={size} height={(size * grid.length) / cols} className={className}
+      shapeRendering="crispEdges" style={{ imageRendering: "pixelated" }}>{rects}</svg>
+  );
+}
+
+const PATHS: Record<string, string> = {
   star: "M24 5 L28.6 17.5 L42 18.6 L31.6 27.4 L35.2 41 L24 33.4 L12.6 41.2 L16.2 27.6 L5.8 18.8 L19.4 17.6 Z",
   cloud: "M11 36 C3 36.5 2.5 26 10 25.5 C9 16 21 13 25 20.5 C31 15.5 41 21.5 37.5 29 C45.5 30 43.5 37 36 36.4 Z",
   heart: "M24 40.5 C9.5 30.5 5.5 20.5 11.5 13 C17 7.5 22.5 11 24 16.5 C26 11 32 7.5 37.5 13 C43.5 20.5 38.5 30.5 24 40.5 Z",
@@ -15,11 +51,13 @@ const PATHS: Record<DoodleKind, string> = {
   moon: "M32 8 C20 8 10 17 10 28 C10 38 19 44 29 42 C21 38 19 27 24 19 C26 15 29 11 32 8 Z",
 };
 
-export function Doodle({ kind, fill = "pink", size = 40, className = "" }: { kind: DoodleKind; fill?: "pink" | "lavender" | "sky" | "mint" | "butter" | "none"; size?: number; className?: string }) {
+export function Doodle({ kind, fill, size = 40, className = "" }: { kind: DoodleKind; fill?: "pink" | "lavender" | "sky" | "mint" | "butter" | "none"; size?: number; className?: string }) {
+  if (kind.startsWith("p-")) return <PixelIcon kind={kind} fill={fill} size={size} className={className} />;
   const filled = kind !== "scribble" && fill !== "none";
+  const fillName = fill ?? "pink";
   return (
     <svg aria-hidden="true" focusable="false" viewBox="0 0 48 48" width={size} height={size} className={className}
-      fill={filled ? `var(--color-${fill})` : "none"} stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      fill={filled ? `var(--color-${fillName})` : "none"} stroke="var(--color-ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d={PATHS[kind]} />
     </svg>
   );

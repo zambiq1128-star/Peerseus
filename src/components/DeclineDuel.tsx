@@ -25,11 +25,11 @@ export default function DeclineDuel({ duelId, uid, onDone, className = "" }: { d
       {!asking ? (
         <button type="button" className="btn-ghost !py-1.5" onClick={() => setAsking(true)}>Tolak</button>
       ) : (
-        <>
-          <span className="text-xs text-muted">Tolak tantangan ini?</span>
-          <button type="button" className="btn-ghost !py-1.5 text-bad" disabled={busy} onClick={decline}>{busy ? "Menolak…" : "Ya, tolak"}</button>
-          <button type="button" className="btn-ghost !py-1.5" disabled={busy} onClick={() => setAsking(false)}>Batal</button>
-        </>
+        <div role="alertdialog" aria-label="Konfirmasi tolak duel" className="dialog flex flex-wrap items-center gap-2 !px-4 !py-2 [--dialog-bg:var(--color-butter)]">
+          <span className="font-pixel text-xs">Tolak tantangan ini?</span>
+          <button type="button" className="btn-ghost !py-1 text-bad" disabled={busy} onClick={decline}>{busy ? "Menolak…" : "Ya, tolak"}</button>
+          <button type="button" className="btn-ghost !py-1" disabled={busy} onClick={() => setAsking(false)}>Batal</button>
+        </div>
       )}
       {error && <span className="w-full text-xs text-bad">{error}</span>}
     </div>

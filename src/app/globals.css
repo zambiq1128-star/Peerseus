@@ -49,6 +49,7 @@
   --container-wide: 64rem;
 
   --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-pixel: var(--font-pixel-var), "Courier New", monospace; /* pixel type: labels, badges, menu, numbers */
   --font-display: var(--font-gaegu), "Patrick Hand", "Comic Sans MS", cursive; /* handwriting, headings only */
 
   /* Kept names so older markup still resolves: dark ink and pastel stand-ins. */
@@ -77,6 +78,7 @@
   --animate-float: float 7s ease-in-out infinite;
   --animate-blink: blink 4.5s ease-in-out infinite;
   --animate-wobble: wobble 560ms ease-in-out;
+  --animate-tremble: tremble 3.2s steps(1, end) infinite;
 
   @keyframes slam { from { opacity: 0; transform: scale(1.5) rotate(-5deg); } }
   @keyframes glow { 50% { filter: brightness(1.06) drop-shadow(0 0 10px currentColor); } }
@@ -90,6 +92,10 @@
   @keyframes shake { 25% { transform: translateX(-3px) rotate(-0.5deg); } 75% { transform: translateX(3px) rotate(0.5deg); } }
   @keyframes float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-7px) rotate(var(--r, 0deg)); } }
   @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+  @keyframes pick-bob { 50% { translate: 2px 0; } }
+  @keyframes tremble { 0%, 84%, 100% { transform: none; text-shadow: none; } 86% { transform: translate(1px, -1px); text-shadow: 2px 0 rgb(255 40 70 / 0.55), -2px 0 rgb(0 220 255 / 0.3); } 89% { transform: translate(-1px, 1px); } 92% { transform: translate(1px, 0); text-shadow: -2px 0 rgb(255 40 70 / 0.55); } 95% { transform: translate(0, -1px); text-shadow: none; } }
+  @keyframes static-shift { 0% { background-position: 0 0; } 25% { background-position: -37px 21px; } 50% { background-position: 19px -43px; } 75% { background-position: -23px -11px; } 100% { background-position: 0 0; } }
+  @keyframes static-flicker { 0%, 100% { opacity: 0.14; } 40% { opacity: 0.2; } 70% { opacity: 0.1; } }
   @keyframes wobble { 20% { transform: rotate(-2.2deg) scale(1.03); } 45% { transform: rotate(1.8deg) scale(1.03); } 70% { transform: rotate(-0.8deg); } }
 }
 
@@ -117,6 +123,26 @@
   background: #fff;
   color: var(--color-ink);
 }
+
+/* Dark side: only for special moments (a lost duel, 404, errors). Black, white text, deep red accents. */
+.world-dark {
+  --stroke: 2px; --hatch: 0.28; --display-weight: 700;
+  --color-canvas: #000; --color-surface: #0b0b0b; --color-paper: #0b0b0b; --color-line: #5c1a22;
+  --color-ink: #f1f1f1; --color-ink-soft: #d0d0d0; --color-muted: #a9a9a9; --color-plum: #ff7d8c;
+  --color-pink: #7d0f1c; --color-lavender: #4a0d15; --color-sky: #1c1c1c; --color-mint: #1c1c1c; --color-butter: #14070a;
+  --color-accent: #7d0f1c; --color-accent-soft: rgb(125 15 28 / 0.35); --color-on-accent: #f1f1f1;
+  --color-navy-3: #1a0b0e; --color-cyan: #4a0d15;
+  --color-good: #6ee7a0; --color-good-soft: #0f2a1a; --color-bad: #ff6b7d; --color-bad-soft: #2a0a10; --color-warn-ink: #fcd34d;
+  --dialog-frame: #7d0f1c; --pencil2: rgb(241 241 241 / 0.2);
+  color-scheme: dark; background: #000; color: var(--color-ink);
+}
+/* Static noise and vignette sit BEHIND the content (z-index 0; content is z-10), so text, quiz and KaTeX stay sharp. */
+.noise-layer {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.14;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='1' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.4 -.35'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  animation: static-shift 0.5s steps(1) infinite, static-flicker 2.4s ease-in-out infinite;
+}
+.vignette-red { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgb(125 15 28 / 0.35) 100%); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -149,20 +175,20 @@ body {
  * and the slight tilt instead, which work at any height.
  */
 @layer components {
-  .card, .callout, .btn, .btn-primary, .btn-ghost, .btn-lavender, .sketch { position: relative; isolation: isolate; }
-  .card::before, .callout::before, .btn::before, .btn-primary::before, .btn-ghost::before, .btn-lavender::before, .sketch::before {
+  .card, .btn, .btn-primary, .btn-ghost, .btn-lavender, .sketch { position: relative; isolation: isolate; }
+  .card::before, .btn::before, .btn-primary::before, .btn-ghost::before, .btn-lavender::before, .sketch::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
     background: var(--fill, var(--color-surface));
     border: var(--stroke) solid var(--edge, var(--color-ink));
     border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px;
     transition: border-color 200ms, background-color 200ms;
   }
-  .card::before, .callout::before, .sketch::before {
+  .card::before, .sketch::before {
     border-radius: 17px 23px 15px 25px / 23px 15px 25px 17px;
     box-shadow: inset 0 0 0 3px var(--fill, var(--color-surface)), inset 0 0 0 4.5px var(--pencil2, rgb(42 42 42 / 0.22));
   }
   .btn::before, .btn-primary::before, .btn-ghost::before, .btn-lavender::before { filter: var(--pencil, url(#pencil)); }
-  .card::after, .callout::after, .btn::after, .btn-primary::after, .btn-ghost::after, .btn-lavender::after, .sketch::after {
+  .card::after, .btn::after, .btn-primary::after, .btn-ghost::after, .btn-lavender::after, .sketch::after {
     content: ""; position: absolute; inset: 0; z-index: -2;
     transform: translate(var(--hx, 5px), var(--hy, 6px));
     background: repeating-linear-gradient(135deg, var(--color-ink) 0 1.4px, transparent 1.4px 6px);
@@ -182,7 +208,6 @@ body {
   .card:not(:has(.md, iframe, form, textarea, table, .rows, details)):nth-child(3n) { rotate: -0.9deg; }
   .card:not(:has(.md, iframe, form, textarea, table, .rows, details)):nth-child(4n) { rotate: 0.9deg; }
   .card:hover { rotate: 0deg; translate: 0 -2px; }
-  .callout { --fill: var(--color-butter); padding: 1.25rem; }
 
   .rows {
     position: relative; isolation: isolate; overflow: clip;
@@ -193,6 +218,40 @@ body {
     border: var(--stroke) solid var(--color-ink);
     border-radius: inherit;
   }
+}
+
+/*
+ * RPG dialog box: thick pixel border made of stacked box-shadows (notched corners, no radius), a pastel inner frame,
+ * hatched offset shadow. Used for callouts, notices, confirmations and empty states. Text inside stays plain.
+ */
+@layer components {
+  .dialog, .callout { position: relative; isolation: isolate; margin: 4px; padding: 1.25rem 1.5rem; color: var(--color-ink); }
+  .callout { --dialog-bg: var(--color-butter); }
+  .dialog::before, .callout::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--dialog-bg, var(--color-surface));
+    box-shadow:
+      0 -4px 0 0 var(--color-ink), 0 4px 0 0 var(--color-ink), -4px 0 0 0 var(--color-ink), 4px 0 0 0 var(--color-ink),
+      inset 0 0 0 4px var(--dialog-bg, var(--color-surface)), inset 0 0 0 7px var(--dialog-frame, var(--color-lavender));
+  }
+  .dialog::after, .callout::after {
+    content: ""; position: absolute; inset: 0; z-index: -2; transform: translate(9px, 9px);
+    background: repeating-linear-gradient(135deg, var(--color-ink) 0 2px, transparent 2px 6px);
+    opacity: var(--hatch);
+  }
+}
+.dialog-title { @apply font-pixel text-sm font-semibold tracking-wide text-ink; }
+
+/* RPG menu cursor: a small pixel arrow beside the hovered / chosen item. Add class `pick`; set data-picked="true" on the chosen one. */
+@layer components {
+  .pick { position: relative; }
+  .pick::before {
+    content: ""; position: absolute; left: var(--pick-x, 4px); top: 50%; width: 10px; height: 18px; margin-top: -9px; pointer-events: none;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 9' shape-rendering='crispEdges'><path d='M0 0h1v9H0zM1 1h1v7H1zM2 2h1v5H2zM3 3h1v3H3zM4 4h1v1H4z' fill='%232a2a2a'/></svg>") center / contain no-repeat;
+    image-rendering: pixelated; opacity: 0; transform: translateX(-4px); transition: opacity 120ms, transform 120ms;
+  }
+  .pick:hover::before, .pick:focus-visible::before, .pick[aria-current="page"]::before, .pick[data-picked="true"]::before { opacity: 1; transform: none; animation: pick-bob 800ms steps(2) infinite; }
+  .world-dark .pick::before { filter: invert(1); }
 }
 
 @utility btn {
@@ -216,13 +275,13 @@ body {
 @utility link { @apply font-semibold text-plum underline decoration-wavy decoration-from-font underline-offset-4 transition-colors hover:decoration-solid; }
 
 /* Stickers and paper cut-outs: pastel fill, pencil edge, slightly turned. */
-@utility badge { @apply inline-flex items-center bg-sky px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
-@utility badge-accent { @apply inline-flex items-center bg-lavender px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
-@utility badge-strong { @apply inline-flex items-center bg-pink px-3 py-0.5 text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
-@utility badge-good { @apply inline-flex items-center bg-good-soft px-3 py-0.5 text-xs font-semibold text-good; border: 1.5px solid var(--color-good); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
-@utility badge-bad { @apply inline-flex items-center bg-bad-soft px-3 py-0.5 text-xs font-semibold text-bad; border: 1.5px solid var(--color-bad); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
-@utility chip { @apply inline-block bg-surface px-4 py-1 text-xs font-semibold text-ink-soft transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: -0.8deg; &:hover { animation: var(--animate-wobble); } }
-@utility chip-active { @apply inline-block bg-butter px-4 py-1 text-xs font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: 0.8deg; }
+@utility badge { @apply inline-flex items-center bg-sky px-3 py-0.5 font-pixel text-xs font-medium text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility badge-accent { @apply inline-flex items-center bg-lavender px-3 py-0.5 font-pixel text-xs font-medium text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
+@utility badge-strong { @apply inline-flex items-center bg-pink px-3 py-0.5 font-pixel text-xs font-medium text-ink; border: 1.5px solid var(--color-ink); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility badge-good { @apply inline-flex items-center bg-good-soft px-3 py-0.5 font-pixel text-xs font-medium text-good; border: 1.5px solid var(--color-good); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: 1deg; }
+@utility badge-bad { @apply inline-flex items-center bg-bad-soft px-3 py-0.5 font-pixel text-xs font-medium text-bad; border: 1.5px solid var(--color-bad); border-radius: 9px 12px 8px 13px / 12px 8px 13px 9px; rotate: -1deg; }
+@utility chip { @apply inline-block bg-surface px-4 py-1 font-pixel text-xs font-medium text-ink-soft transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: -0.8deg; &:hover { animation: var(--animate-wobble); } }
+@utility chip-active { @apply inline-block bg-butter px-4 py-1 font-pixel text-xs font-semibold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: 0.8deg; }
 @utility seg { @apply bg-surface px-4 py-1.5 font-display text-lg font-bold text-ink-soft transition duration-200 hover:bg-butter hover:text-ink disabled:opacity-50; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
 @utility seg-active { @apply bg-pink px-4 py-1.5 font-display text-lg font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
 @utility tab { @apply -mb-px whitespace-nowrap bg-paper px-3 pb-1.5 pt-1 font-display text-lg sm:px-5 sm:text-xl font-bold text-muted transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
@@ -232,7 +291,7 @@ body {
 @utility rows { @apply divide-y divide-line bg-surface; }
 @utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-200 hover:bg-butter/50; }
 @utility section-title { @apply font-display text-2xl font-bold text-ink; }
-@utility eyebrow { @apply font-display text-lg font-bold leading-none text-plum; }
+@utility eyebrow { @apply font-pixel text-xs font-medium leading-none tracking-wide text-plum; }
 
 /* Doodles: aria-hidden decoration (see Doodles.tsx). Float gently, blink slowly. */
 @utility doodle-float { animation: var(--animate-float); }

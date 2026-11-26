@@ -43,11 +43,11 @@ export function Spinner({ label = "Memuat…" }: { label?: string }) {
 /** Empty state: nothing to show yet, ideally with the next step as `action`. */
 export function Empty({ title, action, children }: { title?: string; action?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="relative overflow-hidden rounded-card border-2 border-dashed border-ink/60 p-6 text-center text-sm text-muted">
+    <div className="dialog relative !p-6 text-center text-sm text-muted [--dialog-bg:var(--color-surface)]">
       <DoodleField spots={[
-        { kind: "cloud", fill: "sky", x: "6%", y: "12%", size: 34, rot: -4, float: true },
-        { kind: "star", fill: "butter", x: "88%", y: "14%", size: 24, rot: 10, delay: 0.8 },
-        { kind: "heart", fill: "pink", x: "90%", y: "62%", size: 22, rot: -8, float: true, delay: 1.6 },
+        { kind: "p-cloud", fill: "sky", x: "6%", y: "12%", size: 34, float: true, hideOnPhone: true },
+        { kind: "p-star", fill: "butter", x: "88%", y: "14%", size: 22, delay: 0.8, hideOnPhone: true },
+        { kind: "p-heart", fill: "pink", x: "90%", y: "62%", size: 22, float: true, delay: 1.6, hideOnPhone: true },
         { kind: "scribble", x: "5%", y: "66%", size: 34, rot: 6, delay: 2.4 },
       ]} />
       {title && <div className="relative font-display text-2xl font-bold text-ink">{title}</div>}
@@ -80,7 +80,7 @@ export function NotFound({ title, back = { href: "/", label: "Ke beranda" }, chi
   children?: React.ReactNode;
 }) {
   return (
-    <div className="world-mono -mx-4 -my-6 min-h-[calc(100dvh-3.5rem)] px-4 py-16 sm:-my-8">
+    <div className="world-mono -mx-4 -my-6 min-h-[calc(100dvh-3rem)] sm:min-h-[calc(100dvh-3.6rem)] px-4 py-16 sm:-my-8">
       <Page width="narrow">
         <Empty title={title} action={<Link href={back.href} className="btn-ghost">{back.label}</Link>}>{children}</Empty>
       </Page>

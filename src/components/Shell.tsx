@@ -48,21 +48,21 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
   return (
     <header className="sticky top-0 z-20 animate-slide-down bg-pink px-4 text-ink">
       <DoodleField className="hidden sm:block" spots={[
-        { kind: "star", fill: "butter", x: "47%", y: "14%", size: 26, rot: 12, delay: 0.4 },
-        { kind: "heart", fill: "lavender", x: "63%", y: "34%", size: 24, rot: -10, float: true },
-        { kind: "cloud", fill: "sky", x: "73%", y: "8%", size: 30, rot: 4, float: true, delay: 1.2 },
-        { kind: "sparkle", fill: "mint", x: "86%", y: "46%", size: 22, delay: 2 },
+        { kind: "p-star", fill: "butter", x: "47%", y: "14%", size: 22, delay: 0.4 },
+        { kind: "p-heart", fill: "pink", x: "63%", y: "34%", size: 22, float: true },
+        { kind: "p-cloud", fill: "sky", x: "73%", y: "8%", size: 36, float: true, delay: 1.2 },
+        { kind: "p-sword", fill: "sky", x: "86%", y: "30%", size: 24, delay: 2 },
       ]} />
       <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-[3px] h-[6px] border-b-2 border-ink [filter:url(#pencil)]" />
       <div className="relative mx-auto flex max-w-page items-center gap-1 py-2 sm:gap-4">
         <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left transition hover:rotate-[-4deg]"><Logo /></Link>
-        <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-3 sm:pl-3">
+        <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-5 sm:pl-5">
           {NAV.map((n, i) => {
             const active = n.match(path);
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${60 + i * 60}ms` }}
-                className="relative animate-slide-left whitespace-nowrap px-2 py-1 font-display text-base font-bold leading-none transition hover:animate-wobble focus-visible:bg-surface min-[400px]:px-2.5 min-[400px]:text-lg sm:px-4 sm:text-2xl">
+                className="pick relative animate-slide-left whitespace-nowrap px-2 py-1.5 font-pixel text-[11px] font-semibold leading-none transition [--pick-x:-15px] max-sm:before:hidden hover:animate-wobble focus-visible:bg-surface min-[400px]:px-2.5 min-[400px]:text-xs sm:px-4 sm:text-base">
                 {active && <span aria-hidden className="pointer-events-none absolute -inset-x-0.5 -inset-y-1 rotate-[-2deg] rounded-[50%] border-2 border-ink [filter:url(#pencil)]" />}
                 {active && <span aria-hidden className="pointer-events-none absolute -inset-x-1 -inset-y-0.5 rotate-[3deg] rounded-[50%] border border-ink/70 [filter:url(#pencil)]" />}
                 <span className={`relative ${active ? "" : "text-ink-soft"}`}>{n.label}</span>
@@ -72,7 +72,7 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
           style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[6rem] shrink-0 truncate border-[1.5px] border-ink px-2.5 py-0.5 font-display text-lg font-bold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-xl ${onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
+          className={`animate-slide-right max-w-[6rem] shrink-0 truncate border-[1.5px] border-ink px-2.5 py-1 font-pixel text-[11px] font-semibold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
       </div>
     </header>
   );

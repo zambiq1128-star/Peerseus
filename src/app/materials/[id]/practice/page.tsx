@@ -150,7 +150,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <span className="font-medium">Soal {k + 1} dari {items.length} <span className="text-muted">· {q.topic}</span></span>
-          <span className={`font-semibold tabular-nums ${left <= 60_000 ? "text-bad" : ""}`} aria-label="Sisa waktu">Sisa {formatClock(left)}</span>
+          <span className={`font-pixel font-semibold tabular-nums ${left <= 60_000 ? "text-bad" : ""}`} aria-label="Sisa waktu">Sisa {formatClock(left)}</span>
         </div>
         <div className="h-1 rounded-full bg-line">
           <div className="h-1 rounded-full bg-accent transition-all" style={{ width: `${Math.max(0, Math.min(1, left / (run.limitMinutes * 60_000))) * 100}%` }} />
@@ -170,7 +170,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
           <div className="mt-5 grid gap-2">
             {q.options.map((o, opt) => (
               <button key={opt} type="button" onClick={() => pick(opt)} aria-pressed={answer === opt}
-                className={`rounded-control border p-3 text-left text-sm transition ${answer === opt ? "border-accent bg-accent-soft font-medium ring-2 ring-accent/30" : "border-line hover:border-accent"}`}>
+                data-picked={answer === opt ? "true" : undefined} className={`pick rounded-control border p-3 pl-7 text-left text-sm transition [--pick-x:8px] ${answer === opt ? "border-accent bg-accent-soft font-medium ring-2 ring-accent/30" : "border-line hover:border-accent"}`}>
                 <span className="mr-2 font-semibold text-muted">{"ABCD"[opt]}</span><MathText text={o} />
               </button>
             ))}
@@ -191,7 +191,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
           </div>
         )}
         {confirming && (
-          <div className="callout flex flex-wrap items-center justify-between gap-3">
+          <div role="alertdialog" aria-label="Konfirmasi kumpulkan kuis" className="callout flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm">Masih ada {empty} soal kosong, dan soal kosong dihitung salah. Kumpulkan sekarang?</span>
             <div className="flex gap-2">
               <button className="btn-ghost" onClick={() => setConfirming(false)}>Batal</button>

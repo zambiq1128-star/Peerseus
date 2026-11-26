@@ -30,13 +30,13 @@ function Hero() {
         <div className="absolute right-[26%] top-[46%] h-32 w-44 rotate-3 bg-butter/60 [border-radius:55%_45%_52%_48%/45%_55%_45%_55%]" />
       </div>
       <DoodleField spots={[
-        { kind: "star", fill: "butter", x: "6%", y: "14%", size: 38, rot: -10, float: true },
-        { kind: "cloud", fill: "sky", x: "70%", y: "10%", size: 70, rot: 3, float: true, delay: 1 },
-        { kind: "heart", fill: "pink", x: "88%", y: "52%", size: 40, rot: 12, delay: 0.6 },
+        { kind: "p-star", fill: "butter", x: "6%", y: "14%", size: 45, float: true },
+        { kind: "p-cloud", fill: "sky", x: "70%", y: "10%", size: 78, float: true, delay: 1 },
+        { kind: "p-heart", fill: "pink", x: "88%", y: "52%", size: 45, delay: 0.6 },
         { kind: "spiral", fill: "none", x: "52%", y: "76%", size: 42, rot: -8, delay: 2.2, hideOnPhone: true },
         { kind: "scribble", x: "4%", y: "72%", size: 64, rot: -4, delay: 1.4, hideOnPhone: true },
         { kind: "sparkle", fill: "lavender", x: "80%", y: "82%", size: 28, float: true, delay: 3 },
-        { kind: "star", fill: "pink", x: "93%", y: "20%", size: 22, rot: 14, delay: 2.6 },
+        { kind: "p-sword", fill: "sky", x: "92%", y: "16%", size: 36, delay: 2.6 },
       ]} />
       <div className="relative mx-auto max-w-page">
         <p className="badge-strong animate-slide-left !px-4 !text-base">Halo, {profile!.name.split(" ")[0]}</p>
@@ -114,8 +114,8 @@ function HomeBody() {
                     <div className="font-semibold">{c.name}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-muted">Rating</div>
-                    <div className="font-bold">{m?.elo ?? "-"}</div>
+                    <div className="font-pixel text-xs text-muted">Rating</div>
+                    <div className="font-pixel text-lg font-semibold">{m?.elo ?? "-"}</div>
                   </div>
                 </Link>
               );
