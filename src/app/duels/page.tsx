@@ -36,11 +36,11 @@ function DuelRow({ d, uid, onChange }: { d: Duel; uid: string; onChange: () => v
   const badge = d.status === "declined" ? "badge" : myTurn ? "badge-strong" : d.status === "pending" ? "badge" : d.winnerId === uid ? "badge-good" : d.winnerId === null ? "badge" : "badge-bad";
   const link = (
     <Link key={d.id} href={`/duel/${d.id}`} className="row-link min-w-0 flex-1">
-      <div>
+      <div className="min-w-0">
         <div className="font-medium">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
         <div className="text-xs text-muted">{d.quizTitle} · {timeAgo(d.createdAt)}</div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {mine && <span className="text-sm font-bold">{mine.score} – {theirs ? theirs.score : "?"}</span>}
         <span className={badge}>{label}</span>
       </div>

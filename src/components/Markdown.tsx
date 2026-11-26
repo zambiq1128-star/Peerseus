@@ -14,7 +14,7 @@ import { normalizeMath } from "@/lib/latex";
  */
 const remarkPlugins = [remarkGfm, remarkMath];
 const rehypePlugins: [typeof rehypeKatex, Parameters<typeof rehypeKatex>[0]][] = [
-  [rehypeKatex, { errorColor: "#ff7a90", strict: "ignore", trust: false, maxSize: 20, maxExpand: 200 }],
+  [rehypeKatex, { errorColor: "#a61e3f", strict: "ignore", trust: false, maxSize: 20, maxExpand: 200 }],
 ];
 const blockComponents: Components = {
   a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer noopener">{children}</a>,

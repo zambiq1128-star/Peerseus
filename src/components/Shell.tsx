@@ -19,7 +19,7 @@ const NAV = [
 ];
 
 export function Logo() {
-  return <img src="/peerseus-logo.png" alt="Peerseus" width={281} height={253} className="h-9 w-auto sm:h-10" />;
+  return <img src="/peerseus-logo.png" alt="Peerseus" width={281} height={253} className="h-8 w-auto sm:h-10" />;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -62,7 +62,7 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${60 + i * 60}ms` }}
-                className="relative animate-slide-left whitespace-nowrap px-2.5 py-1 font-display text-lg font-bold leading-none transition hover:animate-wobble focus-visible:bg-surface sm:px-4 sm:text-2xl">
+                className="relative animate-slide-left whitespace-nowrap px-2 py-1 font-display text-base font-bold leading-none transition hover:animate-wobble focus-visible:bg-surface min-[400px]:px-2.5 min-[400px]:text-lg sm:px-4 sm:text-2xl">
                 {active && <span aria-hidden className="pointer-events-none absolute -inset-x-0.5 -inset-y-1 rotate-[-2deg] rounded-[50%] border-2 border-ink [filter:url(#pencil)]" />}
                 {active && <span aria-hidden className="pointer-events-none absolute -inset-x-1 -inset-y-0.5 rotate-[3deg] rounded-[50%] border border-ink/70 [filter:url(#pencil)]" />}
                 <span className={`relative ${active ? "" : "text-ink-soft"}`}>{n.label}</span>
@@ -72,7 +72,7 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
           style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[4.5rem] truncate border-[1.5px] border-ink px-3 py-0.5 font-display text-lg font-bold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-xl ${onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
+          className={`animate-slide-right max-w-[6rem] shrink-0 truncate border-[1.5px] border-ink px-2.5 py-0.5 font-display text-lg font-bold leading-tight transition [border-radius:12px_15px_11px_16px/15px_11px_16px_12px] hover:animate-wobble sm:max-w-[10rem] sm:text-xl ${onProfile ? "bg-lavender" : "bg-surface"}`}>{firstName}</Link>
       </div>
     </header>
   );

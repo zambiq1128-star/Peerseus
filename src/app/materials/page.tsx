@@ -60,7 +60,7 @@ export default function MyMaterials() {
                 const course = data.courses.get(m.courseId);
                 return (
                   <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                    <Link href={`/materials/${m.id}`} className="min-w-0 flex-1 hover:underline">
+                    <Link href={`/materials/${m.id}`} className="min-w-[11rem] flex-1 hover:underline">
                       <div className="font-medium">{m.title}</div>
                       <div className="text-xs text-muted">{course?.code ?? m.courseId} · {MATERIAL_TYPES[materialType(m)]} · {timeAgo(m.updatedAt ?? m.createdAt)}</div>
                     </Link>

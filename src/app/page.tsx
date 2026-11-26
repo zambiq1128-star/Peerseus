@@ -24,7 +24,7 @@ function Hero() {
   return (
     <section aria-labelledby="hero-title" className="relative -mx-4 -mt-6 mb-6 overflow-hidden px-4 pb-14 pt-10 sm:-mt-8 sm:pb-20 sm:pt-14">
       {/* Decorative: wobbly pastel blobs and doodles. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div aria-hidden className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,#000_72%,transparent)]">
         <div className="absolute -right-16 -top-10 h-72 w-72 rotate-12 bg-lavender/45 [border-radius:58%_42%_55%_45%/48%_56%_44%_52%]" />
         <div className="absolute -bottom-16 left-[8%] h-56 w-72 -rotate-6 bg-mint/45 [border-radius:45%_55%_40%_60%/55%_45%_58%_42%]" />
         <div className="absolute right-[26%] top-[46%] h-32 w-44 rotate-3 bg-butter/60 [border-radius:55%_45%_52%_48%/45%_55%_45%_55%]" />

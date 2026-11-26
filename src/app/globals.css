@@ -148,7 +148,7 @@ body {
   .card::before, .callout::before, .btn::before, .btn-primary::before, .btn-ghost::before, .btn-lavender::before, .sketch::before {
     content: ""; position: absolute; inset: 0; z-index: -1;
     background: var(--fill, var(--color-surface));
-    border: var(--stroke) solid var(--color-ink);
+    border: var(--stroke) solid var(--edge, var(--color-ink));
     border-radius: 15px 19px 13px 21px / 19px 13px 21px 15px;
     filter: var(--pencil, url(#pencil));
     transition: border-color 200ms, background-color 200ms;
@@ -162,7 +162,7 @@ body {
     filter: var(--pencil, url(#pencil));
     transition: transform 180ms, opacity 180ms;
   }
-  .card:hover::before { border-color: var(--color-plum); }
+  .card:hover::before { border-color: var(--edge, var(--color-plum)); }
   /* Cards sit a hair crooked, like pasted in by hand (-1deg to 1deg). */
   .card { padding: 1.25rem; rotate: -0.5deg; transition: rotate 220ms var(--ease-overshoot), translate 220ms; }
   .card:nth-child(3n + 2) { rotate: 0.6deg; }
@@ -212,8 +212,8 @@ body {
 @utility chip-active { @apply inline-block bg-butter px-4 py-1 text-xs font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; rotate: 0.8deg; }
 @utility seg { @apply bg-surface px-4 py-1.5 font-display text-lg font-bold text-ink-soft transition duration-200 hover:bg-butter hover:text-ink disabled:opacity-50; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
 @utility seg-active { @apply bg-pink px-4 py-1.5 font-display text-lg font-bold text-ink; border: 1.5px solid var(--color-ink); border-radius: 12px 15px 11px 16px / 15px 11px 16px 12px; }
-@utility tab { @apply -mb-px bg-paper px-5 pb-1.5 pt-1 font-display text-xl font-bold text-muted transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
-@utility tab-active { @apply -mb-px bg-lavender px-5 pb-1.5 pt-1 font-display text-xl font-bold text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
+@utility tab { @apply -mb-px whitespace-nowrap bg-paper px-3 pb-1.5 pt-1 font-display text-lg sm:px-5 sm:text-xl font-bold text-muted transition duration-200 hover:bg-butter hover:text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
+@utility tab-active { @apply -mb-px whitespace-nowrap bg-lavender px-3 pb-1.5 pt-1 font-display text-lg sm:px-5 sm:text-xl font-bold text-ink; border: 1.5px solid var(--color-ink); border-bottom: 0; border-radius: 14px 17px 0 0 / 16px 14px 0 0; }
 
 /* Dividers use soft pencil; row hover = a pastel highlighter stripe. */
 @utility rows { @apply divide-y divide-line bg-surface; }

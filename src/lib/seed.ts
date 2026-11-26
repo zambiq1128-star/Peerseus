@@ -1,6 +1,7 @@
 "use client";
 import { db } from "./db";
 import { START_ELO } from "./elo";
+import { firebaseEnabled } from "./firebase";
 import type { Course, Material, Membership, Opportunity, Quiz, UserProfile, Question } from "./types";
 
 // 2: course names follow ITB Kurikulum 2024.
@@ -84,7 +85,42 @@ function toStats(s: Record<string, [number, number]> = {}) {
   return Object.fromEntries(Object.entries(s).map(([k, [c, t]]) => [k, { correct: c, total: t }]));
 }
 
+const KATEX_TEXT = `## Gerak lurus dan energi
+
+Posisi pada gerak lurus berubah beraturan: $s = v_0 t + \\tfrac{1}{2} a t^2$, dan $v^2 = v_0^2 + 2as$.
+
+Usaha oleh gaya konstan:
+
+$$W = \\int_{x_1}^{x_2} F\\,dx = \\Delta E_k = \\tfrac{1}{2} m v_2^2 - \\tfrac{1}{2} m v_1^2$$
+
+Medan listrik muatan titik: $\\vec{E} = \\dfrac{1}{4\\pi\\varepsilon_0}\\dfrac{q}{r^2}\\,\\hat{r}$.
+
+Deret geometri tak hingga: $$\\sum_{n=0}^{\\infty} r^n = \\frac{1}{1-r}, \\quad |r|<1$$
+
+Kecepatan lepas dari bumi: $v_e = \\sqrt{\\dfrac{2GM}{R}} \\approx 11{,}2\\ \\text{km/s}$.`;
+
+/** Demo only (never in a real Firebase project): one extra material with real formulas, to check the KaTeX look. */
+async function ensureKatexDemo() {
+  if (firebaseEnabled) return;
+  if (await db.get("materials", "mat_fi_katex")) return;
+  const now = Date.now();
+  const m: Material = { id: "mat_fi_katex", courseId: "fi1101", title: "Rumus Kinematika & Energi (contoh KaTeX)", type: "catatan", format: "markdown", description: "Contoh materi dengan rumus $v^2 = v_0^2 + 2as$ dan $E_k = \\tfrac{1}{2}mv^2$.", topics: ["Kinematika", "Energi"], text: KATEX_TEXT, uploaderId: "bot_dimas", uploaderName: "Dimas Haryanto", createdAt: now - 3600000 * 5, reports: 0 };
+  const qs: Question[] = [
+    q("k1", "Energi", "Energi kinetik benda bermassa $m$ dengan kecepatan $v$ adalah…", ["$mv$", "$\\tfrac{1}{2}mv^2$", "$mv^2$", "$\\tfrac{1}{2}m^2v$"], 1, "$E_k = \\tfrac{1}{2}mv^2$."),
+    q("k2", "Kinematika", "Jika $v_0 = 0$, $a = 2\\ \\text{m/s}^2$, dan $s = 9\\ \\text{m}$, maka $v$ =…", ["$3\\ \\text{m/s}$", "$6\\ \\text{m/s}$", "$9\\ \\text{m/s}$", "$18\\ \\text{m/s}$"], 1, "$v^2 = 2as = 36$, jadi $v = 6$ m/s."),
+    q("k3", "Energi", "Nilai $\\displaystyle\\sum_{n=0}^{\\infty} \\left(\\tfrac{1}{2}\\right)^n$ adalah…", ["1", "$\\tfrac{3}{2}$", "2", "$\\infty$"], 2, "$\\dfrac{1}{1-\\frac12} = 2$."),
+  ];
+  await db.set("materials", m.id, m);
+  const quiz: Quiz = { id: `quiz_${m.id}`, materialId: m.id, courseId: m.courseId, title: m.title, status: "published", questions: qs, createdBy: m.uploaderId, createdAt: m.createdAt, generator: "seed", reports: 0 };
+  await db.set("quizzes", quiz.id, quiz);
+}
+
 export async function ensureSeeded() {
+  await ensureSeededBase();
+  await ensureKatexDemo();
+}
+
+async function ensureSeededBase() {
   const done = (await db.get<{ version: number }>("meta", "seed"))?.version ?? 0;
   if (done >= SEED_VERSION) return;
   const now = Date.now();
