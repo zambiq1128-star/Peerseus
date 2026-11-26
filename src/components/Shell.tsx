@@ -18,7 +18,7 @@ const NAV = [
 ];
 
 export function Logo() {
-  return <img src="/peerseus-logo.png" alt="Peerseus" width={281} height={253} className="h-9 w-auto brightness-150 drop-shadow-[0_0_8px_rgb(62_240_255/0.35)] sm:h-10" />;
+  return <img src="/peerseus-logo.png" alt="Peerseus" width={281} height={253} className="h-9 w-auto brightness-150 drop-shadow-[2px_2px_0_#0a0a0a] sm:h-10" />;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -41,29 +41,32 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Top bar on every signed-in page (JRPG menu style): logo, the three main sections, and the profile link. */
+/** Top bar on every signed-in page (manga style): ink-black bar with a gradient strip, active section = tilted yellow panel. */
 function AppHeader({ path, firstName }: { path: string; firstName: string }) {
   const onProfile = path === "/profile";
+  const item = "animate-impact whitespace-nowrap border-[3px] px-2.5 py-1 font-display text-base uppercase tracking-wide transition duration-200 [font-synthesis:none] [transition-timing-function:var(--ease-overshoot)] hover:scale-105 hover:-rotate-2 focus-visible:outline-white sm:px-5 sm:text-xl";
   return (
-    <header className="sticky top-0 z-20 animate-slide-down border-b-2 border-volt bg-navy px-4 text-white">
+    <header className="sticky top-0 z-20 animate-slide-down bg-navy px-4 pb-2 text-white">
       <div className="mx-auto flex max-w-page items-center gap-1 py-2.5 sm:gap-4">
-        <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left"><Logo /></Link>
-        <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-1.5 sm:pl-3">
+        <Link href="/" aria-label="Peerseus, ke beranda" className="animate-impact"><Logo /></Link>
+        <nav aria-label="Menu utama" className="flex flex-1 gap-1.5 pl-0.5 sm:gap-2 sm:pl-3">
           {NAV.map((n, i) => {
             const active = n.match(path);
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
-                style={{ animationDelay: `${60 + i * 60}ms` }}
-                className={`animate-slide-left whitespace-nowrap px-2.5 py-1.5 font-display text-[13px] uppercase tracking-wide transition duration-200 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] [transition-timing-function:var(--ease-overshoot)] hover:-skew-x-6 hover:translate-x-0.5 focus-visible:bg-white focus-visible:text-navy sm:px-5 sm:text-base sm:tracking-wider ${active ? "bg-volt text-white" : "text-white/80 hover:bg-navy-3 hover:text-cyan"}`}>
+                style={{ animationDelay: `${60 + i * 70}ms` }}
+                className={`${item} ${active ? "-rotate-2 -skew-x-6 border-ink-black bg-yellow text-ink-black shadow-[3px_3px_0_#ff2e88]" : "border-transparent text-white hover:border-ink-black hover:bg-navy-3 hover:text-yellow"}`}>
                 {n.label}
               </Link>
             );
           })}
         </nav>
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-200 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] [transition-timing-function:var(--ease-overshoot)] hover:-skew-x-6 focus-visible:bg-white focus-visible:text-navy sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-cyan text-navy" : "bg-navy-3 text-cyan hover:bg-cyan hover:text-navy"}`}>{firstName}</Link>
+          style={{ animationDelay: "280ms" }}
+          className={`${item} max-w-[4.5rem] truncate sm:max-w-[10rem] ${onProfile ? "-rotate-2 border-ink-black bg-yellow text-ink-black shadow-[3px_3px_0_#ff2e88]" : "border-ink-black bg-teal text-ink-black hover:bg-yellow"}`}>{firstName}</Link>
       </div>
+      {/* Gradient strip along the bottom edge. */}
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-2 border-y-2 border-ink-black bg-[linear-gradient(90deg,#ff2e88,#ffd400,#00c2b8)]" />
     </header>
   );
 }

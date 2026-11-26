@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, QuestionProposal } from "@/lib/types";
+import { Sfx, SpeedLines } from "@/components/Decor";
 import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Home() {
@@ -16,30 +17,32 @@ export default function Home() {
   );
 }
 
-/** JRPG-menu hero: full-bleed navy block with a slanted bottom edge, oversized heading and parallelogram buttons. */
+/** Manga hero: purple-to-magenta gradient, turning speed lines, floating katakana, extruded heading. */
 function Hero() {
   const { profile } = useAuth();
   const n = profile!.courseIds.length;
   return (
-    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-6 overflow-hidden bg-navy px-4 pb-24 pt-10 text-white sm:-mt-8 sm:pb-32 sm:pt-14">
-      {/* Decorative: blue slab, cyan stripe, faint diagonal lines. */}
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -right-24 top-0 h-full w-2/3 animate-slide-right bg-volt/25 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute -right-10 top-0 h-full w-1/3 animate-slide-right bg-cyan/15 [animation-delay:90ms] [clip-path:polygon(40%_0,100%_0,100%_100%,0_100%)]" />
-        <div className="absolute inset-0 opacity-[0.07] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_14px)]" />
-      </div>
+    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-6 overflow-hidden bg-[linear-gradient(135deg,#2a0a4a_0%,#6b1a9c_50%,#ff2e88_100%)] px-4 pb-24 pt-10 text-white sm:-mt-8 sm:pb-32 sm:pt-14">
+      <SpeedLines />
+      {/* Teal-to-yellow slash behind the headline. */}
+      <div aria-hidden className="pointer-events-none absolute -right-10 top-0 h-full w-1/2 bg-[linear-gradient(160deg,rgb(0_194_184/0.55),rgb(255_212_0/0.45))] [clip-path:polygon(35%_0,100%_0,100%_100%,0_100%)]" />
+      <Sfx items={[
+        { text: "ドン", className: "right-[4%] top-[6%] text-[clamp(5rem,16vw,11rem)]", rotate: 10 },
+        { text: "バン", className: "left-[46%] bottom-[18%] text-[clamp(3rem,9vw,6rem)]", rotate: -12 },
+        { text: "ズキュン", className: "right-[10%] bottom-[10%] hidden text-[clamp(2.5rem,6vw,4.5rem)] sm:block", rotate: -6 },
+      ]} />
       <div className="relative mx-auto max-w-page">
-        <p className="jrpg-tag animate-slide-left">Halo, {profile!.name.split(" ")[0]}</p>
-        <h1 id="hero-title" className="jrpg-title mt-3 text-[clamp(3.25rem,14vw,8.5rem)]">
-          <span className="block animate-slide-left [animation-delay:80ms]">Mata</span>
-          <span className="block animate-slide-left text-cyan [animation-delay:160ms]">kuliahku</span>
+        <p className="jrpg-tag animate-impact">Halo, {profile!.name.split(" ")[0]}!</p>
+        <h1 id="hero-title" className="jrpg-title mt-4 !text-[clamp(3.5rem,15vw,9rem)]">
+          <span className="block animate-impact [animation-delay:80ms]">Mata</span>
+          <span className="block animate-impact [animation-delay:200ms]">kuliahku</span>
         </h1>
-        <p className="mt-5 max-w-md animate-slide-left text-base text-white/85 [animation-delay:240ms] sm:text-lg">
+        <p className="mt-6 max-w-md animate-impact border-[3px] border-ink-black bg-white p-3 text-base font-semibold text-ink-black shadow-[4px_4px_0_#0a0a0a] [animation-delay:320ms] sm:text-lg">
           Pilih mata kuliah untuk buka materi dan mulai duel.{n > 0 && ` ${n} mata kuliah siap dijelajahi.`}
         </p>
-        <div className="mt-7 flex flex-wrap gap-4">
-          <Link href="/courses" className="jrpg-btn-cyan animate-slide-left [animation-delay:320ms]">Atur mata kuliah</Link>
-          <Link href="/explore" className="jrpg-btn-volt animate-slide-left [animation-delay:400ms]">Jelajah materi</Link>
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link href="/courses" className="jrpg-btn-cyan animate-impact [animation-delay:440ms]">Atur mata kuliah</Link>
+          <Link href="/explore" className="jrpg-btn-volt animate-impact [animation-delay:540ms]">Jelajah materi</Link>
         </div>
       </div>
     </section>
