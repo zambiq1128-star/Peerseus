@@ -235,7 +235,7 @@ service cloud.firestore {
 
     // ---------- Hub Peluang ----------
     // Anyone allowed reads. Only the sharer (postedBy) creates as themselves, edits and deletes; anyone may add
-    // one report (+1, nothing else). Seed samples (postedBy "seed", ids opp_seed_N) can be created once by the
+    // one report (+1, nothing else). Seed samples (postedBy "seed", ids opp_seed_0..4, exact title and link) can be created once by the
     // seeding user and are read-only afterwards: nobody's uid is "seed", so they can't be edited or deleted.
     match /opportunities/{id} {
       function oppFields(d) {
@@ -252,6 +252,11 @@ service cloud.firestore {
           && d.majors is list && d.majors.size() <= 12
           && d.majors.hasOnly(['STEI', 'FTI', 'FMIPA', 'SITH', 'SF', 'FTSL', 'FTTM', 'FITB', 'FTMD', 'SAPPK', 'SBM', 'FSRD']);
       }
+      // The five samples from src/lib/seed.ts (OPPS), by id, with their exact title and link. Keep in sync.
+      function isSeedSample(oppId, d) {
+        let titles = {'opp_seed_0': 'Beasiswa Prestasi Mahasiswa Tahun Pertama (contoh)', 'opp_seed_1': 'Lomba Karya Tulis Inovasi Teknologi (contoh)', 'opp_seed_2': 'Seminar Riset Sains untuk Mahasiswa Baru (contoh)', 'opp_seed_3': 'Kompetisi Desain Struktur Jembatan (contoh)', 'opp_seed_4': 'Beasiswa Riset Lingkungan (contoh)'};
+        return oppId in titles && d.title == titles[oppId] && d.link == 'https://example.com';
+      }
       function poster() {
         return resource.data.postedBy == request.auth.uid;
       }
@@ -264,7 +269,7 @@ service cloud.firestore {
         && !request.resource.data.keys().hasAny(['updatedAt'])
         && oppValid(request.resource.data)
         && (request.resource.data.postedBy == request.auth.uid
-          || (request.resource.data.postedBy == 'seed' && id.matches('^opp_seed_[0-9]+$')));
+          || (request.resource.data.postedBy == 'seed' && isSeedSample(id, request.resource.data)));
       allow update: if allowed() && (
         (poster()
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'type', 'organizer', 'deadline', 'majors', 'link', 'description', 'updatedAt'])
