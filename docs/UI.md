@@ -57,7 +57,7 @@ Page widths (`Page width=...`):
 | Width | Token | Routes |
 | --- | --- | --- |
 | `narrow` | `--container-narrow` | `/courses`, `/profile`, `/users/[id]`, `/duel/new`, `/duel/[id]` |
-| `page` (default) | `--container-page` | `/`, `/courses/[id]`, `/materials`, `/materials/[id]`, `/duels`, `/explore` |
+| `page` (default) | `--container-page` | `/`, `/courses/[id]`, `/materials`, `/materials/[id]`, `/duels`, `/explore`, `/opportunities`, `/opportunities/[id]` |
 | `wide` | `--container-wide` | `/courses/[id]/upload`, `/materials/[id]/edit` (editor + preview) |
 
 ## States

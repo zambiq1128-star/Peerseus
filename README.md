@@ -12,7 +12,7 @@ One simple loop:
 
 Profiles: each person picks what others can see (program, angkatan, contact) on **Profil**, and every signed-in account shows a **✓ ITB** or **Tamu** badge; `/users/[id]` shows a profile as others see it. Hidden fields are stored in `users/{uid}/private/profile`, which `firestore.rules` lets only the owner read (`src/lib/privacy.ts`).
 
-**Jelajah** (`/explore`): browse and search every public material from all courses (title, topic, course or uploader), filter by type (materi, catatan, past paper), and scroll a feed of cards. It replaced the old Info page; the `opportunities` collection and its seed data are still there but no page uses them.
+**Jelajah** (`/explore`): browse and search every public material from all courses (title, topic, course or uploader), filter by type (materi, catatan, past paper), and scroll a feed of cards. Its third tab, **Peluang** (`/opportunities`), is the opportunity hub: scholarships, competitions and seminars shared by students, filterable by type and faculty, nearest deadline first, with a detail page; the nearest three also show on the home page.
 
 Navigation has only three items: Mata Kuliah, Duel, Jelajah. Profile and logout are under your name.
 
