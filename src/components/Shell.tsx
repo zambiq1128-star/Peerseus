@@ -42,7 +42,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Top bar on every signed-in page (JRPG menu style): logo, the three main sections, and the profile link. */
+/** Top bar on every signed-in page (Persona blue style): logo, the three main sections, and the profile link. */
 function AppHeader({ path, firstName }: { path: string; firstName: string }) {
   const onProfile = path === "/profile";
   return (

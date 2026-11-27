@@ -5,8 +5,9 @@
  * Pages only use these names (bg-surface, text-muted, rounded-card, max-w-page, ...) and the
  * component classes below, so a new visual design is mostly a matter of changing values here.
  *
- * EXPERIMENT (branch persona5-blue): the persona5-style shapes and motion with a blue palette (Persona 3 blue).
- * Original design, no game logos, characters, assets or fonts. Palette and roles:
+ * Main theme of Peerseus: Persona-inspired blue. Sharp torn-edge shapes (--p5-cut-*), ransom-note headings and
+ * fast motion on a black base with a blue palette. Original design, no game logos, characters, assets or fonts.
+ * Palette and roles:
  *   #0a0a0a  page background (black)
  *   #040f23  midnight: cards, panels, list rows (--color-surface, --color-navy-2)
  *   #1269cc  main FILL: buttons, active tabs/chips, hero slab, offset shadows, selection, row hover.
@@ -16,7 +17,8 @@
  *   #79d7fd  bright highlight: glow, halftone dots, light flecks. Decoration only, never behind white text.
  *   #6d9ac7  muted text (6.7:1), #476392 thin lines and borders (non-text only, 3.16:1 on #040f23, 3.27:1 on #0a0a0a)
  *   #ff2e3f  RED is reserved for bad status: lost duel, wrong answer, errors, declined duel, broken formulas.
- * Old token names (navy, volt, cyan) are kept so every page follows without edits:
+ * Legacy token names (navy, volt, cyan, jrpg-*) come from the earlier navy/cyan JRPG theme. They are kept so every
+ * page follows without edits; only the values changed. Do not rename them:
  *   navy -> black / midnight, volt -> blue fill, cyan -> light blue text accent.
  */
 @theme {

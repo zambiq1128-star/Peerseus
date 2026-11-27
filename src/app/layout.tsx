@@ -6,7 +6,7 @@ import Shell from "@/components/Shell";
 
 const jakarta = Plus_Jakarta_Sans({ variable: "--font-jakarta", subsets: ["latin"] });
 
-// Display fonts of the Persona-style experiment: Anton is the main heavy condensed face, the four
+// Display fonts of the Persona-style theme: Anton is the main heavy condensed face, the four
 // together are mixed letter by letter in the "ransom note" headings (components/Ransom.tsx).
 const anton = Anton({ variable: "--font-anton", weight: "400", subsets: ["latin"] });
 const bebas = Bebas_Neue({ variable: "--font-bebas", weight: "400", subsets: ["latin"] });

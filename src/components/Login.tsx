@@ -2,7 +2,7 @@
 import s from "./Login.module.css";
 
 /**
- * Sign-in layout (JRPG menu look): logo and giant headline on the left, the card on the right; stacked on phones.
+ * Sign-in layout (Persona blue look): logo and giant headline on the left, the card on the right; stacked on phones.
  * Only the look lives here; Shell passes the card content (sign-in buttons or the first-run profile form).
  */
 export default function LoginScreen({ children }: { children: React.ReactNode }) {

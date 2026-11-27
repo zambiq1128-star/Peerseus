@@ -1,6 +1,6 @@
 /*
- * Sign-in and first-run profile screen, JRPG menu look (same language as the home hero):
- * deep navy, big blue slab on one side, faint diagonal lines, giant condensed headline, cut-corner card.
+ * Sign-in and first-run profile screen, Persona blue look (same language as the home hero):
+ * black base, big blue slab on one side, faint diagonal lines, giant condensed headline, cut-corner card.
  * Colors come from the shared tokens in globals.css. Slide-ins use the global animate-slide-* utilities,
  * which the global prefers-reduced-motion rule switches off.
  */
@@ -13,7 +13,7 @@
   color: var(--color-ink);
 }
 
-/* Decoration: blue slab, cyan sliver, thin slanted lines. */
+/* Decoration: blue slab, light sliver, thin slanted lines. */
 .deco { position: absolute; inset: 0; pointer-events: none; }
 .slab {
   position: absolute; top: 0; right: -6rem; width: 70%; height: 100%;
@@ -72,7 +72,7 @@
   animation-delay: 240ms;
 }
 
-/* Card: cyan hairline drawn by a slightly smaller cut panel on top of a cyan one; slanted offset shadow behind. */
+/* Card: thin line drawn by a slightly smaller cut panel on top of a larger one; slanted offset shadow behind. */
 .cardWrap {
   width: 100%;
   max-width: 30rem;
