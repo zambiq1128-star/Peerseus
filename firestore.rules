@@ -16,10 +16,12 @@ rules_version = '2';
 // Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
 // Proposed questions (questionProposals): readable by the proposer and the material's uploader; only that
 // uploader accepts or rejects them, and the proposer can withdraw one while it is pending.
-// Discussions (discussions, discussionAnswers, discussionVotes): only on public materials (materials/{id}),
-// never private ones. Authors edit and delete their own writing; the asker or the material's uploader picks
-// the best answer (bestAnswerId only). Anyone may add one report. Votes: one per person per target
-// (id {targetId}_{uid}), created or deleted by their owner, never on their own writing, never edited.
+// Discussions (discussions, discussionAnswers, discussionVotes): each on exactly one parent, a public material
+// (materials/{id}, never private ones) or an opportunity (opportunities/{id}); answers and votes copy the same
+// parent. Authors edit and delete their own writing; the asker or the parent's owner (material uploader,
+// opportunity sharer) picks the best answer (bestAnswerId only). "Cari tim" (kind) only on opportunities.
+// Anyone may add one report. Votes: one per person per target (id {targetId}_{uid}), created or deleted by
+// their owner, never on their own writing, never edited.
 // Opportunities (Hub Peluang): anyone allowed reads; only the sharer creates (as themselves), edits and deletes;
 // anyone may add one report. Seed samples (postedBy "seed") are read-only.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
@@ -164,33 +166,70 @@ service cloud.firestore {
         && request.resource.data.reports == resource.data.get('reports', 0) + 1;
     }
 
+    // Every discussion, answer and vote hangs on exactly one parent: materialId (a public material in materials)
+    // or opportunityId (an opportunity). Old documents only have materialId and keep working as before.
+    function onMaterial(d) {
+      return d.keys().hasAny(['materialId']) && !d.keys().hasAny(['opportunityId']);
+    }
+    function onOpportunity(d) {
+      return d.keys().hasAny(['opportunityId']) && !d.keys().hasAny(['materialId']);
+    }
+    // d (an answer or vote) names the same parent as p (its discussion, or the answer it votes on).
+    function sameParent(d, p) {
+      return (onMaterial(d) && onMaterial(p) && d.materialId == p.materialId)
+        || (onOpportunity(d) && onOpportunity(p) && d.opportunityId == p.opportunityId);
+    }
+
     match /discussions/{id} {
       function asker() {
         return resource.data.authorId == request.auth.uid;
       }
-      function materialUploader() {
-        return get(docPath('materials', resource.data.materialId)).data.uploaderId == request.auth.uid;
+      // The material's uploader or the opportunity's sharer (postedBy; "seed" is nobody).
+      function parentOwner() {
+        let d = resource.data;
+        return onMaterial(d)
+          ? get(docPath('materials', d.materialId)).data.uploaderId == request.auth.uid
+          : get(docPath('opportunities', d.opportunityId)).data.postedBy == request.auth.uid;
       }
       // bestAnswerId: null (taken back) or an answer of this discussion.
       function validBest() {
         let b = request.resource.data.bestAnswerId;
         return b == null || (exists(docPath('discussionAnswers', b)) && get(docPath('discussionAnswers', b)).data.discussionId == id);
       }
+      // Materials: same course as the material, only "tanya" (kind missing or "tanya").
+      function validMaterialParent(d) {
+        return onMaterial(d)
+          && exists(docPath('materials', d.materialId))
+          && d.courseId == get(docPath('materials', d.materialId)).data.courseId
+          && d.get('kind', 'tanya') == 'tanya';
+      }
+      // Opportunities: no material-only fields; kind "tanya" or "cari-tim" (missing = "tanya").
+      function validOpportunityParent(d) {
+        return onOpportunity(d)
+          && exists(docPath('opportunities', d.opportunityId))
+          && !d.keys().hasAny(['courseId', 'questionId', 'topic'])
+          && d.get('kind', 'tanya') in ['tanya', 'cari-tim'];
+      }
+      // What the asker may edit: materials title/body/quiz context, opportunities title/body/kind. Never the parent.
+      function validAskerEdit() {
+        let changed = request.resource.data.diff(resource.data).affectedKeys();
+        return textOk(request.resource.data, 'title', 150)
+          && textOk(request.resource.data, 'body', 10000)
+          && ((onMaterial(resource.data) && changed.hasOnly(['title', 'body', 'questionId', 'topic', 'updatedAt']))
+            || (onOpportunity(resource.data) && changed.hasOnly(['title', 'body', 'kind', 'updatedAt'])
+              && request.resource.data.get('kind', 'tanya') in ['tanya', 'cari-tim']));
+      }
       allow read: if allowed();
       allow create: if allowed()
         && request.resource.data.authorId == request.auth.uid
-        && exists(docPath('materials', request.resource.data.materialId))
-        && request.resource.data.courseId == get(docPath('materials', request.resource.data.materialId)).data.courseId
+        && (validMaterialParent(request.resource.data) || validOpportunityParent(request.resource.data))
         && !request.resource.data.keys().hasAny(['bestAnswerId', 'updatedAt'])
         && request.resource.data.reports == 0
         && textOk(request.resource.data, 'title', 150)
         && textOk(request.resource.data, 'body', 10000);
       allow update: if allowed() && (
-        (asker()
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'questionId', 'topic', 'updatedAt'])
-          && textOk(request.resource.data, 'title', 150)
-          && textOk(request.resource.data, 'body', 10000))
-        || ((asker() || materialUploader())
+        (asker() && validAskerEdit())
+        || ((asker() || parentOwner())
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bestAnswerId'])
           && validBest())
         || addsReport());
@@ -205,7 +244,7 @@ service cloud.firestore {
       allow create: if allowed()
         && request.resource.data.authorId == request.auth.uid
         && exists(docPath('discussions', request.resource.data.discussionId))
-        && request.resource.data.materialId == get(docPath('discussions', request.resource.data.discussionId)).data.materialId
+        && sameParent(request.resource.data, get(docPath('discussions', request.resource.data.discussionId)).data)
         && !request.resource.data.keys().hasAny(['updatedAt'])
         && request.resource.data.reports == 0
         && textOk(request.resource.data, 'body', 10000);
@@ -228,7 +267,7 @@ service cloud.firestore {
         && id == request.resource.data.targetId + '_' + request.auth.uid
         && request.resource.data.targetType in ['discussion', 'answer']
         && target().authorId != request.auth.uid
-        && target().materialId == request.resource.data.materialId;
+        && sameParent(request.resource.data, target());
       allow update: if false;
       allow delete: if allowed() && resource.data.uid == request.auth.uid;
     }

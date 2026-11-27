@@ -205,36 +205,47 @@ export type Opportunity = {
   reports?: number; // missing = 0
 };
 
+/** "tanya" = a question; "cari-tim" = looking for teammates (opportunities only). Missing = "tanya". */
+export type DiscussionKind = "tanya" | "cari-tim";
+
 /**
- * A question about one public material (diskusi), optionally about one quiz question. Counts (answers,
- * upvotes) are never stored: they come from per-material queries (src/lib/discussions.ts).
- * Materials in privateMaterials have no discussions (firestore.rules require materials/{materialId}).
+ * A discussion (diskusi) attached to exactly one parent: a public material (`materialId`, optionally about one
+ * quiz question) or an opportunity (`opportunityId`). Never both. Counts (answers, upvotes) are never stored:
+ * they come from per-parent queries (src/lib/discussions.ts). Materials in privateMaterials have no discussions
+ * (firestore.rules require materials/{materialId} or opportunities/{opportunityId}).
  */
 export type Discussion = {
   id: string;
-  materialId: string;
-  courseId: string;
-  /** Id of a question in quizzes/quiz_{materialId}.questions. Missing = "Umum" (about the material). */
+  /** Parent material (public). Old discussions all have this one. */
+  materialId?: string;
+  /** Parent opportunity (Hub Peluang). */
+  opportunityId?: string;
+  /** Materials only: course of the material. */
+  courseId?: string;
+  /** Materials only: id of a question in quizzes/quiz_{materialId}.questions. Missing = "Umum" (about the material). */
   questionId?: string | null;
-  /** Topic of that quiz question, kept for later filtering. */
+  /** Materials only: topic of that quiz question, kept for later filtering. */
   topic?: string | null;
+  /** Opportunities only may use "cari-tim". Missing = "tanya". */
+  kind?: DiscussionKind;
   title: string;
   /** Markdown + LaTeX. */
   body: string;
   authorId: string;
   authorName: string;
-  /** Chosen by the asker or the material's uploader; null = choice taken back. */
+  /** Chosen by the asker or the parent's owner (material uploader / opportunity sharer); null = choice taken back. */
   bestAnswerId?: string | null;
   createdAt: number;
   updatedAt?: number;
   reports: number;
 };
 
-/** One answer to a discussion (one level, no replies to answers). */
+/** One answer to a discussion (one level, no replies to answers). Copies its discussion's parent id. */
 export type DiscussionAnswer = {
   id: string;
   discussionId: string;
-  materialId: string;
+  materialId?: string;
+  opportunityId?: string;
   /** Markdown + LaTeX. */
   body: string;
   authorId: string;
@@ -244,12 +255,16 @@ export type DiscussionAnswer = {
   reports: number;
 };
 
-/** One upvote. Document id: `${targetId}_${uid}`, so a person votes once per target; removing it = deleting the doc. */
+/**
+ * One upvote. Document id: `${targetId}_${uid}`, so a person votes once per target; removing it = deleting the doc.
+ * Copies the parent id of what it votes on.
+ */
 export type DiscussionVote = {
   id: string;
   targetId: string;
   targetType: "discussion" | "answer";
-  materialId: string;
+  materialId?: string;
+  opportunityId?: string;
   uid: string;
   createdAt: number;
 };

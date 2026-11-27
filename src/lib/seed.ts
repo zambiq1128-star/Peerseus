@@ -6,7 +6,8 @@ import type { Course, Discussion, DiscussionAnswer, DiscussionVote, Material, Me
 
 // 2: course names follow ITB Kurikulum 2024.
 // 3: sample discussions (only added, never removed; existing data is kept).
-const SEED_VERSION = 3;
+// 4: sample discussions on the sample opportunities, one of them "Cari tim" (only added, like 3).
+const SEED_VERSION = 4;
 
 export const COURSES: Course[] = [
   { id: "ma1101", code: "MA1101", name: "Matematika I", description: "Limit, turunan, dan integral dasar untuk mahasiswa tahun pertama." },
@@ -95,6 +96,7 @@ export async function ensureSeeded() {
   if (done >= 1) {
     // Already seeded once: only add what is new, so keep demo peers' ratings and the samples.
     if (done < 3) await seedDiscussions(now);
+    if (done < 4) await seedOpportunityDiscussions(now);
     await db.set("meta", "seed", { version: SEED_VERSION });
     return;
   }
@@ -125,6 +127,7 @@ export async function ensureSeeded() {
   }
 
   await seedDiscussions(now);
+  await seedOpportunityDiscussions(now);
   await db.set("meta", "seed", { version: SEED_VERSION });
 }
 
@@ -193,6 +196,54 @@ async function seedDiscussions(now: number) {
   for (const d of discs) await db.set("discussions", d.id, d);
   for (const a of answers) await db.set("discussionAnswers", a.id, a);
   for (const v of votes) await db.set("discussionVotes", v.id, v);
+}
+
+// Sample discussions on the sample opportunities: a "Cari tim" on the competition and a question on the scholarship.
+// Same rules as seedDiscussions: fixed ids, demo mode only, votes never by the author. A sample opportunity that
+// is gone (local data cleared by hand) simply gets no discussion.
+async function seedOpportunityDiscussions(now: number) {
+  if (firebaseEnabled) return;
+  const hour = 3600000;
+  const discs: Discussion[] = [
+    {
+      id: "disc_seed_opp_tim", opportunityId: "opp_seed_1", kind: "cari-tim",
+      title: "Cari 2 anggota, butuh yang bisa desain UI",
+      body: "Aku (FTI) sudah punya ide aplikasi pemantau sampah plastik di sungai untuk lomba ini. Cari **2 anggota**:\n\n- 1 orang yang bisa desain UI (Figma)\n- 1 orang yang suka nulis atau riset data\n\nKalau tertarik, balas di sini dengan keahlianmu, nanti aku hubungi lewat kontak di profil.",
+      authorId: "bot_bima", authorName: "Bima Pratama", bestAnswerId: null,
+      createdAt: now - 20 * hour, reports: 0,
+    },
+    {
+      id: "disc_seed_opp_ip", opportunityId: "opp_seed_0", kind: "tanya",
+      title: "IP yang dihitung cuma semester 1?",
+      body: "Syaratnya IP ≥ 3,5. Kalau baru selesai semester 1, yang dipakai IP semester itu saja atau nilai rapor SMA juga?",
+      authorId: "bot_eka", authorName: "Eka Wulandari", bestAnswerId: "ans_seed_opp_ip_1",
+      createdAt: now - 30 * hour, reports: 0,
+    },
+  ];
+
+  const answers: DiscussionAnswer[] = [
+    {
+      id: "ans_seed_opp_tim_1", discussionId: "disc_seed_opp_tim", opportunityId: "opp_seed_1",
+      body: "Aku tertarik! Biasa bikin desain di Figma untuk tugas STEI, portofolionya ada di profil.",
+      authorId: "bot_alya", authorName: "Alya Putri", createdAt: now - 16 * hour, reports: 0,
+    },
+    {
+      id: "ans_seed_opp_ip_1", discussionId: "disc_seed_opp_ip", opportunityId: "opp_seed_0",
+      body: "Tahun lalu yang dipakai IP semester 1 saja, rapor SMA tidak diminta. Tetap cek lagi di link pendaftarannya ya.",
+      authorId: "bot_citra", authorName: "Citra Lestari", createdAt: now - 26 * hour, reports: 0,
+    },
+  ];
+
+  const votes: DiscussionVote[] = [
+    { id: "disc_seed_opp_tim_bot_dimas", targetId: "disc_seed_opp_tim", targetType: "discussion", opportunityId: "opp_seed_1", uid: "bot_dimas", createdAt: now - 18 * hour },
+    { id: "ans_seed_opp_ip_1_bot_eka", targetId: "ans_seed_opp_ip_1", targetType: "answer", opportunityId: "opp_seed_0", uid: "bot_eka", createdAt: now - 25 * hour },
+  ];
+
+  const exists = new Set<string>();
+  for (const id of new Set(discs.map((d) => d.opportunityId!))) if (await db.get("opportunities", id)) exists.add(id);
+  for (const d of discs) if (exists.has(d.opportunityId!)) await db.set("discussions", d.id, d);
+  for (const a of answers) if (exists.has(a.opportunityId!)) await db.set("discussionAnswers", a.id, a);
+  for (const v of votes) if (exists.has(v.opportunityId!)) await db.set("discussionVotes", v.id, v);
 }
 
 export { START_ELO };

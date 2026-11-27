@@ -1,10 +1,11 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { OPP_TYPES, daysLeft, deadlineLabel, formatDeadline, isUrgent, posterName } from "@/lib/opportunities";
 import type { Opportunity } from "@/lib/types";
+import { Discussions } from "@/components/Discussions";
 import { MarkdownView } from "@/components/Markdown";
 import OpenLink from "@/components/OpenLink";
 import OpportunityForm from "@/components/OpportunityForm";
@@ -99,14 +100,16 @@ export default function OpportunityPage() {
             <div className="card"><MarkdownView text={opp.description} /></div>
           </Section>
 
-          {/* Langkah 2: bagian Diskusi (tanya dan cari tim) dipasang di sini. */}
-          <div id="diskusi" />
-
           <div className="text-xs text-muted">
             {reported ? "Terima kasih, laporanmu tercatat." : !mine && (
               <button className="underline hover:text-ink" onClick={report}>Laporkan info ini</button>
             )}
           </div>
+
+          {/* Diskusi: Tanya or Cari tim; the sharer (postedBy) may pick best answers, like a material's uploader. */}
+          <Suspense fallback={<Spinner label="Memuat diskusi…" />}>
+            <Discussions parent={{ kind: "opportunity", id: opp.id, ownerId: opp.postedBy }} me={profile!} />
+          </Suspense>
         </>
       )}
     </Page>
