@@ -1,10 +1,12 @@
 "use client";
 import { db } from "./db";
+import { firebaseEnabled } from "./firebase";
 import { START_ELO } from "./elo";
-import type { Course, Material, Membership, Opportunity, Quiz, UserProfile, Question } from "./types";
+import type { Course, Discussion, DiscussionAnswer, DiscussionVote, Material, Membership, Opportunity, Quiz, UserProfile, Question } from "./types";
 
 // 2: course names follow ITB Kurikulum 2024.
-const SEED_VERSION = 2;
+// 3: sample discussions (only added, never removed; existing data is kept).
+const SEED_VERSION = 3;
 
 export const COURSES: Course[] = [
   { id: "ma1101", code: "MA1101", name: "Matematika I", description: "Limit, turunan, dan integral dasar untuk mahasiswa tahun pertama." },
@@ -91,7 +93,8 @@ export async function ensureSeeded() {
 
   for (const c of COURSES) await db.set("courses", c.id, c);
   if (done >= 1) {
-    // Already seeded once: only the courses changed, so keep demo peers' ratings and the samples.
+    // Already seeded once: only add what is new, so keep demo peers' ratings and the samples.
+    if (done < 3) await seedDiscussions(now);
     await db.set("meta", "seed", { version: SEED_VERSION });
     return;
   }
@@ -121,7 +124,75 @@ export async function ensureSeeded() {
     await db.set("opportunities", id, { ...o, id, createdAt: now - i * 3600000, postedBy: "seed" });
   }
 
+  await seedDiscussions(now);
   await db.set("meta", "seed", { version: SEED_VERSION });
+}
+
+// Sample questions under the seeded materials. Fixed ids, so running it again only rewrites the same samples.
+// Votes come from demo peers (never from the author of the item they vote on). Skipped in Firebase mode.
+async function seedDiscussions(now: number) {
+  // Demo mode only: firestore.rules let people write just their own discussions, answers and votes,
+  // so these bot-authored samples would be refused in Firebase mode and break sign-in.
+  if (firebaseEnabled) return;
+  const day = 86400000;
+  const discs: Discussion[] = [
+    {
+      id: "disc_seed_limit_sin", materialId: "mat_ma_limit", courseId: "ma1101", questionId: "q2", topic: "Limit",
+      title: "Kenapa lim sin(3x)/x hasilnya 3?",
+      body: "Saya bingung: bukankah sin(0)/0 itu tak tentu? Kenapa bisa langsung 3? Mohon dijelaskan langkahnya, dan apakah rumus $\\lim_{x\\to 0}\\frac{\\sin x}{x}=1$ boleh langsung dipakai?",
+      authorId: "bot_eka", authorName: "Eka Wulandari", bestAnswerId: "ans_seed_limit_sin_1",
+      createdAt: now - 2 * day, updatedAt: now - day, reports: 0,
+    },
+    {
+      id: "disc_seed_limit_kiri", materialId: "mat_ma_limit", courseId: "ma1101", questionId: null, topic: null,
+      title: "Bedanya limit kiri dan limit kanan?",
+      body: "Di catatan tertulis limit ada jika limit kiri = limit kanan. Kapan keduanya bisa berbeda? Contoh fungsi tangga biasanya dipakai untuk apa?",
+      authorId: "bot_citra", authorName: "Citra Lestari", bestAnswerId: null,
+      createdAt: now - day, reports: 0,
+    },
+    {
+      id: "disc_seed_newton_aksi", materialId: "mat_fi_newton", courseId: "fi1101", questionId: "f5", topic: "Hukum Newton",
+      title: "Kenapa aksi-reaksi tidak saling meniadakan?",
+      body: "Kalau gaya aksi dan reaksinya sama besar dan berlawanan, kenapa benda tetap bisa bergerak? Bukankah keduanya saling meniadakan?",
+      authorId: "bot_eka", authorName: "Eka Wulandari", bestAnswerId: null,
+      createdAt: now - 6 * 3600000, reports: 0,
+    },
+  ];
+
+  const answers: DiscussionAnswer[] = [
+    {
+      id: "ans_seed_limit_sin_1", discussionId: "disc_seed_limit_sin", materialId: "mat_ma_limit",
+      body: "Sin(0)/0 memang bentuk tak tentu, jadi kita ubah dulu bentuknya. Kalikan dan bagi dengan 3:\n\n$$\\lim_{x\\to 0}\\frac{\\sin 3x}{x}=\\lim_{x\\to 0}3\\cdot\\frac{\\sin 3x}{3x}$$\n\nMisalkan $u=3x$. Saat $x\\to 0$, juga $u\\to 0$, sehingga $\\lim_{u\\to 0}\\frac{\\sin u}{u}=1$. Jadi hasilnya $3\\cdot 1=3$.\n\nYa, rumus dasar $\\lim_{x\\to 0}\\frac{\\sin x}{x}=1$ boleh dipakai langsung asalkan sudutnya sama dengan penyebutnya.",
+      authorId: "bot_alya", authorName: "Alya Putri", createdAt: now - 36 * 3600000, reports: 0,
+    },
+    {
+      id: "ans_seed_limit_sin_2", discussionId: "disc_seed_limit_sin", materialId: "mat_ma_limit",
+      body: "Cara lain: pakai aturan L'Hôpital. Turunan pembilang $\\cos 3x\\cdot 3$ dan penyebut $1$, lalu substitusi $x=0$ menghasilkan $3$.",
+      authorId: "bot_dimas", authorName: "Dimas Haryanto", createdAt: now - 30 * 3600000, reports: 0,
+    },
+    {
+      id: "ans_seed_limit_kiri_1", discussionId: "disc_seed_limit_kiri", materialId: "mat_ma_limit",
+      body: "Limit kiri dan kanan berbeda kalau fungsi melompat di titik itu, misalnya fungsi tangga atau fungsi bilangan bulat terbesar $\\lfloor x\\rfloor$. Di $x=1$, $\\lim_{x\\to 1^-}\\lfloor x\\rfloor=0$ tetapi $\\lim_{x\\to 1^+}\\lfloor x\\rfloor=1$, jadi limitnya tidak ada.",
+      authorId: "bot_dimas", authorName: "Dimas Haryanto", createdAt: now - 12 * 3600000, reports: 0,
+    },
+    {
+      id: "ans_seed_newton_aksi_1", discussionId: "disc_seed_newton_aksi", materialId: "mat_fi_newton",
+      body: "Gaya aksi-reaksi bekerja pada dua benda yang berbeda, jadi tidak saling meniadakan. Yang menentukan gerak sebuah benda adalah resultan gaya yang bekerja padanya saja: $\\Sigma F = m\\,a$.",
+      authorId: "bot_bima", authorName: "Bima Pratama", createdAt: now - 2 * 3600000, reports: 0,
+    },
+  ];
+
+  const votes: DiscussionVote[] = [
+    { id: "disc_seed_limit_sin_bot_citra", targetId: "disc_seed_limit_sin", targetType: "discussion", materialId: "mat_ma_limit", uid: "bot_citra", createdAt: now - day },
+    { id: "disc_seed_limit_sin_bot_bima", targetId: "disc_seed_limit_sin", targetType: "discussion", materialId: "mat_ma_limit", uid: "bot_bima", createdAt: now - day },
+    { id: "ans_seed_limit_sin_1_bot_citra", targetId: "ans_seed_limit_sin_1", targetType: "answer", materialId: "mat_ma_limit", uid: "bot_citra", createdAt: now - 30 * 3600000 },
+    { id: "ans_seed_limit_sin_1_bot_dimas", targetId: "ans_seed_limit_sin_1", targetType: "answer", materialId: "mat_ma_limit", uid: "bot_dimas", createdAt: now - 30 * 3600000 },
+    { id: "disc_seed_limit_kiri_bot_alya", targetId: "disc_seed_limit_kiri", targetType: "discussion", materialId: "mat_ma_limit", uid: "bot_alya", createdAt: now - 12 * 3600000 },
+  ];
+
+  for (const d of discs) await db.set("discussions", d.id, d);
+  for (const a of answers) await db.set("discussionAnswers", a.id, a);
+  for (const v of votes) await db.set("discussionVotes", v.id, v);
 }
 
 export { START_ELO };

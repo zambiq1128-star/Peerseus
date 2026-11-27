@@ -30,6 +30,7 @@ Open http://localhost:3000.
 
 - **Local demo mode** (no Firebase env vars): everything is stored in the browser's localStorage. Demo peers (marked "demo") are seeded so one person can show the full loop: their duel answers are simulated from their topic accuracy. To try a real 2-person duel, log out and log in with another name in the same browser.
 - **Firebase mode** (step-by-step in [docs/SETUP.md](docs/SETUP.md)): fill the `NEXT_PUBLIC_FIREBASE_*` vars. Enable **Authentication → Google** and **Firestore**, then deploy `firestore.rules`. Only ITB accounts (Microsoft sign-in, or a verified email, on `itb.ac.id` or a subdomain such as `mahasiswa.itb.ac.id`) and guests listed in Firestore `config/access.guestEmails` (Google sign-in) can use the app: checked at sign-in, in `firestore.rules` for every read/write, and on the AI routes (Firebase ID token verified on the server). Firebase Storage is not used: files are processed in the browser and only the Markdown + LaTeX text is stored. Seed data (courses, demo peers, sample quizzes and opportunities) is written on first login.
+- **Diskusi**: pertanyaan dan jawaban (Markdown + LaTeX) menempel ke materi publik dan soal kuisnya, dengan jawaban terbaik dan upvote. Dari hasil duel dan latihan ada tautan "Bahas soal ini". Contoh diskusi ada di mode demo.
 - **Gemini**: set `GEMINI_API_KEY` (from Google AI Studio). Without it, quiz generation falls back to a simple fill-in-the-blank generator so the flow still works.
 
 ## Code map
