@@ -14,7 +14,7 @@
  *   #00bbfa  TEXT and ICON accent (--color-cyan, --color-good, focus ring, scores, links): 8.9:1 on black.
  *            If it is ever used as a FILL, the text on it must be black #0a0a0a (white is only 2.2:1).
  *   #79d7fd  bright highlight: glow, halftone dots, light flecks. Decoration only, never behind white text.
- *   #6d9ac7  muted text (6.7:1), #435f8e thin lines and borders (non-text only)
+ *   #6d9ac7  muted text (6.7:1), #476392 thin lines and borders (non-text only, 3.16:1 on #040f23, 3.27:1 on #0a0a0a)
  *   #ff2e3f  RED is reserved for bad status: lost duel, wrong answer, errors, declined duel, broken formulas.
  * Old token names (navy, volt, cyan) are kept so every page follows without edits:
  *   navy -> black / midnight, volt -> blue fill, cyan -> light blue text accent.
@@ -29,7 +29,7 @@
   --color-canvas: #0a0a0a;
   --color-surface: #040f23;
   --color-paper: rgb(255 255 255 / 0.07);
-  --color-line: #435f8e; /* borders and dividers only, never text */
+  --color-line: #476392; /* borders and dividers only, never text */
 
   /* Brand: blue fills only (#1269cc vs black is 3.7:1, so it is never text; text on it is white, 5.4:1) */
   --color-accent: #1269cc;
@@ -241,6 +241,8 @@ body::before {
   --color-ink-soft: #ffffff;
   --color-cyan: #ffffff;
 }
+/* Focus ring on the blue fill is white (cyan on #1269cc is only 2.4:1). Other rings stay cyan. */
+.callout :focus-visible, .hero-slab :focus-visible { outline-color: #ffffff; }
 /* A blue button on the blue callout would vanish, so it turns black there. */
 .callout .btn-primary { background: #0a0a0a; color: #fff; }
 .callout .btn-primary:hover:not(:disabled), .callout .btn-primary:focus-visible { background: #fff; color: #0a0a0a; }

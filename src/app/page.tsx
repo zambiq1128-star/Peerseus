@@ -26,7 +26,7 @@ function Hero() {
   const { profile } = useAuth();
   const n = profile!.courseIds.length;
   return (
-    <section aria-labelledby="hero-title" className="jrpg-diagonal relative -mx-4 -mt-6 mb-8 overflow-hidden bg-black px-4 pb-28 pt-10 text-white sm:-mt-8 sm:pb-36 sm:pt-14">
+    <section aria-labelledby="hero-title" className="hero-slab jrpg-diagonal relative -mx-4 -mt-6 mb-8 overflow-hidden bg-black px-4 pb-28 pt-10 text-white sm:-mt-8 sm:pb-36 sm:pt-14">
       {/* Decorative layers */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -right-24 top-0 h-full w-2/3 animate-slide-right bg-accent [clip-path:polygon(34%_0,100%_0,100%_100%,0_100%)]" />
