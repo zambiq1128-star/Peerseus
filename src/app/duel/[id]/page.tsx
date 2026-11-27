@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { canDecline, missedTopics, SECONDS_PER_QUESTION, submitDuel } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
 import { ErrorState, NotFound, Page, Section, Spinner, useAsync, useCountUp } from "@/components/ui";
+import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
 import DeclineDuel from "@/components/DeclineDuel";
 import PartnerList from "@/components/PartnerList";
 import { MathText } from "@/components/Markdown";
@@ -148,6 +149,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const theirs = meC ? duel.opponent : duel.challenger;
   const oppName = meC ? duel.opponentName : duel.challengerName;
   const missed = missedTopics(duel, uid);
+  const discuss = useQuestionDiscussions(duel.quizId);
   const done = duel.status === "completed";
   const declined = duel.status === "declined";
   const won = done && duel.winnerId === uid;
@@ -216,6 +218,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
                 </div>
                 <div className="text-xs text-muted"><MathText text={q.explanation} /></div>
                 {q.proposedBy && <div className="text-xs text-muted">Diusulkan oleh {q.proposedBy.name}</div>}
+                <DiscussLink info={discuss} questionId={q.id} />
               </li>
             );
           })}

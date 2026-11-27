@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateQuiz, getMaterial, withUploaderNames, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
@@ -157,7 +157,7 @@ export default function MaterialPage() {
       </div>
 
       {/* Diskusi: public materials only (private ones have none, see firestore.rules) */}
-      {!isPrivate && <Discussions material={material} quiz={quiz} me={profile!} />}
+      {!isPrivate && <Suspense fallback={<Spinner label="Memuat diskusi…" />}><Discussions material={material} quiz={quiz} me={profile!} /></Suspense>}
     </Page>
   );
 }

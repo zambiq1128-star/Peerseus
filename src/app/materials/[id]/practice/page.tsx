@@ -12,6 +12,7 @@ import {
 import type { PracticeAttempt, Quiz } from "@/lib/types";
 import { Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, useAsync } from "@/components/ui";
 import { MathText } from "@/components/Markdown";
+import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
 import PartnerList from "@/components/PartnerList";
 
 /** Kuis mandiri: all questions of a published quiz, one time limit the user picks, answers shown at the end. */
@@ -213,6 +214,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
 function Result({ quiz, run, attempt, timedOut, onAgain }: { quiz: Quiz; run: PracticeRun; attempt: PracticeAttempt; timedOut: boolean; onAgain: () => void }) {
   const items = runQuestions(quiz, run);
   const missed = practiceMissedTopics(items);
+  const discuss = useQuestionDiscussions(quiz.id);
   const pct = attempt.total ? Math.round((attempt.score / attempt.total) * 100) : 0;
 
   return (
@@ -254,6 +256,7 @@ function Result({ quiz, run, attempt, timedOut, onAgain }: { quiz: Quiz; run: Pr
                 </div>
                 {q.explanation && <div className="text-xs text-muted"><MathText text={q.explanation} /></div>}
                 {q.proposedBy && <div className="text-xs text-muted">Diusulkan oleh {q.proposedBy.name}</div>}
+                <DiscussLink info={discuss} questionId={q.id} />
               </li>
             );
           })}

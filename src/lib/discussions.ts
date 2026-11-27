@@ -200,3 +200,79 @@ export async function toggleVote(target: { id: string; authorId: string; materia
 export async function report(type: DiscussionVote["targetType"], x: { id: string; reports: number }) {
   await db.update(type === "discussion" ? DISCUSSIONS : ANSWERS, x.id, { reports: (x.reports ?? 0) + 1 });
 }
+
+// ---------- Tautan "Bahas soal ini" ----------
+
+/** Link into the Diskusi section of a material, filtered to one quiz question (Discussions reads ?soal=). */
+export const discussionHref = (materialId: string, questionId: string) => `/materials/${materialId}?soal=${encodeURIComponent(questionId)}#diskusi`;
+
+/**
+ * Discussions per quiz question of one material, for the "Bahas soal ini" / "Lihat diskusi (N)" links.
+ * null = this material has no discussions at all (private, or gone), so no link should be shown.
+ */
+export async function questionDiscussionCounts(materialId: string, uid: string): Promise<Map<string, number> | null> {
+  const m = await db.get<Material>("materials", materialId).catch(() => null);
+  if (!m || m.isPublic === false) return null;
+  const counts = new Map<string, number>();
+  for (const d of await loadDiscussions(materialId, uid)) if (d.questionId) counts.set(d.questionId, (counts.get(d.questionId) ?? 0) + 1);
+  return counts;
+}
+
+// ---------- Penanda di beranda ----------
+
+/** One material with discussions that need me. `keys` are the "seen" keys that clicking the row marks as seen. */
+export type DiscussionNotice = { materialId: string; materialTitle: string; count: number; keys: string[] };
+
+const SEEN_KEY = (uid: string) => `peerseus:diskusi-dilihat:${uid}`;
+
+/** Keys I already looked at, kept in this browser only. Never throws (private mode, blocked storage). */
+export function readSeen(uid: string): Set<string> {
+  try {
+    return new Set<string>(JSON.parse(localStorage.getItem(SEEN_KEY(uid)) || "[]"));
+  } catch {
+    return new Set();
+  }
+}
+
+export function markSeen(uid: string, keys: string[]) {
+  try {
+    localStorage.setItem(SEEN_KEY(uid), JSON.stringify([...new Set([...readSeen(uid), ...keys])].slice(-500)));
+  } catch {
+    // Not remembered: the marker simply shows again next time.
+  }
+}
+
+/**
+ * Home markers. toAnswer: questions from others without any answer on materials I uploaded (key `q:id`).
+ * answered: my questions that got an answer from someone else; the key holds the number of such answers
+ * (`a:id:n`), so a later answer shows the marker again. Both skip what I already opened (see markSeen).
+ */
+export async function discussionNotices(uid: string): Promise<{ toAnswer: DiscussionNotice[]; answered: DiscussionNotice[] }> {
+  const [mine, asked] = await Promise.all([
+    db.list<Material>("materials", [["uploaderId", "==", uid]]),
+    db.list<Discussion>(DISCUSSIONS, [["authorId", "==", uid]]),
+  ]);
+  const ids = [...new Set([...mine.map((m) => m.id), ...asked.map((d) => d.materialId)])];
+  const loaded = await Promise.all(ids.map(async (id) => {
+    const [m, ds] = await Promise.all([mine.find((x) => x.id === id) ?? db.get<Material>("materials", id), loadDiscussions(id, uid)]);
+    return m && m.isPublic !== false ? { m, ds } : null;
+  }));
+  const seen = readSeen(uid);
+  const toAnswer: DiscussionNotice[] = [];
+  const answered: DiscussionNotice[] = [];
+  for (const x of loaded) {
+    if (!x) continue;
+    const notice = (keys: string[]): DiscussionNotice => ({ materialId: x.m.id, materialTitle: x.m.title, count: keys.length, keys });
+    if (x.m.uploaderId === uid) {
+      const keys = x.ds.filter((d) => d.authorId !== uid && d.answers.length === 0).map((d) => `q:${d.id}`).filter((k) => !seen.has(k));
+      if (keys.length) toAnswer.push(notice(keys));
+    }
+    const keys = x.ds.filter((d) => d.authorId === uid)
+      .map((d) => [d.id, d.answers.filter((a) => a.authorId !== uid).length] as const)
+      .filter(([, n]) => n > 0)
+      .map(([id, n]) => `a:${id}:${n}`)
+      .filter((k) => !seen.has(k));
+    if (keys.length) answered.push(notice(keys));
+  }
+  return { toAnswer, answered };
+}

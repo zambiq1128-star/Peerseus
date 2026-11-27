@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
+import { discussionNotices, markSeen, type DiscussionNotice } from "@/lib/discussions";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, QuestionProposal } from "@/lib/types";
 import { Ransom } from "@/components/Ransom";
@@ -65,7 +67,9 @@ function HomeBody() {
     const latest = await latestMaterials(profile!.courseIds);
     // Questions others proposed for my quizzes (empty until firestore.rules allow questionProposals).
     const toReview = await proposalsToReview(uid).catch(() => [] as QuestionProposal[]);
-    return { courses, ms, duels, latest, toReview };
+    // Diskusi markers; a failed load must not break the home page.
+    const notices = await discussionNotices(uid).catch(() => ({ toAnswer: [], answered: [] }));
+    return { courses, ms, duels, latest, toReview, notices };
   }, [uid, profile?.courseIds.length]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -96,6 +100,9 @@ function HomeBody() {
           </div>
         </Section>
       )}
+
+      <DiscussionNotices uid={uid} title="Pertanyaan baru di materimu" label="belum dijawab" items={data.notices.toAnswer} />
+      <DiscussionNotices uid={uid} title="Pertanyaanmu dijawab" label="dijawab" items={data.notices.answered} />
 
       <Section>
         {joined.length === 0 ? (
@@ -148,5 +155,25 @@ function HomeBody() {
       )}
 
     </Page>
+  );
+}
+
+/** Home marker for Diskusi, same look as "Usulan soal menunggu". Opening a row marks it as seen (this browser only). */
+function DiscussionNotices({ uid, title, label, items }: { uid: string; title: string; label: string; items: DiscussionNotice[] }) {
+  const [gone, setGone] = useState<string[]>([]);
+  const list = items.filter((n) => !gone.includes(n.materialId));
+  if (!list.length) return null;
+  return (
+    <Section title={`${title} (${list.reduce((s, n) => s + n.count, 0)})`}>
+      <div className="rows">
+        {list.map((n) => (
+          <Link key={n.materialId} href={`/materials/${n.materialId}#diskusi`} className="row-link"
+            onClick={() => { markSeen(uid, n.keys); setGone([...gone, n.materialId]); }}>
+            <span className="text-sm font-medium">{n.materialTitle}</span>
+            <span className="badge-accent shrink-0">{n.count} {label}</span>
+          </Link>
+        ))}
+      </div>
+    </Section>
   );
 }
