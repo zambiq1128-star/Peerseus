@@ -5,36 +5,45 @@
  * Pages only use these names (bg-surface, text-muted, rounded-card, max-w-page, ...) and the
  * component classes below, so a new visual design is mostly a matter of changing values here.
  *
- * EXPERIMENT (branch persona5-style): graphic, edgy JRPG look with exactly three colors:
- * red #e60012, black #0a0a0a, white #ffffff. Original design, no game logos, characters, assets or fonts.
+ * EXPERIMENT (branch persona5-blue): the persona5-style shapes and motion with a blue palette (Persona 3 blue).
+ * Original design, no game logos, characters, assets or fonts. Palette and roles:
+ *   #0a0a0a  page background (black)
+ *   #040f23  midnight: cards, panels, list rows (--color-surface, --color-navy-2)
+ *   #1269cc  main FILL: buttons, active tabs/chips, hero slab, offset shadows, selection, row hover.
+ *            Text on it is always white (5.4:1). Never use it as text on black (only 3.7:1).
+ *   #00bbfa  TEXT and ICON accent (--color-cyan, --color-good, focus ring, scores, links): 8.9:1 on black.
+ *            If it is ever used as a FILL, the text on it must be black #0a0a0a (white is only 2.2:1).
+ *   #79d7fd  bright highlight: glow, halftone dots, light flecks. Decoration only, never behind white text.
+ *   #6d9ac7  muted text (6.7:1), #435f8e thin lines and borders (non-text only)
+ *   #ff2e3f  RED is reserved for bad status: lost duel, wrong answer, errors, declined duel, broken formulas.
  * Old token names (navy, volt, cyan) are kept so every page follows without edits:
- *   navy -> black, volt -> red, cyan -> white (highlight text and fills).
+ *   navy -> black / midnight, volt -> blue fill, cyan -> light blue text accent.
  */
 @theme {
-  /* Text (white on black; the lower steps are white at reduced opacity, >= 8:1 on black) */
+  /* Text (white on black / midnight; ink-soft is white at reduced opacity, muted is a light steel blue, both >= 6:1) */
   --color-ink: #ffffff;
   --color-ink-soft: rgb(255 255 255 / 0.86);
-  --color-muted: rgb(255 255 255 / 0.68);
+  --color-muted: #6d9ac7;
 
   /* Surfaces */
   --color-canvas: #0a0a0a;
-  --color-surface: #0a0a0a;
+  --color-surface: #040f23;
   --color-paper: rgb(255 255 255 / 0.07);
-  --color-line: rgb(255 255 255 / 0.3);
+  --color-line: #435f8e; /* borders and dividers only, never text */
 
-  /* Brand: red fills only (#e60012 vs black is 4.1:1, so small red text uses --color-bad below or white) */
-  --color-accent: #e60012;
-  --color-accent-soft: rgb(230 0 18 / 0.3);
-  --color-on-accent: #ffffff;  /* white on red = 4.8:1 */
+  /* Brand: blue fills only (#1269cc vs black is 3.7:1, so it is never text; text on it is white, 5.4:1) */
+  --color-accent: #1269cc;
+  --color-accent-soft: rgb(18 105 204 / 0.3);
+  --color-on-accent: #ffffff;  /* white on blue = 5.4:1 */
 
   /*
-   * Status. Three colors only, so: right = white, wrong = red, warning = white too (always with words).
-   * --color-bad is a lighter tint of the same red so small error text stays above 4.5:1 on black.
+   * Status: right = light blue, wrong = red (the only red in the app), warning = white (always with words).
+   * --color-bad is a lighter tint of the red so small error text stays above 4.5:1 on black and midnight.
    */
-  --color-good: #ffffff;
-  --color-good-soft: rgb(255 255 255 / 0.14);
+  --color-good: #00bbfa;
+  --color-good-soft: rgb(0 187 250 / 0.14);
   --color-bad: #ff2e3f;
-  --color-bad-soft: rgb(230 0 18 / 0.3);
+  --color-bad-soft: rgb(230 0 18 / 0.2); /* 0.3 would drop red text on it to 4.3:1 */
   --color-warn: #ffffff;
   --color-warn-ink: #ffffff;
 
@@ -51,10 +60,10 @@
 
   /* Legacy names from the previous theme, remapped */
   --color-navy: #0a0a0a;
-  --color-navy-2: #0a0a0a;
-  --color-navy-3: rgb(255 255 255 / 0.16);
-  --color-volt: #e60012;
-  --color-cyan: #ffffff;
+  --color-navy-2: #040f23;
+  --color-navy-3: #081a38; /* hover rows, inline code, table heads: text on it keeps >= 4.5:1 */
+  --color-volt: #1269cc;
+  --color-cyan: #00bbfa;
   --font-display: var(--font-anton), Impact, "Arial Narrow", sans-serif; /* heavy condensed headings and buttons */
   --ease-overshoot: cubic-bezier(0.34, 1.56, 0.64, 1);
 
@@ -96,7 +105,7 @@
 
   /*
    * Jagged, irregular outlines for cards and panels. The polygon reaches 6px past the box on the right and
-   * bottom on purpose: that is where the offset red shadow sits, so the same ragged edge cuts both.
+   * bottom on purpose: that is where the offset blue shadow sits, so the same ragged edge cuts both.
    */
   --p5-cut-a: polygon(0 14px, 14px 0, 42% 5px, 68% 0, calc(100% - 12px) 3px, calc(100% + 6px) 14px, calc(100% + 2px) min(58%, 60px), calc(100% + 6px) calc(100% - 22px), calc(100% - 16px) calc(100% + 6px), 58% calc(100% + 2px), 26% calc(100% + 6px), 10px calc(100% + 6px), 0 calc(100% - 10px), 0 min(72%, 80px), 4px min(48%, 50px), 0 min(34%, 36px));
   --p5-cut-b: polygon(0 6px, 8px 0, 30% 4px, 55% 0, 82% 5px, calc(100% - 4px) 0, calc(100% + 6px) 18px, calc(100% + 3px) min(40%, 44px), calc(100% + 6px) min(66%, 70px), calc(100% + 6px) calc(100% - 10px), calc(100% - 22px) calc(100% + 6px), 70% calc(100% + 3px), 40% calc(100% + 6px), 18px calc(100% + 2px), 0 calc(100% - 18px), 5px min(60%, 64px), 0 min(42%, 44px));
@@ -130,7 +139,7 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image: radial-gradient(rgb(230 0 18 / 0.55) 2px, transparent 2.6px);
+  background-image: radial-gradient(rgb(121 215 253 / 0.45) 2px, transparent 2.6px);
   background-size: 14px 14px;
   -webkit-mask-image: radial-gradient(ellipse 70% 55% at 100% 0%, #000, transparent 75%);
   mask-image: radial-gradient(ellipse 70% 55% at 100% 0%, #000, transparent 75%);
@@ -150,10 +159,10 @@ body::before {
 .ransom-word { display: inline-block; white-space: nowrap; margin: 0 0.16em 0.1em 0; }
 .ransom-l { display: inline-block; padding: 0.02em 0.09em 0; margin: 0 0.015em; line-height: 1.02; font-weight: 400; letter-spacing: 0; }
 .ransom-l[data-tile="white"] { background: #fff; color: #0a0a0a; }
-.ransom-l[data-tile="red"] { background: var(--color-accent); color: #fff; outline: 0.035em solid #0a0a0a; }
+.ransom-l[data-tile="blue"] { background: var(--color-accent); color: #fff; outline: 0.035em solid #0a0a0a; }
 .ransom-l[data-tile="black"] { background: #0a0a0a; color: #fff; outline: 0.04em solid #fff; }
 
-/* Red diagonal sweep on every page change (Shell mounts it with key={path}). Hidden for reduced motion. */
+/* Blue diagonal sweep on every page change (Shell mounts it with key={path}). Hidden for reduced motion. */
 .sweep { position: fixed; top: 0; bottom: 0; left: 0; width: 70vw; z-index: 60; pointer-events: none; background: var(--color-accent); animation: sweep 520ms cubic-bezier(0.65, 0, 0.35, 1) both; }
 .sweep::after { content: ""; position: absolute; top: 0; bottom: 0; right: -4vw; width: 3vw; background: #fff; }
 @keyframes sweep { from { transform: translateX(-90vw) skewX(-20deg); } to { transform: translateX(130vw) skewX(-20deg); } }
@@ -186,13 +195,13 @@ body::before {
 @layer base {
   h1 { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.01em; }
   ::placeholder { color: var(--color-muted); opacity: 1; }
-  :focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  :focus-visible { outline: 3px solid var(--color-cyan); outline-offset: 3px; }
 }
 
-/* Card and panel: thick white border, sharp red offset shadow, ragged outline (alternates between two shapes). */
+/* Card and panel: thick white border, sharp blue offset shadow, ragged outline (alternates between two shapes). */
 @utility card {
   /*
-   * The frame (white border, red shadow, ragged outline, black fill) is the ::before layer, so the hover tilt moves
+   * The frame (white border, blue shadow, ragged outline, midnight fill) is the ::before layer, so the hover tilt moves
    * only that decorative layer. The element itself and everything inside it (text, KaTeX, images, iframes)
    * is never transformed and stays sharp. Override the fill / border with --card-bg / --card-border.
    */
@@ -227,7 +236,14 @@ body::before {
   @apply border-[3px] border-white bg-accent p-5 text-white;
   box-shadow: 6px 6px 0 #fff;
   clip-path: var(--p5-cut-b);
+  /* Muted blue text would be only ~1.8:1 on the blue fill, so everything inside this panel is white. */
+  --color-muted: #ffffff;
+  --color-ink-soft: #ffffff;
+  --color-cyan: #ffffff;
 }
+/* A blue button on the blue callout would vanish, so it turns black there. */
+.callout .btn-primary { background: #0a0a0a; color: #fff; }
+.callout .btn-primary:hover:not(:disabled), .callout .btn-primary:focus-visible { background: #fff; color: #0a0a0a; }
 /* Buttons: slanted and pointed. Hover = small rotation plus a short shake (reduced motion turns it off). */
 @utility btn {
   @apply inline-flex items-center justify-center gap-2 px-7 py-2.5 font-display text-sm uppercase tracking-widest transition duration-150 disabled:cursor-not-allowed disabled:opacity-50;
@@ -245,13 +261,14 @@ body::before {
 @utility label { @apply mb-1 block text-sm font-bold uppercase tracking-wide text-white; }
 @utility link { @apply font-semibold text-white underline decoration-accent decoration-2 underline-offset-4 transition-colors hover:bg-accent; }
 
-/* Badges: small slanted paper labels in black, white or red. */
+/* Badges: small slanted paper labels in black, white or blue. */
 @utility badge { @apply inline-flex items-center border-2 border-white bg-black px-3 py-0.5 text-xs font-bold text-white; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 /* Colored badges repeat the shape on purpose: composing `badge` would fight over the colors. */
 @utility badge-accent { @apply inline-flex items-center bg-white px-3 py-0.5 text-xs font-bold text-black; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 @utility badge-strong { @apply inline-flex items-center bg-accent px-3 py-0.5 text-xs font-bold text-white; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 @utility badge-good { @apply inline-flex items-center bg-white px-3 py-0.5 text-xs font-bold text-black; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
-@utility badge-bad { @apply inline-flex items-center border-2 border-white bg-accent px-3 py-0.5 text-xs font-bold text-white; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+/* The only red fill in the app: bad status. Black text on #ff2e3f (white would be 3.7:1). */
+@utility badge-bad { @apply inline-flex items-center border-2 border-white bg-bad px-3 py-0.5 text-xs font-bold text-black; clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
 /* Filter pills: paper-cut labels, each tilted a bit differently. */
 @utility chip { @apply inline-block border-2 border-white bg-black px-4 py-1 text-xs font-bold text-white transition duration-150 hover:bg-white hover:text-black; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); &:nth-child(odd) { transform: rotate(-1.5deg); } &:nth-child(even) { transform: rotate(1deg); } }
 @utility chip-active { @apply inline-block bg-accent px-4 py-1 text-xs font-bold text-white transition duration-150; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); transform: rotate(-2deg); }
@@ -260,7 +277,7 @@ body::before {
 @utility seg-active { @apply px-4 py-1.5 font-display text-sm uppercase tracking-widest bg-accent text-white; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
 @utility tab { @apply -mb-px px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-widest text-muted transition duration-150 hover:text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
 @utility tab-active { @apply -mb-px bg-accent px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-widest text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
-/* Bordered list with dividers; hovered row turns red. */
+/* Bordered list with dividers; hovered row turns blue. */
 @utility rows { @apply divide-y-2 divide-line border-[3px] border-white bg-surface; box-shadow: 5px 5px 0 var(--color-accent); clip-path: var(--p5-cut-b); }
 @utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-150 hover:bg-accent hover:text-white; box-shadow: inset 0 0 0 0 #fff; &:hover { box-shadow: inset 6px 0 0 0 #fff; } }
 @utility section-title { @apply inline-block border-b-4 border-accent font-display text-xl uppercase tracking-widest text-white; }

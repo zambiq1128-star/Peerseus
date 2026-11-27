@@ -27,7 +27,7 @@ export default function DeclineDuel({ duelId, uid, onDone, className = "" }: { d
       ) : (
         <>
           <span className="text-xs text-muted">Tolak tantangan ini?</span>
-          <button type="button" className="btn-ghost !py-1.5 text-bad" disabled={busy} onClick={decline}>{busy ? "Menolak…" : "Ya, tolak"}</button>
+          <button type="button" className="btn !py-1.5 bg-bad text-black hover:bg-white" disabled={busy} onClick={decline}>{busy ? "Menolak…" : "Ya, tolak"}</button>
           <button type="button" className="btn-ghost !py-1.5" disabled={busy} onClick={() => setAsking(false)}>Batal</button>
         </>
       )}

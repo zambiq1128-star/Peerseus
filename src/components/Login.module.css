@@ -17,7 +17,7 @@
 .deco { position: absolute; inset: 0; pointer-events: none; }
 .slab {
   position: absolute; top: 0; right: -6rem; width: 70%; height: 100%;
-  background: rgb(230 0 18 / 0.9);
+  background: rgb(18 105 204 / 0.9);
   clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
 }
 .sliver {

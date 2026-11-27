@@ -19,7 +19,7 @@ export default function Home() {
 }
 
 /**
- * Hero: black block with a slanted bottom edge, a big red slab with halftone dots, an original ink splat and
+ * Hero: black block with a slanted bottom edge, a big blue slab with halftone dots, an original ink splat and
  * starburst, and a ransom-note heading. Everything decorative is aria-hidden; the heading reads as plain text.
  */
 function Hero() {

@@ -2,7 +2,7 @@ import type { ElementType } from "react";
 
 /**
  * "Ransom note" heading: every letter is its own cut-out tile with its own font, size, tilt and
- * background (white / red / black). The mix looks random but is deterministic per text (same text =
+ * background (white / blue / black). The mix looks random but is deterministic per text (same text =
  * same heading on server and client, so hydration is safe). Use it for big headings only; body text
  * stays in the plain sans font.
  *
@@ -12,7 +12,7 @@ import type { ElementType } from "react";
 
 // next/font variables set on <html> in layout.tsx. Bebas Neue has capitals only, so the text is uppercased.
 const FONTS = ["var(--font-anton)", "var(--font-bebas)", "var(--font-archivo)", "var(--font-oswald)"];
-const TILES = ["white", "red", "black"] as const;
+const TILES = ["white", "blue", "black"] as const;
 
 /** FNV-1a hash -> mulberry32: a tiny seeded random generator. */
 function rng(seed: string) {

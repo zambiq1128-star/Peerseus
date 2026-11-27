@@ -47,7 +47,7 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
   const onProfile = path === "/profile";
   return (
     <header className="sticky top-0 z-20 animate-slide-down border-b-4 border-white bg-black text-white">
-      {/* Decorative: red diagonal strip behind the profile link, a thin white slash, and a red wedge under the bar. */}
+      {/* Decorative: blue diagonal strip behind the profile link, a thin white slash, and a blue wedge under the bar. */}
       <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[30%] bg-volt [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)] sm:w-1/3" />
       <div aria-hidden className="pointer-events-none absolute hidden sm:block inset-y-0 right-[40%] w-3 translate-x-[0.4rem] bg-white [clip-path:polygon(60%_0,100%_0,40%_100%,0_100%)] sm:right-1/3" />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-3 bg-volt [clip-path:polygon(0_0,100%_0,58%_100%,0_100%)]" />

@@ -79,7 +79,7 @@ function Play({ duel, uid, onDone }: { duel: Duel; uid: string; onDone: () => vo
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <span className="animate-slide-left font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">Kamu</span>
             <span className="animate-slam font-display text-6xl font-bold italic text-cyan [animation-delay:200ms] sm:text-7xl">VS</span>
-            <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold uppercase tracking-tight text-bad sm:text-5xl">{opp}</h1>
+            <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold uppercase tracking-tight text-ink sm:text-5xl">{opp}</h1>
           </div>
           <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
           <button className="btn-primary w-full !py-3 !text-lg" onClick={() => setStarted(true)}>Mulai duel</button>
