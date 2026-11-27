@@ -1,5 +1,7 @@
 "use client";
-import { useDeferredValue, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useDeferredValue, useEffect, useState } from "react";
 import {
   answerProblem, answerQuestion, canPickBest, deleteAnswer, deleteQuestion, discussionProblem, editAnswer, editQuestion, loadDiscussions,
   report, setBestAnswer, toggleVote, askQuestion, BODY_MAX, TITLE_MAX,
@@ -19,15 +21,34 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
   const [asking, setAsking] = useState(false);
   const [openId, setOpenId] = useState("");
   const questions = quiz?.status === "published" ? quiz.questions : [];
+  // ?soal=<questionId> (from "Bahas soal ini"): only that question's discussions, and Tanya starts on that question.
+  const soalParam = useSearchParams().get("soal") ?? "";
+  const filter = questions.some((q) => q.id === soalParam) ? soalParam : "";
+  const shown = data && filter ? data.filter((d) => d.questionId === filter) : data;
+  const [arrived, setArrived] = useState(false);
+  useEffect(() => {
+    if (!data || arrived || !filter) return;
+    setArrived(true);
+    if (!shown?.length) setAsking(true);
+    document.getElementById("diskusi")?.scrollIntoView({ block: "start" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, filter]);
   const ctx: Ctx = { material, questions, me, reload };
   const askButton = <button className="btn-ghost !py-1.5" onClick={() => setAsking(true)}>Tanya</button>;
 
   return (
-    <Section title={`Diskusi${data ? ` (${data.length})` : ""}`} action={!asking && data && data.length > 0 && askButton}>
+    <Section title={`Diskusi${data ? ` (${data.length})` : ""}`} action={!asking && shown && shown.length > 0 && askButton}>
       <div id="diskusi" className="space-y-3">
+        {filter && (
+          <div className="callout flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span className="min-w-0 break-words">Menampilkan diskusi untuk <b>{contextLabel(filter, questions)}</b></span>
+            <Link href={`/materials/${material.id}#diskusi`} className="link shrink-0">Tampilkan semua</Link>
+          </div>
+        )}
         {asking && (
           <DiscussionForm
             questions={questions}
+            initial={{ title: "", body: "", questionId: filter }}
             submitLabel="Kirim pertanyaan"
             onCancel={() => setAsking(false)}
             onSubmit={async (draft) => {
@@ -40,9 +61,9 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
         )}
         {error ? <ErrorState message={error} onRetry={reload} />
           : !data ? <Spinner label="Memuat diskusi…" />
-          : data.length === 0 ? (!asking && <Empty action={askButton}>Belum ada diskusi. Jadilah yang pertama bertanya.</Empty>)
+          : !shown || shown.length === 0 ? (!asking && <Empty action={askButton}>{filter ? "Belum ada diskusi untuk soal ini. Jadilah yang pertama bertanya." : "Belum ada diskusi. Jadilah yang pertama bertanya."}</Empty>)
           : (
-            <CollapsibleRows items={data}>
+            <CollapsibleRows items={shown}>
               {(d) => <DiscussionRow key={d.id} d={d} ctx={ctx} open={openId === d.id} onToggle={() => setOpenId(openId === d.id ? "" : d.id)} />}
             </CollapsibleRows>
           )}
