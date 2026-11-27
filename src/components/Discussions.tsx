@@ -4,27 +4,34 @@ import { useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState } from "react";
 import {
   answerProblem, answerQuestion, canPickBest, deleteAnswer, deleteQuestion, discussionProblem, editAnswer, editQuestion, loadDiscussions,
-  report, setBestAnswer, toggleVote, askQuestion, BODY_MAX, TITLE_MAX,
-  type AnswerView, type DiscussionDraft, type DiscussionView,
+  report, setBestAnswer, toggleVote, askQuestion, kindOf, BODY_MAX, KIND_LABEL, TITLE_MAX,
+  type AnswerView, type DiscussionDraft, type DiscussionParent, type DiscussionView,
 } from "@/lib/discussions";
 import { plainSnippet } from "@/lib/latex";
-import type { Material, Question, Quiz, UserProfile } from "@/lib/types";
+import type { DiscussionKind, Question, Quiz, UserProfile } from "@/lib/types";
 import { MarkdownView } from "./Markdown";
 import { CollapsibleRows, Empty, ErrorState, Section, Spinner, timeAgo, useAsync } from "./ui";
 
+type KindFilter = "" | DiscussionKind;
+
 /**
- * Diskusi on a public material: questions about the material or one quiz question, one level of answers,
- * upvotes and a best answer picked by the asker or the uploader. Not shown on private materials.
+ * Diskusi on a public material or an opportunity: one level of answers, upvotes and a best answer picked by the
+ * asker or the parent's owner (material uploader, opportunity sharer). Materials: questions about the material or
+ * one quiz question; not shown on private materials. Opportunities: "Tanya" or "Cari tim", with a filter.
  */
-export function Discussions({ material, quiz, me }: { material: Material; quiz: Quiz | null; me: UserProfile }) {
-  const { data, error, reload } = useAsync(() => loadDiscussions(material.id, me.id), [material.id, me.id]);
+export function Discussions({ parent, quiz = null, me }: { parent: DiscussionParent; quiz?: Quiz | null; me: UserProfile }) {
+  const { data, error, reload } = useAsync(() => loadDiscussions(parent, me.id), [parent.kind, parent.id, me.id]);
   const [asking, setAsking] = useState(false);
   const [openId, setOpenId] = useState("");
-  const questions = quiz?.status === "published" ? quiz.questions : [];
+  const [kindFilter, setKindFilter] = useState<KindFilter>("");
+  const onOpp = parent.kind === "opportunity";
+  const questions = !onOpp && quiz?.status === "published" ? quiz.questions : [];
   // ?soal=<questionId> (from "Bahas soal ini"): only that question's discussions, and Tanya starts on that question.
   const soalParam = useSearchParams().get("soal") ?? "";
   const filter = questions.some((q) => q.id === soalParam) ? soalParam : "";
-  const shown = data && filter ? data.filter((d) => d.questionId === filter) : data;
+  const shown = data && filter ? data.filter((d) => d.questionId === filter)
+    : data && kindFilter ? data.filter((d) => kindOf(d) === kindFilter)
+    : data;
   const [arrived, setArrived] = useState(false);
   useEffect(() => {
     if (!data || arrived || !filter) return;
@@ -33,8 +40,15 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
     document.getElementById("diskusi")?.scrollIntoView({ block: "start" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, filter]);
-  const ctx: Ctx = { material, questions, me, reload };
-  const askButton = <button className="btn-ghost !py-1.5" onClick={() => setAsking(true)}>Tanya</button>;
+  const ctx: Ctx = { parent, questions, me, reload };
+  // Opportunities start the form on the kind being filtered ("Cari tim" filter = a Cari tim post).
+  const askButton = <button className="btn-ghost !py-1.5" onClick={() => setAsking(true)}>{onOpp ? "Mulai diskusi" : "Tanya"}</button>;
+  const emptyText = filter ? "Belum ada diskusi untuk soal ini. Jadilah yang pertama bertanya."
+    : kindFilter === "cari-tim" ? "Belum ada yang mencari tim di sini. Mulai cari anggota timmu."
+    : kindFilter === "tanya" ? "Belum ada pertanyaan. Jadilah yang pertama bertanya."
+    : onOpp ? "Belum ada diskusi. Tanyakan sesuatu, atau cari teman setim."
+    : "Belum ada diskusi. Jadilah yang pertama bertanya.";
+  const kinds: [KindFilter, string][] = [["", "Semua"], ["tanya", KIND_LABEL.tanya], ["cari-tim", KIND_LABEL["cari-tim"]]];
 
   return (
     <Section title={`Diskusi${data ? ` (${data.length})` : ""}`} action={!asking && shown && shown.length > 0 && askButton}>
@@ -42,17 +56,27 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
         {filter && (
           <div className="callout flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="min-w-0 break-words">Menampilkan diskusi untuk <b>{contextLabel(filter, questions)}</b></span>
-            <Link href={`/materials/${material.id}#diskusi`} className="link shrink-0">Tampilkan semua</Link>
+            <Link href={`/materials/${parent.id}#diskusi`} className="link shrink-0">Tampilkan semua</Link>
+          </div>
+        )}
+        {onOpp && data && data.length > 0 && (
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Jenis diskusi">
+            {kinds.map(([k, label]) => (
+              <button key={k || "all"} aria-pressed={kindFilter === k} onClick={() => setKindFilter(k)} className={kindFilter === k ? "chip-active" : "chip"}>
+                {label} ({data.filter((d) => !k || kindOf(d) === k).length})
+              </button>
+            ))}
           </div>
         )}
         {asking && (
           <DiscussionForm
             questions={questions}
-            initial={{ title: "", body: "", questionId: filter }}
-            submitLabel="Kirim pertanyaan"
+            withKind={onOpp}
+            initial={{ title: "", body: "", questionId: filter, kind: kindFilter || "tanya" }}
+            submitLabel={onOpp ? "Kirim" : "Kirim pertanyaan"}
             onCancel={() => setAsking(false)}
             onSubmit={async (draft) => {
-              const d = await askQuestion(material, me, draft, questions);
+              const d = await askQuestion(parent, me, draft, questions);
               setAsking(false);
               setOpenId(d.id);
               reload();
@@ -61,9 +85,9 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
         )}
         {error ? <ErrorState message={error} onRetry={reload} />
           : !data ? <Spinner label="Memuat diskusi…" />
-          : !shown || shown.length === 0 ? (!asking && <Empty action={askButton}>{filter ? "Belum ada diskusi untuk soal ini. Jadilah yang pertama bertanya." : "Belum ada diskusi. Jadilah yang pertama bertanya."}</Empty>)
+          : !shown || shown.length === 0 ? (!asking && <Empty action={askButton}>{emptyText}</Empty>)
           : (
-            <CollapsibleRows items={shown}>
+            <CollapsibleRows key={kindFilter} items={shown}>
               {(d) => <DiscussionRow key={d.id} d={d} ctx={ctx} open={openId === d.id} onToggle={() => setOpenId(openId === d.id ? "" : d.id)} />}
             </CollapsibleRows>
           )}
@@ -72,7 +96,7 @@ export function Discussions({ material, quiz, me }: { material: Material; quiz: 
   );
 }
 
-type Ctx = { material: Material; questions: Question[]; me: UserProfile; reload: () => void };
+type Ctx = { parent: DiscussionParent; questions: Question[]; me: UserProfile; reload: () => void };
 
 /** "Umum", or "Soal 3: …the start of the question…". */
 function contextLabel(questionId: string | null | undefined, questions: Question[]) {
@@ -105,7 +129,9 @@ function DiscussionRow({ d, ctx, open, onToggle }: { d: DiscussionView; ctx: Ctx
     <div>
       <button type="button" onClick={onToggle} aria-expanded={open} className="block w-full p-4 text-left transition-colors hover:bg-navy-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="badge max-w-full truncate">{contextLabel(d.questionId, ctx.questions)}</span>
+          {ctx.parent.kind === "material"
+            ? <span className="badge max-w-full truncate">{contextLabel(d.questionId, ctx.questions)}</span>
+            : <KindBadge kind={kindOf(d)} />}
           {d.best && <span className="badge-good">✓ Terjawab</span>}
         </div>
         <div className="mt-2 font-semibold">{d.title}</div>
@@ -120,7 +146,7 @@ function DiscussionRow({ d, ctx, open, onToggle }: { d: DiscussionView; ctx: Ctx
 }
 
 function DiscussionDetail({ d, ctx }: { d: DiscussionView; ctx: Ctx }) {
-  const { material, questions, me, reload } = ctx;
+  const { parent, questions, me, reload } = ctx;
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [reported, setReported] = useState(false);
@@ -133,7 +159,8 @@ function DiscussionDetail({ d, ctx }: { d: DiscussionView; ctx: Ctx }) {
       <div className="border-t border-line p-4">
         <DiscussionForm
           questions={questions}
-          initial={{ title: d.title, body: d.body, questionId: d.questionId ?? "" }}
+          withKind={parent.kind === "opportunity"}
+          initial={{ title: d.title, body: d.body, questionId: d.questionId ?? "", kind: kindOf(d) }}
           submitLabel="Simpan"
           onCancel={() => setEditing(false)}
           onSubmit={async (draft) => {
@@ -186,7 +213,7 @@ function DiscussionDetail({ d, ctx }: { d: DiscussionView; ctx: Ctx }) {
         )}
       </div>
       <AnswerForm d={d} ctx={ctx} />
-      {canPickBest(d, material, me.id) && !d.best && d.answers.length > 0 && (
+      {canPickBest(d, parent, me.id) && !d.best && d.answers.length > 0 && (
         <p className="text-xs text-muted">Kamu bisa memilih satu jawaban terbaik. Pertanyaan yang sudah punya jawaban terbaik ditandai ✓ Terjawab.</p>
       )}
     </div>
@@ -194,13 +221,13 @@ function DiscussionDetail({ d, ctx }: { d: DiscussionView; ctx: Ctx }) {
 }
 
 function AnswerRow({ a, d, ctx }: { a: AnswerView; d: DiscussionView; ctx: Ctx }) {
-  const { material, me, reload } = ctx;
+  const { parent, me, reload } = ctx;
   const [editing, setEditing] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [reported, setReported] = useState(false);
   const { busy, err, run } = useAction();
   const isBest = d.best?.id === a.id;
-  const picker = canPickBest(d, material, me.id);
+  const picker = canPickBest(d, parent, me.id);
   const mine = a.authorId === me.id;
 
   return (
@@ -228,8 +255,8 @@ function AnswerRow({ a, d, ctx }: { a: AnswerView; d: DiscussionView; ctx: Ctx }
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <VoteButton target={a} type="answer" ctx={ctx} />
           {picker && (isBest
-            ? <button className="text-muted underline" disabled={!!busy} onClick={() => run("best", async () => { await setBestAnswer(d, material, me.id, null); reload(); })}>Batalkan pilihan</button>
-            : <button className="link" disabled={!!busy} onClick={() => run("best", async () => { await setBestAnswer(d, material, me.id, a.id); reload(); })}>
+            ? <button className="text-muted underline" disabled={!!busy} onClick={() => run("best", async () => { await setBestAnswer(d, parent, me.id, null); reload(); })}>Batalkan pilihan</button>
+            : <button className="link" disabled={!!busy} onClick={() => run("best", async () => { await setBestAnswer(d, parent, me.id, a.id); reload(); })}>
                 {busy === "best" ? "Menyimpan…" : "Pilih sebagai jawaban terbaik"}
               </button>)}
           <span className="ml-auto flex flex-wrap gap-3">
@@ -317,9 +344,18 @@ function BodyField({ id, label, value, onChange, rows }: { id: string; label?: s
   );
 }
 
-/** New question or editing one: title, body, and context (Umum or one quiz question). */
-function DiscussionForm({ questions, initial = { title: "", body: "", questionId: "" }, submitLabel, onSubmit, onCancel }: {
+/** "Cari tim" stands out (filled); "Tanya" is a plain badge. */
+export function KindBadge({ kind }: { kind: DiscussionKind }) {
+  return <span className={kind === "cari-tim" ? "badge-strong" : "badge"}>{KIND_LABEL[kind]}</span>;
+}
+
+/**
+ * New question or editing one: title, body, and context (Umum or one quiz question) on materials, or the kind
+ * (Tanya or Cari tim) on opportunities.
+ */
+function DiscussionForm({ questions, withKind = false, initial = { title: "", body: "", questionId: "", kind: "tanya" }, submitLabel, onSubmit, onCancel }: {
   questions: Question[];
+  withKind?: boolean;
   initial?: DiscussionDraft;
   submitLabel: string;
   onSubmit: (d: DiscussionDraft) => Promise<void>;
@@ -335,12 +371,27 @@ function DiscussionForm({ questions, initial = { title: "", body: "", questionId
 
   return (
     <div className="card space-y-3">
+      {withKind && (
+        <fieldset>
+          <legend className="label">Jenis</legend>
+          <div className="flex flex-wrap gap-2">
+            {(["tanya", "cari-tim"] as const).map((k) => (
+              <button key={k} type="button" aria-pressed={draft.kind === k} onClick={() => set({ kind: k })} className={draft.kind === k ? "chip-active" : "chip"}>
+                {KIND_LABEL[k]}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            {draft.kind === "cari-tim" ? "Ajak orang lain bergabung: berapa anggota yang dicari dan keahlian apa yang dibutuhkan." : "Tanyakan syarat, cara daftar, atau pengalaman orang lain."}
+          </p>
+        </fieldset>
+      )}
       <div>
         <label className="label" htmlFor={`${id}-title`}>Judul</label>
         <input id={`${id}-title`} className="input" value={draft.title} maxLength={TITLE_MAX} onChange={(e) => set({ title: e.target.value })}
-          placeholder="mis. Kenapa limit ini tidak ada?" />
+          placeholder={!withKind ? "mis. Kenapa limit ini tidak ada?" : draft.kind === "cari-tim" ? "mis. Cari 2 anggota, butuh yang bisa desain UI" : "mis. Apakah mahasiswa TPB boleh ikut?"} />
       </div>
-      {(questions.length > 0 || gone) && (
+      {!withKind && (questions.length > 0 || gone) && (
         <div>
           <label className="label" htmlFor={`${id}-ctx`}>Tentang</label>
           <select id={`${id}-ctx`} className="input" value={draft.questionId} onChange={(e) => set({ questionId: e.target.value })}>

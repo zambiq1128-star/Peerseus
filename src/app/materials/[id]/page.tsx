@@ -157,7 +157,7 @@ export default function MaterialPage() {
       </div>
 
       {/* Diskusi: public materials only (private ones have none, see firestore.rules) */}
-      {!isPrivate && <Suspense fallback={<Spinner label="Memuat diskusi…" />}><Discussions material={material} quiz={quiz} me={profile!} /></Suspense>}
+      {!isPrivate && <Suspense fallback={<Spinner label="Memuat diskusi…" />}><Discussions parent={{ kind: "material", id: material.id, ownerId: material.uploaderId }} quiz={quiz} me={profile!} /></Suspense>}
     </Page>
   );
 }

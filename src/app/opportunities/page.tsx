@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { opportunityDiscussionCounts } from "@/lib/discussions";
 import { plainSnippet } from "@/lib/latex";
 import { OPP_TYPES, daysLeft, deadlineLabel, expired, forFaculty, formatDeadline, isUrgent, listOpportunities, upcoming } from "@/lib/opportunities";
 import type { Opportunity, OpportunityType } from "@/lib/types";
@@ -15,7 +16,12 @@ type Kind = "" | OpportunityType;
 /** Hub Peluang, the third Jelajah tab: scholarships, competitions, seminars and more, nearest deadline first. */
 export default function Opportunities() {
   const { profile } = useAuth();
-  const { data, error, reload } = useAsync(listOpportunities, []);
+  const { data, error, reload } = useAsync(async () => {
+    const list = await listOpportunities();
+    // Discussion counts on the cards; a failed load only hides them.
+    const counts = await opportunityDiscussionCounts(list.map((o) => o.id)).catch(() => new Map<string, { all: number; team: number }>());
+    return { list, counts };
+  }, []);
   const [kind, setKind] = useState<Kind>("");
   const [mine, setMine] = useState(false); // "Untuk fakultasku"
   const [adding, setAdding] = useState(false);
@@ -25,7 +31,7 @@ export default function Opportunities() {
 
   const major = profile!.major;
   const inScope = (o: Opportunity) => !mine || forFaculty(o, major);
-  const scoped = data.filter(inScope);
+  const scoped = data.list.filter(inScope);
   const matches = (o: Opportunity) => !kind || o.type === kind;
   const soon = upcoming(scoped.filter(matches));
   const past = expired(scoped.filter(matches));
@@ -43,7 +49,7 @@ export default function Opportunities() {
 
       {adding && <OpportunityForm onCancel={() => setAdding(false)} onSaved={() => { setAdding(false); reload(); }} />}
 
-      {data.length === 0 ? (
+      {data.list.length === 0 ? (
         <Empty title="Belum ada peluang" action={!adding && <button className="btn-primary" onClick={() => setAdding(true)}>+ Bagikan peluang</button>}>
           Tahu beasiswa, lomba, atau seminar yang menarik? Bagikan supaya teman-temanmu tidak ketinggalan.
         </Empty>
@@ -71,7 +77,7 @@ export default function Opportunities() {
               {soon.length === 0 ? (
                 <Empty title="Tidak ada peluang yang masih buka">Semua yang cocok dengan filter sudah lewat deadline-nya (lihat di bawah).</Empty>
               ) : (
-                <div className="grid gap-3 sm:grid-cols-2">{soon.map((o) => <OpportunityCard key={o.id} o={o} />)}</div>
+                <div className="grid gap-3 sm:grid-cols-2">{soon.map((o) => <OpportunityCard key={o.id} o={o} talk={data.counts.get(o.id)} />)}</div>
               )}
               {past.length > 0 && (
                 <Section title={`Sudah lewat (${past.length})`}>
@@ -97,7 +103,7 @@ export default function Opportunities() {
   );
 }
 
-function OpportunityCard({ o }: { o: Opportunity }) {
+function OpportunityCard({ o, talk }: { o: Opportunity; talk?: { all: number; team: number } }) {
   const d = daysLeft(o.deadline);
   return (
     <article className="card card-rot flex flex-col">
@@ -108,6 +114,12 @@ function OpportunityCard({ o }: { o: Opportunity }) {
       <Link href={`/opportunities/${o.id}`} className="mt-1 font-semibold hover:underline">{o.title}</Link>
       <div className="text-xs text-muted">{o.organizer} · deadline {formatDeadline(o.deadline)}</div>
       <p className="mt-2 line-clamp-3 flex-1 text-sm text-ink-soft">{plainSnippet(o.description)}</p>
+      {talk && (
+        <Link href={`/opportunities/${o.id}#diskusi`} className="mt-2 inline-flex flex-wrap items-center gap-2 self-start text-xs text-muted hover:text-ink">
+          <span className="underline">{talk.all ? `${talk.all} diskusi` : "Belum ada diskusi"}</span>
+          {talk.team > 0 && <span className="badge-strong">{talk.team} cari tim</span>}
+        </Link>
+      )}
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1">
           {(o.majors.length ? o.majors : ["Semua fakultas"]).map((m) => <span key={m} className="badge">{m}</span>)}

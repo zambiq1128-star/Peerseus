@@ -69,7 +69,7 @@ function HomeBody() {
     // Questions others proposed for my quizzes (empty until firestore.rules allow questionProposals).
     const toReview = await proposalsToReview(uid).catch(() => [] as QuestionProposal[]);
     // Diskusi markers; a failed load must not break the home page.
-    const notices = await discussionNotices(uid).catch(() => ({ toAnswer: [], answered: [] }));
+    const notices = await discussionNotices(uid).catch(() => ({ toAnswer: [], oppToAnswer: [], answered: [] }));
     // Peluang mendekati deadline; a failed load must not break the home page either.
     const opps = await nearestOpportunities(profile!.major, 3).catch(() => [] as Opportunity[]);
     return { courses, ms, duels, latest, toReview, notices, opps };
@@ -105,6 +105,7 @@ function HomeBody() {
       )}
 
       <DiscussionNotices uid={uid} title="Pertanyaan baru di materimu" label="belum dijawab" items={data.notices.toAnswer} />
+      <DiscussionNotices uid={uid} title="Pertanyaan baru di peluang yang kamu bagikan" label="belum dijawab" items={data.notices.oppToAnswer} />
       <DiscussionNotices uid={uid} title="Pertanyaanmu dijawab" label="dijawab" items={data.notices.answered} />
 
       <Section>
@@ -183,15 +184,15 @@ function HomeBody() {
 /** Home marker for Diskusi, same look as "Usulan soal menunggu". Opening a row marks it as seen (this browser only). */
 function DiscussionNotices({ uid, title, label, items }: { uid: string; title: string; label: string; items: DiscussionNotice[] }) {
   const [gone, setGone] = useState<string[]>([]);
-  const list = items.filter((n) => !gone.includes(n.materialId));
+  const list = items.filter((n) => !gone.includes(n.parentId));
   if (!list.length) return null;
   return (
     <Section title={`${title} (${list.reduce((s, n) => s + n.count, 0)})`}>
       <div className="rows">
         {list.map((n) => (
-          <Link key={n.materialId} href={`/materials/${n.materialId}#diskusi`} className="row-link"
-            onClick={() => { markSeen(uid, n.keys); setGone([...gone, n.materialId]); }}>
-            <span className="text-sm font-medium">{n.materialTitle}</span>
+          <Link key={n.parentId} href={n.href} className="row-link"
+            onClick={() => { markSeen(uid, n.keys); setGone([...gone, n.parentId]); }}>
+            <span className="text-sm font-medium">{n.title}</span>
             <span className="badge-accent shrink-0">{n.count} {label}</span>
           </Link>
         ))}

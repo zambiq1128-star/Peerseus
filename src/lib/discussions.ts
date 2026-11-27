@@ -1,11 +1,12 @@
 "use client";
 import { db, newId } from "./db";
-import type { Discussion, DiscussionAnswer, DiscussionVote, Material, Question, UserProfile } from "./types";
+import type { Discussion, DiscussionAnswer, DiscussionKind, DiscussionVote, Material, Opportunity, Question, UserProfile } from "./types";
 
-// ---------- Diskusi per materi dan per soal ----------
-// Questions and answers about one public material. Counts are computed from three queries per material
-// (db.ts has no transactions or increments), never stored. Who may change what is in firestore.rules
-// (discussions, discussionAnswers, discussionVotes); the same checks run here so demo mode behaves alike.
+// ---------- Diskusi per materi, per soal, dan per peluang ----------
+// Questions and answers attached to exactly one parent: a public material or an opportunity (Hub Peluang).
+// Answers and votes copy their discussion's parent id, so one page needs three queries on that id. Counts are
+// computed from those queries (db.ts has no transactions or increments), never stored. Who may change what is in
+// firestore.rules (discussions, discussionAnswers, discussionVotes); the same checks run here so demo mode behaves alike.
 
 export const DISCUSSIONS = "discussions";
 export const ANSWERS = "discussionAnswers";
@@ -28,22 +29,49 @@ export type DiscussionView = Discussion & {
   voted: boolean;
 };
 
-/** What a new or edited question holds. questionId "" = Umum. */
-export type DiscussionDraft = { title: string; body: string; questionId: string };
+/**
+ * What a discussion hangs on. ownerId = the material's uploader or the opportunity's sharer (postedBy; "seed" for
+ * the samples, which is nobody), who may pick the best answer next to the asker.
+ */
+export type DiscussionParent = { kind: "material" | "opportunity"; id: string; ownerId: string };
+type ParentRef = Pick<DiscussionParent, "kind" | "id">;
+
+/** The field that holds the parent id, on discussions, answers and votes alike. */
+const parentField = (p: Pick<DiscussionParent, "kind">) => (p.kind === "material" ? "materialId" : "opportunityId");
+
+/** { materialId } or { opportunityId }, copied from a discussion (or answer) onto what hangs under it. */
+const parentIdOf = (x: Pick<Discussion, "materialId" | "opportunityId">) =>
+  x.opportunityId ? { opportunityId: x.opportunityId } : { materialId: x.materialId! };
+
+/** Parent of a stored discussion (old ones only have materialId). */
+export const parentRefOf = (d: Pick<Discussion, "materialId" | "opportunityId">): ParentRef =>
+  d.opportunityId ? { kind: "opportunity", id: d.opportunityId } : { kind: "material", id: d.materialId! };
+
+/** Where the Diskusi section of a parent lives. */
+export const parentHref = (p: ParentRef) => `/${p.kind === "material" ? "materials" : "opportunities"}/${p.id}#diskusi`;
+
+export const KIND_LABEL: Record<DiscussionKind, string> = { tanya: "Tanya", "cari-tim": "Cari tim" };
+export const kindOf = (d: Pick<Discussion, "kind">): DiscussionKind => d.kind ?? "tanya";
+
+/**
+ * What a new or edited question holds. questionId "" = Umum (materials only); kind is used on opportunities only,
+ * materials always stay "tanya".
+ */
+export type DiscussionDraft = { title: string; body: string; questionId: string; kind: DiscussionKind };
 
 export const voteId = (targetId: string, uid: string) => `${targetId}_${uid}`;
 
-/** Who may pick (or take back) the best answer: the asker and the material's uploader. */
-export const canPickBest = (d: Pick<Discussion, "authorId">, material: Pick<Material, "uploaderId">, uid: string) =>
-  uid === d.authorId || uid === material.uploaderId;
+/** Who may pick (or take back) the best answer: the asker and the parent's owner (uploader or sharer). */
+export const canPickBest = (d: Pick<Discussion, "authorId">, parent: Pick<DiscussionParent, "ownerId">, uid: string) =>
+  uid === d.authorId || uid === parent.ownerId;
 
 /**
- * All discussions of one material, newest data from users/{id}: names follow renames, and anything written by
+ * All discussions of one material or opportunity, newest data from users/{id}: names follow renames, and anything written by
  * someone whose user document is gone (account deleted) is left out, like the leaderboard (courseMembers).
  * Order: no best answer yet first, then most upvotes, then newest.
  */
-export async function loadDiscussions(materialId: string, uid: string): Promise<DiscussionView[]> {
-  const where: ["materialId", "==", string][] = [["materialId", "==", materialId]];
+export async function loadDiscussions(parent: ParentRef, uid: string): Promise<DiscussionView[]> {
+  const where: [string, "==", string][] = [[parentField(parent), "==", parent.id]];
   const [ds, as, vs] = await Promise.all([
     db.list<Discussion>(DISCUSSIONS, where),
     db.list<DiscussionAnswer>(ANSWERS, where),
@@ -106,16 +134,26 @@ async function publicMaterial(materialId: string) {
   return m;
 }
 
-export async function askQuestion(material: Material, me: Me, draft: DiscussionDraft, questions: Question[]) {
+/**
+ * The parent part of a new discussion. Materials: materialId + courseId (+ quiz question), never `kind`, so new
+ * material discussions look exactly like before. Opportunities: opportunityId + kind, nothing material-only.
+ */
+async function parentPart(parent: ParentRef, draft: DiscussionDraft, questions: Question[]) {
+  if (parent.kind === "material") {
+    const m = await publicMaterial(parent.id);
+    const ctx = context(draft.questionId, questions);
+    return { materialId: m.id, courseId: m.courseId, ...(ctx.questionId && { questionId: ctx.questionId, topic: ctx.topic! }) };
+  }
+  if (!(await db.get<Opportunity>("opportunities", parent.id))) throw new Error("Peluang ini sudah tidak ada.");
+  return { opportunityId: parent.id, kind: draft.kind };
+}
+
+export async function askQuestion(parent: ParentRef, me: Me, draft: DiscussionDraft, questions: Question[] = []) {
   const problem = discussionProblem(draft);
   if (problem) throw new Error(problem);
-  const m = await publicMaterial(material.id);
-  const ctx = context(draft.questionId, questions);
   const d: Discussion = {
     id: newId("dq_"),
-    materialId: m.id,
-    courseId: m.courseId,
-    ...(ctx.questionId && { questionId: ctx.questionId, topic: ctx.topic! }),
+    ...(await parentPart(parent, draft, questions)),
     title: draft.title.trim(),
     body: draft.body.trim(),
     authorId: me.id,
@@ -131,10 +169,15 @@ function mustOwn(x: { authorId: string }, uid: string) {
   if (x.authorId !== uid) throw new Error("Hanya penulisnya yang bisa mengubah atau menghapus ini.");
 }
 
-export async function editQuestion(d: Discussion, uid: string, draft: DiscussionDraft, questions: Question[]) {
+export async function editQuestion(d: Discussion, uid: string, draft: DiscussionDraft, questions: Question[] = []) {
   mustOwn(d, uid);
   const problem = discussionProblem(draft);
   if (problem) throw new Error(problem);
+  // Opportunities: title, body and Tanya/Cari tim only (the rules refuse questionId/topic there).
+  if (d.opportunityId) {
+    await db.update(DISCUSSIONS, d.id, { title: draft.title.trim(), body: draft.body.trim(), kind: draft.kind, updatedAt: Date.now() });
+    return;
+  }
   // null clears the field in Firestore (an omitted field would be kept by updateDoc).
   // A question that has since left the quiz stays linked unless the asker picks another context.
   const ctx = draft.questionId && draft.questionId === d.questionId ? { questionId: d.questionId, topic: d.topic ?? null } : context(draft.questionId, questions);
@@ -157,7 +200,7 @@ export async function answerQuestion(d: Discussion, me: Me, body: string) {
   const a: DiscussionAnswer = {
     id: newId("da_"),
     discussionId: d.id,
-    materialId: d.materialId,
+    ...parentIdOf(d),
     body: body.trim(),
     authorId: me.id,
     authorName: me.name,
@@ -181,18 +224,24 @@ export async function deleteAnswer(a: DiscussionAnswer, uid: string) {
   await db.remove(ANSWERS, a.id);
 }
 
-/** Picks the best answer, or takes the choice back (answerId null). Only the asker or the uploader. */
-export async function setBestAnswer(d: Discussion, material: Material, uid: string, answerId: string | null) {
-  if (!canPickBest(d, material, uid)) throw new Error("Hanya penanya atau pengunggah materi yang bisa memilih jawaban terbaik.");
+/** Picks the best answer, or takes the choice back (answerId null). Only the asker or the parent's owner. */
+export async function setBestAnswer(d: Discussion, parent: DiscussionParent, uid: string, answerId: string | null) {
+  if (!canPickBest(d, parent, uid)) {
+    throw new Error(`Hanya penanya atau ${parent.kind === "material" ? "pengunggah materi" : "yang membagikan peluang"} yang bisa memilih jawaban terbaik.`);
+  }
   await db.update(DISCUSSIONS, d.id, { bestAnswerId: answerId });
 }
 
 /** Upvote, or take my upvote back. Nobody upvotes their own question or answer. */
-export async function toggleVote(target: { id: string; authorId: string; materialId: string; voted: boolean }, type: DiscussionVote["targetType"], uid: string) {
+export async function toggleVote(
+  target: Pick<Discussion, "materialId" | "opportunityId"> & { id: string; authorId: string; voted: boolean },
+  type: DiscussionVote["targetType"],
+  uid: string,
+) {
   if (target.authorId === uid) throw new Error("Tidak bisa upvote tulisan sendiri.");
   const id = voteId(target.id, uid);
   if (target.voted) return db.remove(VOTES, id);
-  const v: DiscussionVote = { id, targetId: target.id, targetType: type, materialId: target.materialId, uid, createdAt: Date.now() };
+  const v: DiscussionVote = { id, targetId: target.id, targetType: type, ...parentIdOf(target), uid, createdAt: Date.now() };
   await db.set(VOTES, id, v);
 }
 
@@ -214,14 +263,17 @@ export async function questionDiscussionCounts(materialId: string, uid: string):
   const m = await db.get<Material>("materials", materialId).catch(() => null);
   if (!m || m.isPublic === false) return null;
   const counts = new Map<string, number>();
-  for (const d of await loadDiscussions(materialId, uid)) if (d.questionId) counts.set(d.questionId, (counts.get(d.questionId) ?? 0) + 1);
+  for (const d of await loadDiscussions({ kind: "material", id: materialId }, uid)) if (d.questionId) counts.set(d.questionId, (counts.get(d.questionId) ?? 0) + 1);
   return counts;
 }
 
 // ---------- Penanda di beranda ----------
 
-/** One material with discussions that need me. `keys` are the "seen" keys that clicking the row marks as seen. */
-export type DiscussionNotice = { materialId: string; materialTitle: string; count: number; keys: string[] };
+/**
+ * One material or opportunity with discussions that need me. `keys` are the "seen" keys that clicking the row
+ * marks as seen; `href` opens its Diskusi section.
+ */
+export type DiscussionNotice = { parentId: string; title: string; href: string; count: number; keys: string[] };
 
 const SEEN_KEY = (uid: string) => `peerseus:diskusi-dilihat:${uid}`;
 
@@ -242,30 +294,47 @@ export function markSeen(uid: string, keys: string[]) {
   }
 }
 
+/** A parent I may need to look at: its title, whether I own it, and its discussions. */
+type Loaded = { ref: ParentRef; title: string; owned: boolean; ds: DiscussionView[] };
+
 /**
- * Home markers. toAnswer: questions from others without any answer on materials I uploaded (key `q:id`).
- * answered: my questions that got an answer from someone else; the key holds the number of such answers
- * (`a:id:n`), so a later answer shows the marker again. Both skip what I already opened (see markSeen).
+ * Home markers. toAnswer: questions from others without any answer on materials I uploaded, oppToAnswer: the
+ * same on opportunities I shared (key `q:id` for both). answered: my questions (on materials and opportunities)
+ * that got an answer from someone else; the key holds the number of such answers (`a:id:n`), so a later answer
+ * shows the marker again. All skip what I already opened (see markSeen).
  */
-export async function discussionNotices(uid: string): Promise<{ toAnswer: DiscussionNotice[]; answered: DiscussionNotice[] }> {
-  const [mine, asked] = await Promise.all([
+export async function discussionNotices(uid: string): Promise<{ toAnswer: DiscussionNotice[]; oppToAnswer: DiscussionNotice[]; answered: DiscussionNotice[] }> {
+  const [mats, opps, asked] = await Promise.all([
     db.list<Material>("materials", [["uploaderId", "==", uid]]),
+    db.list<Opportunity>("opportunities", [["postedBy", "==", uid]]),
     db.list<Discussion>(DISCUSSIONS, [["authorId", "==", uid]]),
   ]);
-  const ids = [...new Set([...mine.map((m) => m.id), ...asked.map((d) => d.materialId)])];
-  const loaded = await Promise.all(ids.map(async (id) => {
-    const [m, ds] = await Promise.all([mine.find((x) => x.id === id) ?? db.get<Material>("materials", id), loadDiscussions(id, uid)]);
-    return m && m.isPublic !== false ? { m, ds } : null;
+  // Every parent once: what I own, plus the parents of my own questions.
+  const refs = new Map<string, ParentRef>();
+  for (const m of mats) refs.set(`material:${m.id}`, { kind: "material", id: m.id });
+  for (const o of opps) refs.set(`opportunity:${o.id}`, { kind: "opportunity", id: o.id });
+  for (const d of asked) {
+    const r = parentRefOf(d);
+    refs.set(`${r.kind}:${r.id}`, r);
+  }
+  const loaded = await Promise.all([...refs.values()].map(async (ref): Promise<Loaded | null> => {
+    if (ref.kind === "material") {
+      const [m, ds] = await Promise.all([mats.find((x) => x.id === ref.id) ?? db.get<Material>("materials", ref.id), loadDiscussions(ref, uid)]);
+      return m && m.isPublic !== false ? { ref, title: m.title, owned: m.uploaderId === uid, ds } : null;
+    }
+    const [o, ds] = await Promise.all([opps.find((x) => x.id === ref.id) ?? db.get<Opportunity>("opportunities", ref.id), loadDiscussions(ref, uid)]);
+    return o ? { ref, title: o.title, owned: o.postedBy === uid, ds } : null;
   }));
   const seen = readSeen(uid);
   const toAnswer: DiscussionNotice[] = [];
+  const oppToAnswer: DiscussionNotice[] = [];
   const answered: DiscussionNotice[] = [];
   for (const x of loaded) {
     if (!x) continue;
-    const notice = (keys: string[]): DiscussionNotice => ({ materialId: x.m.id, materialTitle: x.m.title, count: keys.length, keys });
-    if (x.m.uploaderId === uid) {
+    const notice = (keys: string[]): DiscussionNotice => ({ parentId: x.ref.id, title: x.title, href: parentHref(x.ref), count: keys.length, keys });
+    if (x.owned) {
       const keys = x.ds.filter((d) => d.authorId !== uid && d.answers.length === 0).map((d) => `q:${d.id}`).filter((k) => !seen.has(k));
-      if (keys.length) toAnswer.push(notice(keys));
+      if (keys.length) (x.ref.kind === "material" ? toAnswer : oppToAnswer).push(notice(keys));
     }
     const keys = x.ds.filter((d) => d.authorId === uid)
       .map((d) => [d.id, d.answers.filter((a) => a.authorId !== uid).length] as const)
@@ -274,5 +343,13 @@ export async function discussionNotices(uid: string): Promise<{ toAnswer: Discus
       .filter((k) => !seen.has(k));
     if (keys.length) answered.push(notice(keys));
   }
-  return { toAnswer, answered };
+  return { toAnswer, oppToAnswer, answered };
+}
+
+// ---------- Jumlah diskusi di kartu peluang ----------
+
+/** Discussions per opportunity (all, and "Cari tim"), for the cards on /opportunities. Raw counts, one query each. */
+export async function opportunityDiscussionCounts(ids: string[]): Promise<Map<string, { all: number; team: number }>> {
+  const lists = await Promise.all(ids.map((id) => db.list<Discussion>(DISCUSSIONS, [["opportunityId", "==", id]]).catch(() => [] as Discussion[])));
+  return new Map(ids.map((id, i) => [id, { all: lists[i].length, team: lists[i].filter((d) => kindOf(d) === "cari-tim").length }]));
 }
