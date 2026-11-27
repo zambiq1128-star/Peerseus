@@ -1,6 +1,6 @@
 /*
- * Sign-in and first-run profile screen, JRPG menu look (same language as the home hero):
- * deep navy, big blue slab on one side, faint diagonal lines, giant condensed headline, cut-corner card.
+ * Sign-in and first-run profile screen, Persona blue look (same language as the home hero):
+ * black base, big blue slab on one side, faint diagonal lines, giant condensed headline, cut-corner card.
  * Colors come from the shared tokens in globals.css. Slide-ins use the global animate-slide-* utilities,
  * which the global prefers-reduced-motion rule switches off.
  */
@@ -13,16 +13,16 @@
   color: var(--color-ink);
 }
 
-/* Decoration: blue slab, cyan sliver, thin slanted lines. */
+/* Decoration: blue slab, light sliver, thin slanted lines. */
 .deco { position: absolute; inset: 0; pointer-events: none; }
 .slab {
   position: absolute; top: 0; right: -6rem; width: 70%; height: 100%;
-  background: rgb(30 107 255 / 0.25);
+  background: rgb(18 105 204 / 0.9);
   clip-path: polygon(30% 0, 100% 0, 100% 100%, 0 100%);
 }
 .sliver {
   position: absolute; top: 0; right: -3rem; width: 36%; height: 100%;
-  background: rgb(62 240 255 / 0.14);
+  background: rgb(255 255 255 / 0.1);
   clip-path: polygon(42% 0, 100% 0, 100% 100%, 0 100%);
 }
 .lines {
@@ -46,7 +46,7 @@
   display: block;
   width: auto;
   height: 6.5rem;
-  filter: brightness(1.5) drop-shadow(0 0 12px rgb(62 240 255 / 0.35));
+  filter: brightness(0) invert(1);
 }
 
 .title {
@@ -65,18 +65,18 @@
 .sub {
   max-width: 28rem;
   margin: 1.25rem 0 0;
-  color: #c5d6ff;               /* blue-tinted white, ~12:1 on navy */
+  color: rgb(255 255 255 / 0.9);
   font-size: 1.05rem;
   line-height: 1.5;
   animation: var(--animate-slide-left);
   animation-delay: 240ms;
 }
 
-/* Card: cyan hairline drawn by a slightly smaller cut panel on top of a cyan one; slanted offset shadow behind. */
+/* Card: thin line drawn by a slightly smaller cut panel on top of a larger one; slanted offset shadow behind. */
 .cardWrap {
   width: 100%;
   max-width: 30rem;
-  filter: drop-shadow(10px 12px 0 rgb(30 107 255 / 0.35));
+  filter: drop-shadow(10px 12px 0 var(--color-accent));
   animation: var(--animate-slide-right);
   animation-delay: 200ms;
 }
@@ -89,14 +89,14 @@
 }
 .card::before {
   content: "";
-  position: absolute; inset: 1px; z-index: -1;
+  position: absolute; inset: 4px; z-index: -1;
   background: var(--color-surface);
-  clip-path: polygon(0 0, calc(100% - 21px) 0, 100% 21px, 100% 100%, 21px 100%, 0 calc(100% - 21px));
+  clip-path: polygon(0 0, calc(100% - 19px) 0, 100% 19px, 100% 100%, 19px 100%, 0 calc(100% - 19px));
 }
 
 /* Big ITB button: glow lives on the wrapper because clip-path would cut a shadow on the button itself. */
 .btnWrap { transition: filter 200ms; }
-.btnWrap:hover, .btnWrap:focus-within { filter: drop-shadow(0 0 14px rgb(62 240 255 / 0.65)); }
+.btnWrap:hover, .btnWrap:focus-within { filter: drop-shadow(0 0 0 transparent); }
 
 .divider { margin: 1.4rem 0 1.1rem; border: 0; border-top: 1px solid var(--color-line); }
 

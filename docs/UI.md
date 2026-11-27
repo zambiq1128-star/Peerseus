@@ -1,6 +1,6 @@
 # UI kerangka (for restyling)
 
-The current look is a plain skeleton. A new visual design should mostly change values, not pages.
+The look is the Persona blue theme (see "Palet dan peran warna"). A restyle should mostly change values, not pages.
 
 ## Where the look lives
 
@@ -13,6 +13,33 @@ The current look is a plain skeleton. A new visual design should mostly change v
 | Sign-in screen look (Figma design: hero, logo, tagline, card) | `src/components/Login.tsx` + `Login.module.css` (own colors at the top of the CSS file; sizes are Figma pixels times `--u`) |
 
 Pages use token names only (`bg-surface`, `text-muted`, `rounded-card`, `max-w-page`, ...), never raw colors such as `bg-white` or `bg-red-50`.
+
+## Palet dan peran warna
+
+Tema utama adalah Persona biru. Semua warna lewat token di `@theme` (`src/app/globals.css`); halaman tidak memakai warna mentah.
+
+| Warna | Peran |
+| --- | --- |
+| `#0a0a0a` | Dasar halaman (hitam) |
+| `#040f23` | Midnight: kartu, panel, baris daftar |
+| `#1269cc` | Isian: tombol, tab/chip aktif, slab hero, bayangan offset. Teks di atasnya selalu putih (5,4:1) |
+| `#00bbfa` | Teks dan ikon aksen (8,9:1 di atas hitam), cincin fokus, skor, tautan |
+| `#79d7fd` | Highlight: glow, titik halftone. Dekorasi saja |
+| `#6d9ac7` | Teks redup (6,7:1) |
+| `#476392` | Garis dan border, hanya non-teks |
+| `#ff2e3f` | Merah, HANYA untuk status buruk: duel kalah, jawaban salah, error, duel ditolak, rumus rusak |
+
+Aturan kontras: teks minimal 4,5:1, elemen non-teks minimal 3:1.
+
+Larangan kombinasi:
+
+- Teks putih di atas `#00bbfa` atau `#79d7fd` (hanya 2,2:1 atau lebih rendah). Di atas keduanya pakai teks hitam `#0a0a0a`.
+- Teks `#1269cc` di atas hitam (hanya 3,7:1). Biru ini hanya untuk isian.
+- Merah untuk hal lain selain status buruk.
+
+Bentuk: heading besar bergaya ransom (`src/components/Ransom.tsx`), kartu bertepi sobek lewat `--p5-cut-a`/`--p5-cut-b`.
+
+Nama token `navy`, `volt`, `cyan`, dan kelas `jrpg-*` adalah nama warisan dari tema JRPG navy/cyan sebelumnya. Namanya sengaja tidak diganti supaya semua halaman tetap mengikuti; nilainya sudah warna Persona biru.
 
 ## Page structure
 

@@ -200,7 +200,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
           </div>
         )}
         {err && (
-          <div className="card flex flex-wrap items-center justify-between gap-3 border-bad">
+          <div className="card flex flex-wrap items-center justify-between gap-3 [--card-border:var(--color-bad)]">
             <span className="text-sm text-bad">Hasil belum tersimpan: {err}</span>
             <button className="btn-primary" onClick={() => onSubmit(run)}>Coba lagi</button>
           </div>
