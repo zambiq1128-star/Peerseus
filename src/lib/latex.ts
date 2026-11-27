@@ -215,3 +215,39 @@ export function texToMarkdown(src: string): string {
 
   return normalizeMath(s.replace(/[ \t]+\n/g, "\n"));
 }
+
+/** A plain-text teaser of Markdown + LaTeX: drops headings, emphasis, links, code and math markers. */
+export function plainSnippet(text: string, max = 240) {
+  return plainTex(
+    text
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/g, " [rumus] ")
+      .replace(/\$([^$\n]+)\$|\\\((.+?)\\\)/g, (_, a: string | undefined, b: string | undefined) => a ?? b ?? "")
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/^[#>\-*+\s|]+/gm, ""),
+  )
+    .replace(/[*_`|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+/** Common LaTeX symbols, shown as the character itself in snippets. */
+const TEX_SYMBOLS: Record<string, string> = {
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ", epsilon: "ε", theta: "θ", lambda: "λ", mu: "μ",
+  pi: "π", rho: "ρ", sigma: "σ", Sigma: "Σ", tau: "τ", phi: "φ", omega: "ω", Omega: "Ω",
+  cdot: "·", times: "×", pm: "±", le: "≤", leq: "≤", ge: "≥", geq: "≥", neq: "≠", approx: "≈", infty: "∞", to: "→", rightarrow: "→", sqrt: "√",
+};
+
+/** Inline LaTeX as readable text, e.g. "10\,\mathrm{m/s}^2" → "10 m/s^2", "\frac{\Delta x}{\Delta t}" → "Δx/Δt". */
+function plainTex(text: string) {
+  const group = String.raw`\{((?:[^{}]|\{[^{}]*\})*)\}`; // {…}, with one level of nested braces
+  return text
+    .replace(/\\\\|\\[,;:!> ]|~/g, " ")
+    .replace(/\\(?:mathrm|text|textbf|textit|mathbf|mathit|mathsf|operatorname|emph|vec|hat|bar|overline|underline|dot|ddot|tilde|boldsymbol|left|right)(?![a-zA-Z])\s*/g, "")
+    .replace(new RegExp(String.raw`\\[dt]?frac\s*${group}\s*${group}`, "g"), "$1/$2")
+    .replace(/\\(?:begin|end)\s*\{[^{}]*\}/g, " ")
+    // Known symbols become the character; other commands before a {…} (\section{Bab}) keep only the argument.
+    .replace(/\\([a-zA-Z]+)(?=(\{)?)/g, (_, cmd: string, arg?: string) => TEX_SYMBOLS[cmd] ?? (arg ? "" : cmd))
+    .replace(/[{}]/g, "");
+}

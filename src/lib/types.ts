@@ -202,3 +202,52 @@ export type Opportunity = {
   postedBy: string;
   createdAt: number;
 };
+
+/**
+ * A question about one public material (diskusi), optionally about one quiz question. Counts (answers,
+ * upvotes) are never stored: they come from per-material queries (src/lib/discussions.ts).
+ * Materials in privateMaterials have no discussions (firestore.rules require materials/{materialId}).
+ */
+export type Discussion = {
+  id: string;
+  materialId: string;
+  courseId: string;
+  /** Id of a question in quizzes/quiz_{materialId}.questions. Missing = "Umum" (about the material). */
+  questionId?: string | null;
+  /** Topic of that quiz question, kept for later filtering. */
+  topic?: string | null;
+  title: string;
+  /** Markdown + LaTeX. */
+  body: string;
+  authorId: string;
+  authorName: string;
+  /** Chosen by the asker or the material's uploader; null = choice taken back. */
+  bestAnswerId?: string | null;
+  createdAt: number;
+  updatedAt?: number;
+  reports: number;
+};
+
+/** One answer to a discussion (one level, no replies to answers). */
+export type DiscussionAnswer = {
+  id: string;
+  discussionId: string;
+  materialId: string;
+  /** Markdown + LaTeX. */
+  body: string;
+  authorId: string;
+  authorName: string;
+  createdAt: number;
+  updatedAt?: number;
+  reports: number;
+};
+
+/** One upvote. Document id: `${targetId}_${uid}`, so a person votes once per target; removing it = deleting the doc. */
+export type DiscussionVote = {
+  id: string;
+  targetId: string;
+  targetType: "discussion" | "answer";
+  materialId: string;
+  uid: string;
+  createdAt: number;
+};
