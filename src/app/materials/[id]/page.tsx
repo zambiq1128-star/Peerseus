@@ -12,6 +12,7 @@ import type { WaitInfo } from "@/lib/convert";
 import { CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 import { MarkdownView, MathText } from "@/components/Markdown";
 import { AttachmentPreview } from "@/components/AttachmentField";
+import { Discussions } from "@/components/Discussions";
 import { ManageQuestions, MyProposals, ProposeQuestion, ReviewProposals } from "@/components/Proposals";
 
 export default function MaterialPage() {
@@ -154,6 +155,9 @@ export default function MaterialPage() {
           </button>
         )}
       </div>
+
+      {/* Diskusi: public materials only (private ones have none, see firestore.rules) */}
+      {!isPrivate && <Discussions material={material} quiz={quiz} me={profile!} />}
     </Page>
   );
 }

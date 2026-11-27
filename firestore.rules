@@ -16,6 +16,10 @@ rules_version = '2';
 // Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
 // Proposed questions (questionProposals): readable by the proposer and the material's uploader; only that
 // uploader accepts or rejects them, and the proposer can withdraw one while it is pending.
+// Discussions (discussions, discussionAnswers, discussionVotes): only on public materials (materials/{id}),
+// never private ones. Authors edit and delete their own writing; the asker or the material's uploader picks
+// the best answer (bestAnswerId only). Anyone may add one report. Votes: one per person per target
+// (id {targetId}_{uid}), created or deleted by their owner, never on their own writing, never edited.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -145,9 +149,91 @@ service cloud.firestore {
       allow delete: if allowed() && proposer(resource.data) && resource.data.status == 'pending';
     }
 
+    // ---------- Diskusi ----------
+    function docPath(col, id) {
+      return /databases/$(database)/documents/$(col)/$(id);
+    }
+    function textOk(d, field, max) {
+      return d[field] is string && d[field].size() > 0 && d[field].size() <= max;
+    }
+    // One more report and nothing else (same pattern as materials and quizzes).
+    function addsReport() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reports'])
+        && request.resource.data.reports == resource.data.get('reports', 0) + 1;
+    }
+
+    match /discussions/{id} {
+      function asker() {
+        return resource.data.authorId == request.auth.uid;
+      }
+      function materialUploader() {
+        return get(docPath('materials', resource.data.materialId)).data.uploaderId == request.auth.uid;
+      }
+      // bestAnswerId: null (taken back) or an answer of this discussion.
+      function validBest() {
+        let b = request.resource.data.bestAnswerId;
+        return b == null || (exists(docPath('discussionAnswers', b)) && get(docPath('discussionAnswers', b)).data.discussionId == id);
+      }
+      allow read: if allowed();
+      allow create: if allowed()
+        && request.resource.data.authorId == request.auth.uid
+        && exists(docPath('materials', request.resource.data.materialId))
+        && request.resource.data.courseId == get(docPath('materials', request.resource.data.materialId)).data.courseId
+        && !request.resource.data.keys().hasAny(['bestAnswerId', 'updatedAt'])
+        && request.resource.data.reports == 0
+        && textOk(request.resource.data, 'title', 150)
+        && textOk(request.resource.data, 'body', 10000);
+      allow update: if allowed() && (
+        (asker()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'questionId', 'topic', 'updatedAt'])
+          && textOk(request.resource.data, 'title', 150)
+          && textOk(request.resource.data, 'body', 10000))
+        || ((asker() || materialUploader())
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['bestAnswerId'])
+          && validBest())
+        || addsReport());
+      allow delete: if allowed() && asker();
+    }
+
+    match /discussionAnswers/{id} {
+      function author() {
+        return resource.data.authorId == request.auth.uid;
+      }
+      allow read: if allowed();
+      allow create: if allowed()
+        && request.resource.data.authorId == request.auth.uid
+        && exists(docPath('discussions', request.resource.data.discussionId))
+        && request.resource.data.materialId == get(docPath('discussions', request.resource.data.discussionId)).data.materialId
+        && !request.resource.data.keys().hasAny(['updatedAt'])
+        && request.resource.data.reports == 0
+        && textOk(request.resource.data, 'body', 10000);
+      allow update: if allowed() && (
+        (author()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['body', 'updatedAt'])
+          && textOk(request.resource.data, 'body', 10000))
+        || addsReport());
+      allow delete: if allowed() && author();
+    }
+
+    match /discussionVotes/{id} {
+      function target() {
+        let d = request.resource.data;
+        return get(docPath(d.targetType == 'discussion' ? 'discussions' : 'discussionAnswers', d.targetId)).data;
+      }
+      allow read: if allowed();
+      allow create: if allowed()
+        && request.resource.data.uid == request.auth.uid
+        && id == request.resource.data.targetId + '_' + request.auth.uid
+        && request.resource.data.targetType in ['discussion', 'answer']
+        && target().authorId != request.auth.uid
+        && target().materialId == request.resource.data.materialId;
+      allow update: if false;
+      allow delete: if allowed() && resource.data.uid == request.auth.uid;
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals', 'discussions', 'discussionAnswers', 'discussionVotes']) && allowed();
     }
   }
 }
