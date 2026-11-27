@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
+import { daysLeft, deadlineLabel, isUrgent, nearestOpportunities, OPP_TYPES } from "@/lib/opportunities";
 import { discussionNotices, markSeen, type DiscussionNotice } from "@/lib/discussions";
 import { proposalsToReview } from "@/lib/proposals";
-import type { Course, Membership, QuestionProposal } from "@/lib/types";
+import type { Course, Membership, Opportunity, QuestionProposal } from "@/lib/types";
 import { Ransom } from "@/components/Ransom";
 import { Splat, Starburst } from "@/components/Decor";
 import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -69,7 +70,9 @@ function HomeBody() {
     const toReview = await proposalsToReview(uid).catch(() => [] as QuestionProposal[]);
     // Diskusi markers; a failed load must not break the home page.
     const notices = await discussionNotices(uid).catch(() => ({ toAnswer: [], answered: [] }));
-    return { courses, ms, duels, latest, toReview, notices };
+    // Peluang mendekati deadline; a failed load must not break the home page either.
+    const opps = await nearestOpportunities(profile!.major, 3).catch(() => [] as Opportunity[]);
+    return { courses, ms, duels, latest, toReview, notices, opps };
   }, [uid, profile?.courseIds.length]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -135,6 +138,25 @@ function HomeBody() {
           </p>
         )}
       </Section>
+
+      {data.opps.length > 0 && (
+        <Section title="Peluang mendekati deadline" action={<Link href="/opportunities" className="link text-sm">Lihat semua peluang</Link>}>
+          <div className="rows">
+            {data.opps.map((o) => {
+              const d = daysLeft(o.deadline);
+              return (
+                <Link key={o.id} href={`/opportunities/${o.id}`} className="row-link">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">{o.title}</div>
+                    <div className="text-xs text-muted">{OPP_TYPES[o.type] ?? OPP_TYPES.lainnya} · {o.organizer}</div>
+                  </div>
+                  <span className={`${isUrgent(d) ? "badge-strong" : "badge"} shrink-0`}>{deadlineLabel(d)}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       {data.latest.length > 0 && (
         <Section title="Materi terbaru di mata kuliahku">

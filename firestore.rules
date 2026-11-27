@@ -20,6 +20,8 @@ rules_version = '2';
 // never private ones. Authors edit and delete their own writing; the asker or the material's uploader picks
 // the best answer (bestAnswerId only). Anyone may add one report. Votes: one per person per target
 // (id {targetId}_{uid}), created or deleted by their owner, never on their own writing, never edited.
+// Opportunities (Hub Peluang): anyone allowed reads; only the sharer creates (as themselves), edits and deletes;
+// anyone may add one report. Seed samples (postedBy "seed") are read-only.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -231,9 +233,50 @@ service cloud.firestore {
       allow delete: if allowed() && resource.data.uid == request.auth.uid;
     }
 
+    // ---------- Hub Peluang ----------
+    // Anyone allowed reads. Only the sharer (postedBy) creates as themselves, edits and deletes; anyone may add
+    // one report (+1, nothing else). Seed samples (postedBy "seed", ids opp_seed_N) can be created once by the
+    // seeding user and are read-only afterwards: nobody's uid is "seed", so they can't be edited or deleted.
+    match /opportunities/{id} {
+      function oppFields(d) {
+        return d.keys().hasOnly(['id', 'title', 'type', 'organizer', 'majors', 'deadline', 'link', 'description', 'postedBy', 'createdAt', 'updatedAt', 'reports']);
+      }
+      function oppValid(d) {
+        return textOk(d, 'title', 150)
+          && textOk(d, 'organizer', 150)
+          && textOk(d, 'description', 5000)
+          && d.type in ['beasiswa', 'lomba', 'seminar', 'lainnya']
+          && d.deadline is string
+          && d.deadline.matches('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$')
+          && d.link is string && d.link.size() <= 500 && d.link.matches('^https://[^ ]+$')
+          && d.majors is list && d.majors.size() <= 12
+          && d.majors.hasOnly(['STEI', 'FTI', 'FMIPA', 'SITH', 'SF', 'FTSL', 'FTTM', 'FITB', 'FTMD', 'SAPPK', 'SBM', 'FSRD']);
+      }
+      function poster() {
+        return resource.data.postedBy == request.auth.uid;
+      }
+      allow read: if allowed();
+      allow create: if allowed()
+        && oppFields(request.resource.data)
+        && request.resource.data.id == id
+        && request.resource.data.createdAt is number
+        && request.resource.data.get('reports', 0) == 0
+        && !request.resource.data.keys().hasAny(['updatedAt'])
+        && oppValid(request.resource.data)
+        && (request.resource.data.postedBy == request.auth.uid
+          || (request.resource.data.postedBy == 'seed' && id.matches('^opp_seed_[0-9]+$')));
+      allow update: if allowed() && (
+        (poster()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'type', 'organizer', 'deadline', 'majors', 'link', 'description', 'updatedAt'])
+          && oppValid(request.resource.data)
+          && (!request.resource.data.keys().hasAny(['updatedAt']) || request.resource.data.updatedAt is number))
+        || addsReport());
+      allow delete: if allowed() && poster();
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals', 'discussions', 'discussionAnswers', 'discussionVotes']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals', 'opportunities', 'discussions', 'discussionAnswers', 'discussionVotes']) && allowed();
     }
   }
 }

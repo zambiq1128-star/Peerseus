@@ -199,8 +199,10 @@ export type Opportunity = {
   deadline: string; // YYYY-MM-DD
   link: string;
   description: string;
-  postedBy: string;
+  postedBy: string; // "seed" for the demo samples (read-only)
   createdAt: number;
+  updatedAt?: number;
+  reports?: number; // missing = 0
 };
 
 /**
