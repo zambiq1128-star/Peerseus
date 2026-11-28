@@ -165,6 +165,15 @@ service cloud.firestore {
           ? ['challengerLive', 'opponentLive']
           : [me() == d().challengerId ? 'challengerLive' : 'opponentLive'];
       }
+      // Every time (live or final) is a number of ms from 0 to 20000 (one question's time; a value that is not
+      // a number fails the comparison, which denies). Written out per index (at most 6 questions, see validInvite)
+      // because rules have no loops.
+      function timeOk(t, i) {
+        return t.size() <= i || (t[i] >= 0 && t[i] <= 20000);
+      }
+      function timesOk(t) {
+        return timeOk(t, 0) && timeOk(t, 1) && timeOk(t, 2) && timeOk(t, 3) && timeOk(t, 4) && timeOk(t, 5);
+      }
       function liveOk(key) {
         let a0 = d().get(key, {}).get('answers', []);
         let t0 = d().get(key, {}).get('timesMs', []);
@@ -176,6 +185,7 @@ service cloud.firestore {
             && after.lastSeen == request.time
             && a1.size() >= a0.size() && a1.size() <= d().questions.size() && t1.size() == a1.size()
             && (a0.size() == 0 || a1[0:a0.size()] == a0) && (t0.size() == 0 || t1[0:t0.size()] == t0)
+            && timesOk(t1)
             && (a1.size() == a0.size() || request.time >= d().acceptedAt + duration.value(4, 's')));
       }
       function plays() {
@@ -206,12 +216,19 @@ service cloud.firestore {
         return (t.size() > 0 ? t[0] : 0) + (t.size() > 1 ? t[1] : 0) + (t.size() > 2 ? t[2] : 0)
           + (t.size() > 3 ? t[3] : 0) + (t.size() > 4 ? t[4] : 0) + (t.size() > 5 ? t[5] : 0);
       }
+      // Final sides are the live answers and times, then -1 with the full 20000 ms for each question never answered
+      // (left or out of time), so no answer can be added at the end. Final times are therefore in range too: each live
+      // time was checked by timesOk when it was written (checking them again here goes past the 1000-expression limit
+      // for a guest with 6 questions).
       function finalOk(f, live, q) {
         let liveA = live.get('answers', []);
         let liveT = live.get('timesMs', []);
-        return f.answers.size() == q.size() && f.timesMs.size() == q.size()
-          && (liveA.size() == 0 || f.answers[0:liveA.size()] == liveA) && (liveT.size() == 0 || f.timesMs[0:liveT.size()] == liveT)
-          && f.score == scoreOf(f.answers, q) && f.totalMs == sumOf(f.timesMs);
+        let missed = q.size() - liveA.size();
+        return liveT.size() == liveA.size()
+          // (an empty slice [0:0] is an error in rules, hence the missed == 0 case)
+          && f.answers == (missed == 0 ? liveA : liveA.concat([-1, -1, -1, -1, -1, -1][0:missed]))
+          && f.timesMs == (missed == 0 ? liveT : liveT.concat([20000, 20000, 20000, 20000, 20000, 20000][0:missed]))
+          && f.score == scoreOf(f.answers, q) && f.totalMs == sumOf(liveT) + 20000 * missed;
       }
       // Same rule as the app: higher score wins, then faster total time by more than 0.5 s, otherwise a draw (null).
       function winnerOk() {
