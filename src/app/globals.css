@@ -16,7 +16,8 @@
  *            If it is ever used as a FILL, the text on it must be black #0a0a0a (white is only 2.2:1).
  *   #79d7fd  bright highlight: glow, halftone dots, light flecks. Decoration only, never behind white text.
  *   #6d9ac7  muted text (6.7:1), #476392 thin lines and borders (non-text only, 3.16:1 on #040f23, 3.27:1 on #0a0a0a)
- *   #ff2e3f  RED is reserved for bad status: lost duel, wrong answer, errors, declined duel, broken formulas.
+ *   #ff2e3f  RED is reserved for bad status: lost duel, wrong answer, errors, declined duel, broken formulas,
+ *            and the button that confirms a permanent delete (btn-bad, black text: 5.4:1).
  * Legacy token names (navy, volt, cyan, jrpg-*) come from the earlier navy/cyan JRPG theme. They are kept so every
  * page follows without edits; only the values changed. Do not rename them:
  *   navy -> black / midnight, volt -> blue fill, cyan -> light blue text accent.
@@ -257,6 +258,8 @@ body::before {
 @utility btn-primary { @apply btn bg-accent text-on-accent hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black; }
 /* Secondary: white with black text. */
 @utility btn-ghost { @apply btn bg-white text-black hover:bg-accent hover:text-white focus-visible:bg-accent focus-visible:text-white; }
+/* Confirms a permanent delete ("Hapus permanen"), the only red button. Black text on red (white would be 3.7:1). */
+@utility btn-bad { @apply btn bg-bad text-black hover:bg-white hover:text-black focus-visible:bg-white focus-visible:text-black; }
 @utility input {
   @apply w-full border-[3px] border-white bg-black px-3 py-2 text-sm text-white outline-none transition;
   border-radius: 0;

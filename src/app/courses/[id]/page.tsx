@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS, withUploaderNames } from "@/lib/peerseus";
@@ -21,6 +21,14 @@ export default function CoursePage() {
   const [board, setBoard] = useState<"kontributor" | "duel">("kontributor");
   const [kind, setKind] = useState<"" | MaterialType>("");
   const joined = profile!.courseIds.includes(id);
+  const router = useRouter();
+  // "Materi dihapus" after deleting one from its edit page (?dihapus=1); the URL is cleaned so a reload doesn't repeat it.
+  const [deleted, setDeleted] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("dihapus") !== "1") return;
+    setDeleted(true);
+    router.replace(`/courses/${id}`, { scroll: false });
+  }, [id, router]);
 
   const { data, error, reload } = useAsync(async () => {
     const [course, materials, mine, quizzes, members] = await Promise.all([
@@ -61,6 +69,13 @@ export default function CoursePage() {
           <button className="btn-primary" onClick={async () => { await joinCourse(profile!, id); await refresh(); reload(); }}>Gabung mata kuliah</button>
         )}
       />
+
+      {deleted && (
+        <div role="status" className="callout flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm font-medium">Materi dihapus.</span>
+          <button className="btn-ghost" onClick={() => setDeleted(false)}>Tutup</button>
+        </div>
+      )}
 
       {me && (
         <div className="card grid gap-4 sm:grid-cols-[140px_1fr]">

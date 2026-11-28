@@ -155,7 +155,7 @@ export async function createMaterial(input: Omit<Material, "id" | "createdAt" | 
   return m;
 }
 
-export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text" | "attachment">) {
+export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text" | "attachment"> & Partial<Pick<Material, "courseId">>) {
   await db.update(colOf(m), m.id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 
@@ -169,6 +169,31 @@ export async function setMaterialPublic(m: Material, isPublic: boolean): Promise
   await db.set(colOf(next), m.id, next);
   await db.remove(colOf(m), m.id);
   return next;
+}
+
+export const MOVE_BLOCKED = "Materi yang sudah punya kuis atau diskusi tidak bisa dipindah";
+
+/**
+ * What hangs on a material: its quiz (quizzes/quiz_{id}, any status) and how many discussions it has.
+ * A material with either stays in its course (the quiz and discussions copy courseId); the edit page checks this,
+ * the rules don't. Deleting shows the same numbers in its confirmation.
+ */
+export async function materialLinks(m: Material): Promise<{ hasQuiz: boolean; discussions: number }> {
+  const [quiz, discussions] = await Promise.all([
+    db.get<Quiz>("quizzes", `quiz_${m.id}`),
+    db.list<{ id: string }>("discussions", [["materialId", "==", m.id]]),
+  ]);
+  return { hasQuiz: !!quiz, discussions: discussions.length };
+}
+
+/**
+ * Deletes my material and its quiz. Duels (they copy the questions), discussions, proposals and practice
+ * attempts stay: they belong to other people, and pages that show them skip a material that is gone.
+ * Google Drive attachments are not removed.
+ */
+export async function deleteMaterial(m: Material) {
+  await db.remove(colOf(m), m.id);
+  if (m.isPublic !== false && (await db.get<Quiz>("quizzes", `quiz_${m.id}`))) await db.remove("quizzes", `quiz_${m.id}`);
 }
 
 /** Asks the server for questions; waits and retries by itself on rate limits (see callAi). */

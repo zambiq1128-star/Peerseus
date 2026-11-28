@@ -116,6 +116,8 @@ export async function ensureSeeded() {
     [{ id: "mat_fi_newton", courseId: "fi1101", title: "Kinematika & Hukum Newton", type: "catatan", description: "Catatan kuliah minggu 2–4.", topics: ["Kinematika", "Hukum Newton"], text: FI_TEXT, uploaderId: "bot_bima", uploaderName: "Bima Pratama", createdAt: now - 86400000, reports: 0 }, FI_QUESTIONS],
   ];
   for (const [m, qs] of mats) {
+    // The rules let anyone create these two once (as their demo uploader) and never rewrite them.
+    if (await db.get<Material>("materials", m.id)) continue;
     await db.set("materials", m.id, m);
     const quiz: Quiz = { id: `quiz_${m.id}`, materialId: m.id, courseId: m.courseId, title: m.title, status: "published", questions: qs, createdBy: m.uploaderId, createdAt: m.createdAt, generator: "seed", reports: 0 };
     await db.set("quizzes", quiz.id, quiz);
@@ -123,6 +125,7 @@ export async function ensureSeeded() {
 
   for (const [i, o] of OPPS.entries()) {
     const id = `opp_seed_${i}`;
+    if (await db.get("opportunities", id)) continue; // same as the materials: created once, never rewritten
     await db.set("opportunities", id, { ...o, id, createdAt: now - i * 3600000, postedBy: "seed" });
   }
 
