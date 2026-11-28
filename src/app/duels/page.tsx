@@ -1,4 +1,5 @@
 "use client";
+import { displayOpponentName } from "@/lib/bots";
 import Link from "next/link";
 import { useState } from "react";
 import { db } from "@/lib/db";
@@ -88,7 +89,7 @@ const LABEL: Record<DuelState, string> = {
 
 function DuelRow({ d, uid, now }: { d: Duel; uid: string; now: number }) {
   const meC = d.challengerId === uid;
-  const opp = meC ? d.opponentName : d.challengerName;
+  const opp = displayOpponentName(d, meC ? d.opponentId : d.challengerId);
   const mine = meC ? d.challenger : d.opponent;
   const theirs = meC ? d.opponent : d.challenger;
   const s = duelState(d, now);

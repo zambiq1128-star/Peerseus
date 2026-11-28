@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { ladderAnswer, ladderBot } from "@/lib/bots";
+import { displayOpponentName, ladderAnswer, ladderBot, LADDER_BOTS } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
 import {
@@ -39,7 +39,7 @@ export default function DuelPage() {
 
 /** VS heading shared by the waiting room, the invite and the start countdown. */
 function Versus({ duel, uid }: { duel: Duel; uid: string }) {
-  const opp = duel.challengerId === uid ? duel.opponentName : duel.challengerName;
+  const opp = displayOpponentName(duel, duel.challengerId === uid ? duel.opponentId : duel.challengerId);
   return (
     <>
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
@@ -85,7 +85,7 @@ function WaitingRoom({ duel, uid, now }: { duel: Duel; uid: string; now: number 
   return (
     <Page width="narrow">
       <div className="card space-y-5 text-center !p-8">
-        <div className="eyebrow">Menunggu {duel.opponentName} menerima</div>
+        <div className="eyebrow">Menunggu {displayOpponentName(duel, duel.opponentId)} menerima</div>
         <Versus duel={duel} uid={uid} />
         <div className="font-display text-6xl font-bold tabular-nums text-cyan" aria-label={`Sisa waktu ${clock(left)}`}>{clock(left)}</div>
         <p className="text-sm text-muted">Begitu diterima, kalian berdua langsung masuk ke duel.</p>
@@ -115,7 +115,7 @@ function Ended({ duel, uid }: { duel: Duel; uid: string }) {
   const meC = duel.challengerId === uid;
   const state = duelState(duel);
   const [badge, title] =
-    state === "declined" ? ["Ditolak", meC ? `${duel.opponentName} menolak duel ini` : `Kamu menolak ajakan ${duel.challengerName}`]
+    state === "declined" ? ["Ditolak", meC ? `${displayOpponentName(duel, duel.opponentId)} menolak duel ini` : `Kamu menolak ajakan ${duel.challengerName}`]
     : state === "cancelled" ? ["Dibatalkan", meC ? "Kamu membatalkan ajakan ini" : `${duel.challengerName} membatalkan ajakannya`]
     : ["Kedaluwarsa", duel.mode === "live" ? "Ajakan ini tidak dijawab dalam 2 menit" : "Duel bergiliran ini sudah tidak bisa dimainkan"];
   return (
@@ -312,7 +312,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const meC = duel.challengerId === uid;
   const mine = meC ? duel.challenger! : duel.opponent!;
   const theirs = meC ? duel.opponent : duel.challenger;
-  const oppName = meC ? duel.opponentName : duel.challengerName;
+  const oppName = displayOpponentName(duel, meC ? duel.opponentId : duel.challengerId);
   const missed = missedTopics(duel, uid);
   // Pembahasan: wrong questions first (keeping their original numbers), open by default when there is one.
   const review = duel.questions.map((q, i) => ({ q, i, ok: mine.answers[i] === q.answerIndex })).sort((a, b) => Number(a.ok) - Number(b.ok) || a.i - b.i);
@@ -367,7 +367,8 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         )}
         {done && ladder && (
           <>
-            <p className="mt-4 text-lg font-semibold">{won ? `Kamu mengalahkan ${ladder.name}!` : draw ? `Seri melawan ${ladder.name}` : `${ladder.name} menang kali ini`}</p>
+            <p className="mt-4 text-lg font-semibold">{won ? `Kamu mengalahkan ${oppName}!` : draw ? `Seri melawan ${oppName}` : `${oppName} menang kali ini`}</p>
+            {won && ladder.level === LADDER_BOTS.length && <p className="mt-1 text-lg font-semibold text-cyan">Kamu sampai di Ithaca!</p>}
             <p className="mt-1 text-sm text-muted">Lawan bot: rating tidak berubah dan tidak masuk hitungan menang/kalah. Topik yang kamu jawab tetap tercatat.</p>
           </>
         )}

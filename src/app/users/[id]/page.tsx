@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { isLadderBotId } from "@/lib/bots";
-import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import { ensureLadderBots, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
 import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
@@ -17,6 +17,8 @@ export default function UserPage() {
   const { id } = useParams<{ id: string }>();
   const { profile: me } = useAuth();
   const { data, error, reload } = useAsync(async () => {
+    // A ladder bot's profile must show the current Odyssey name/bio even if the old document was never refreshed.
+    if (isLadderBotId(id)) await ensureLadderBots().catch(() => {});
     const [user, memberships, materials, courses] = await Promise.all([
       db.get<UserProfile>("users", id),
       db.list<Membership>("memberships", [["uid", "==", id]]),

@@ -3,9 +3,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { LADDER_BOTS, type LadderBot } from "@/lib/bots";
+import { displayOpponentName, LADDER_BOTS, type LadderBot } from "@/lib/bots";
 import { db } from "@/lib/db";
-import { activeOutgoingInvite, createInvite, defeatedLadderBots, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
+import { activeOutgoingInvite, createInvite, defeatedLadderBots, DUEL_QUESTIONS, ensureLadderBots, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
 import type { Course, Quiz } from "@/lib/types";
 import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
@@ -43,6 +43,8 @@ function NewDuel() {
     const opponents = await suggestOpponents(courseId, uid);
     // Only one outgoing invite may wait at a time.
     const waiting = await activeOutgoingInvite(uid);
+    // Keep users/bot_* in step with bots.ts (new names); failure here must not block the page.
+    ensureLadderBots().catch(() => {});
     const beaten = await defeatedLadderBots(uid, courseId);
     return { course, quizzes, opponents, me, waiting, beaten };
   }, [quizParam, courseParam, uid]);
@@ -123,7 +125,8 @@ function NewDuel() {
         )
       ) : (
         <div>
-          <div className="label">Lawan bot <span className="font-normal text-muted">(urut dari yang paling mudah; rating bot tidak berubah)</span></div>
+          <p className="callout text-sm">Perjalanan pulang ke Ithaca: kalahkan tiap rintangan, dari {LADDER_BOTS[0].name} sampai {LADDER_BOTS[LADDER_BOTS.length - 1].name}.</p>
+          <div className="label mt-3">Lawan bot <span className="font-normal text-muted">(urut dari yang paling mudah; rating bot tidak berubah)</span></div>
           <div className="rows">
             {LADDER_BOTS.map((b) => <BotCard key={b.id} bot={b} selected={bot.id === b.id} beaten={data.beaten.has(b.id)} onPick={() => setBotId(b.id)} />)}
           </div>
@@ -132,7 +135,7 @@ function NewDuel() {
 
       {data.waiting ? (
         <div className="callout flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-medium">Ajakanmu ke {data.waiting.opponentName} masih menunggu jawaban.</span>
+          <span className="text-sm font-medium">Ajakanmu ke {displayOpponentName(data.waiting, data.waiting.opponentId)} masih menunggu jawaban.</span>
           <Link href={`/duel/${data.waiting.id}`} className="btn-primary">Lihat ajakan</Link>
         </div>
       ) : tab === "bot" ? (
