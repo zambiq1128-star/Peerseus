@@ -6,7 +6,10 @@ import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERIALS, withUploaderNames } from "@/lib/peerseus";
 import type { Course, Material, MaterialType, Membership, Quiz } from "@/lib/types";
-import { CollapsibleRows, Empty, ErrorState, LIST_LIMIT, NotFound, Page, PageHeader, ShowMoreButton, Spinner, TopicBar, useAsync } from "@/components/ui";
+import { Empty, ErrorState, LIST_LIMIT, NotFound, Page, PageHeader, ShowMoreButton, Spinner, TopicBar, useAsync } from "@/components/ui";
+import MaterialCard, { MaterialGrid } from "@/components/MaterialCard";
+import { countDiscussions, publishedQuizSizes } from "@/lib/materialStats";
+import type { Discussion } from "@/lib/types";
 import PartnerList from "@/components/PartnerList";
 import ContributorBoard from "@/components/ContributorBoard";
 
@@ -31,16 +34,18 @@ export default function CoursePage() {
   }, [id, router]);
 
   const { data, error, reload } = useAsync(async () => {
-    const [course, materials, mine, quizzes, members] = await Promise.all([
+    const [course, materials, mine, quizzes, discussions, members] = await Promise.all([
       db.get<Course>("courses", id),
       db.list<Material>("materials", [["courseId", "==", id]]),
       // My private materials (only mine are readable), shown to me alongside the public ones.
       db.list<Material>(PRIVATE_MATERIALS, [["uploaderId", "==", uid]]),
       db.list<Quiz>("quizzes", [["courseId", "==", id]]),
+      // One read for the whole course; the count per card is done in the app.
+      db.list<Discussion>("discussions", [["courseId", "==", id]]),
       courseMembers(id),
     ]);
     const all = await withUploaderNames([...materials, ...mine.filter((m) => m.courseId === id)]);
-    return { course, materials: all.sort((a, b) => b.createdAt - a.createdAt), quizzes, members: members.sort((a, b) => b.elo - a.elo) };
+    return { course, materials: all.sort((a, b) => b.createdAt - a.createdAt), quizzes, discussions: countDiscussions(discussions), quizSize: publishedQuizSizes(quizzes), members: members.sort((a, b) => b.elo - a.elo) };
   }, [id, uid]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -117,22 +122,9 @@ export default function CoursePage() {
               ))}
             </div>
             {shown.length === 0 ? <Empty>Belum ada {MATERIAL_TYPES[kind as MaterialType].toLowerCase()} di mata kuliah ini.</Empty> : (
-              <CollapsibleRows key={kind} items={shown}>
-                {(m) => {
-                  const quiz = data.quizzes.find((x) => x.materialId === m.id);
-                  return (
-                    <Link key={m.id} href={`/materials/${m.id}`} className="row-link">
-                      <div>
-                        <div className="font-medium">{m.title}{m.isPublic === false && <span className="badge ml-2">Privat</span>}</div>
-                        <div className="text-xs text-muted">{MATERIAL_TYPES[materialType(m)]} · {m.topics.join(", ")} · oleh {m.uploaderName}</div>
-                      </div>
-                      <span className="badge shrink-0">
-                        {quiz?.status === "published" ? `Kuis ${quiz.questions.length} soal` : quiz?.status === "draft" ? "Kuis diulas" : "Belum ada kuis"}
-                      </span>
-                    </Link>
-                  );
-                }}
-              </CollapsibleRows>
+              <MaterialGrid key={kind} items={shown}>
+                {(m) => <MaterialCard key={m.id} m={m} course={data.course!} discussions={data.discussions.get(m.id)} quizSize={data.quizSize.get(m.id)} />}
+              </MaterialGrid>
             )}
           </div>
         )

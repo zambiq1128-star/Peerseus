@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { MATERIAL_TYPES } from "@/lib/peerseus";
+import { DESCRIPTION_MAX, MATERIAL_TYPES } from "@/lib/peerseus";
 import type { MaterialType } from "@/lib/types";
 import { Ransom } from "./Ransom";
 
@@ -257,5 +257,18 @@ export function AccountBadge({ itb, className = "" }: { itb?: boolean; className
     <span className={`badge-accent ${className}`} title="Masuk dengan akun Microsoft ITB">✓ ITB</span>
   ) : (
     <span className={`badge ${className}`} title="Tamu yang didaftarkan tim, bukan akun ITB">Tamu</span>
+  );
+}
+
+/** Optional short description on the upload and edit forms, with a character counter. */
+export function DescriptionField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-2">
+        <label className="label" htmlFor="deskripsi">Deskripsi singkat <span className="font-normal text-muted">(opsional)</span></label>
+        <span className={`text-xs ${value.length >= DESCRIPTION_MAX ? "text-ink" : "text-muted"}`} aria-live="polite">{value.length}/{DESCRIPTION_MAX}</span>
+      </div>
+      <input id="deskripsi" className="input" maxLength={DESCRIPTION_MAX} value={value} onChange={(e) => onChange(e.target.value)} placeholder="mis. Ringkasan Bab 1–3 untuk persiapan UTS" />
+    </div>
   );
 }

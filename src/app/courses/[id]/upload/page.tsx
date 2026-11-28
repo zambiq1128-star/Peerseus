@@ -2,11 +2,11 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { createMaterial } from "@/lib/peerseus";
+import { createMaterial, parseTopics } from "@/lib/peerseus";
 import MaterialComposer from "@/components/MaterialComposer";
 import AttachmentField, { attachmentToSave, useAttachmentConfig, type AttachmentDraft } from "@/components/AttachmentField";
 import { checkAttachment } from "@/lib/attachments";
-import { MaterialTypeField, Page, PageHeader, PrivateField } from "@/components/ui";
+import { DescriptionField, MaterialTypeField, Page, PageHeader, PrivateField } from "@/components/ui";
 import type { MaterialType } from "@/lib/types";
 
 export default function Upload() {
@@ -17,6 +17,7 @@ export default function Upload() {
   const [type, setType] = useState<MaterialType>("materi");
   const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
+  const [description, setDescription] = useState("");
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<AttachmentDraft>(null);
   const attachmentCfg = useAttachmentConfig();
@@ -28,6 +29,8 @@ export default function Upload() {
     e.preventDefault();
     setErr("");
     if (!text.trim()) return setErr("Isi materi masih kosong. Upload file atau tempel teks dulu.");
+    const parsed = parseTopics(topics);
+    if (parsed.error) return setErr(parsed.error);
     setBusy(true);
     try {
       const file = await attachmentToSave(attachment, isPrivate);
@@ -36,8 +39,8 @@ export default function Upload() {
         title: title.trim(),
         type,
         isPublic: !isPrivate,
-        description: "",
-        topics: topics.split(",").map((t) => t.trim()).filter(Boolean),
+        description: description.trim(),
+        topics: parsed.topics,
         text: text.trim(),
         format: "markdown",
         attachment: file,
@@ -62,11 +65,12 @@ export default function Upload() {
         <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="mis. Tutorial Fisika Dasar: Vektor" /></div>
           <div>
-            <label className="label">Topik (pisahkan dengan koma)</label>
-            <input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Vektor, Kinematika, Gaya" />
+            <label className="label" htmlFor="topik">Topik (pisahkan dengan koma, maks 30 karakter per topik)</label>
+            <input id="topik" className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="Vektor, Kinematika, Gaya" />
           </div>
           <MaterialTypeField value={type} onChange={setType} />
         </div>
+        <DescriptionField value={description} onChange={setDescription} />
         <MaterialComposer
           value={text}
           onChange={setText}

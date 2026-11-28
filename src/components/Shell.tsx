@@ -23,7 +23,7 @@ export function Logo() {
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
-  const { loading, uid, profile } = useAuth();
+  const { loading, uid, profile, logout } = useAuth();
   const path = usePathname();
   const router = useRouter();
   const redirect = !!profile?.major && needsCourses(profile) && path !== COURSES_PAGE;
@@ -34,28 +34,38 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   if (loading || redirect) return <div className="grid min-h-screen place-items-center"><Spinner /></div>;
   if (!uid || !profile || !profile.major) return <SignIn />;
 
+  // Setup not finished (courses not saved yet): no menu, no profile link, no duel invites, only logo and "Keluar".
+  // Any other route was redirected to the courses step above.
+  const setup = needsCourses(profile);
   return (
     <div className="flex min-h-screen flex-col">
       <div key={path} aria-hidden="true" className="sweep" />
-      <AppHeader path={path} firstName={profile.name.split(" ")[0]} />
+      {setup ? <AppHeader setup onLogout={logout} /> : <AppHeader path={path} firstName={profile.name.split(" ")[0]} />}
       <main className="flex-1 px-4 py-6 sm:py-8">{children}</main>
-      <InviteBanner uid={uid} path={path} />
+      {!setup && <InviteBanner uid={uid} path={path} />}
     </div>
   );
 }
 
-/** Top bar on every signed-in page (Persona blue style): logo, the three main sections, and the profile link. */
-function AppHeader({ path, firstName }: { path: string; firstName: string }) {
+/**
+ * Top bar on every signed-in page (Persona blue style): logo, the three main sections, and the profile link.
+ * While setup is unfinished (`setup`): only the logo (not a link) and "Keluar"; not sticky, so it never covers the page intro when scrolling.
+ */
+export function AppHeader(props: { path: string; firstName: string; setup?: false } | { setup: true; onLogout: () => void }) {
+  const path = props.setup ? "" : props.path;
   const onProfile = path === "/profile";
   return (
-    <header className="sticky top-0 z-20 animate-slide-down border-b-4 border-white bg-black text-white">
+    <header className={`${props.setup ? "relative" : "sticky top-0"} z-20 animate-slide-down border-b-4 border-white bg-black text-white`}>
       {/* Decorative: blue diagonal strip behind the profile link, a thin white slash, and a blue wedge under the bar. */}
       <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[30%] bg-volt [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)] sm:w-1/3" />
       <div aria-hidden className="pointer-events-none absolute hidden sm:block inset-y-0 right-[40%] w-3 translate-x-[0.4rem] bg-white [clip-path:polygon(60%_0,100%_0,40%_100%,0_100%)] sm:right-1/3" />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-3 bg-volt [clip-path:polygon(0_0,100%_0,58%_100%,0_100%)]" />
       <div className="relative mx-auto flex max-w-page items-center gap-1 px-4 py-2.5 sm:gap-4">
-        <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left"><Logo /></Link>
-        <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-1.5 sm:pl-3">
+        {props.setup
+          ? <div className="animate-slide-left"><Logo /></div>
+          : <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left"><Logo /></Link>}
+        {props.setup && <div className="flex-1" />}
+        {!props.setup && <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-1.5 sm:pl-3">
           {NAV.map((n, i) => {
             const active = n.match(path);
             return (
@@ -66,10 +76,15 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
               </Link>
             );
           })}
-        </nav>
+        </nav>}
+        {props.setup ? (
+          <button type="button" onClick={props.onLogout}
+            className="animate-slide-right relative bg-white px-4 py-1.5 font-display text-[13px] uppercase tracking-wider text-black transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:bg-black hover:text-white sm:text-sm">Keluar</button>
+        ) : (
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
           style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{firstName}</Link>
+          className={`animate-slide-right max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{props.firstName}</Link>
+        )}
       </div>
     </header>
   );
@@ -77,7 +92,7 @@ function AppHeader({ path, firstName }: { path: string; firstName: string }) {
 
 /** One screen: sign in, then fill the profile fields we actually need. */
 function SignIn() {
-  const { uid, authError, signInMicrosoft, signInGoogle } = useAuth();
+  const { uid, authError, signInMicrosoft, signInGoogle, logout } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const needsLogin = firebaseEnabled && !uid;
@@ -90,7 +105,7 @@ function SignIn() {
 
   if (!needsLogin) {
     // Mounted only once signed in (keyed by account), so the name and NIM of that account are known.
-    return <LoginScreen><ProfileSetup key={uid ?? "local"} /></LoginScreen>;
+    return <LoginScreen top={uid ? <AppHeader setup onLogout={logout} /> : undefined}><ProfileSetup key={uid ?? "local"} /></LoginScreen>;
   }
 
   return (

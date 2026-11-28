@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { db } from "@/lib/db";
-import { plainSnippet } from "@/lib/latex";
 import { MATERIAL_TYPES, materialType, withUploaderNames } from "@/lib/peerseus";
-import type { Course, Material, MaterialType, Quiz } from "@/lib/types";
+import type { Course, Material, MaterialType } from "@/lib/types";
+import { loadCardStats, type CardStats } from "@/lib/materialStats";
+import MaterialCard from "@/components/MaterialCard";
 import MaterialsTabs from "@/components/MaterialsTabs";
-import { Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
 /** Cards shown at first and added per "Muat lebih banyak". */
 const PAGE_SIZE = 12;
@@ -19,15 +20,16 @@ type Kind = "" | MaterialType;
  */
 export default function Explore() {
   const { data, error, reload } = useAsync(async () => {
-    const [materials, courses, quizzes] = await Promise.all([
+    // Discussions and quizzes are read once for all courses (two queries), then counted per card in the app.
+    const [materials, courses, stats] = await Promise.all([
       db.list<Material>("materials"),
       db.list<Course>("courses"),
-      db.list<Quiz>("quizzes"),
+      loadCardStats(),
     ]);
     return {
       materials: (await withUploaderNames(materials.filter((m) => m.isPublic !== false))).sort((a, b) => b.createdAt - a.createdAt),
       courses: new Map(courses.map((c) => [c.id, c])),
-      quizReady: new Set(quizzes.filter((q) => q.status === "published").map((q) => q.materialId)),
+      stats,
     };
   }, []);
   const [q, setQ] = useState("");
@@ -40,7 +42,7 @@ export default function Explore() {
   const course = (m: Material) => data.courses.get(m.courseId);
   const matchesQuery = (m: Material) =>
     !query ||
-    [m.title, m.uploaderName, ...m.topics, course(m)?.code ?? m.courseId, course(m)?.name ?? ""].some((s) => s.toLowerCase().includes(query));
+    [m.title, m.uploaderName, m.description ?? "", ...m.topics, course(m)?.code ?? m.courseId, course(m)?.name ?? ""].some((s) => s.toLowerCase().includes(query));
   const found = data.materials.filter(matchesQuery);
   const shown = found.filter((m) => !kind || materialType(m) === kind);
   const kinds: [Kind, string][] = [["", "Semua"], ...(Object.entries(MATERIAL_TYPES) as [MaterialType, string][])];
@@ -80,7 +82,7 @@ export default function Explore() {
             </Empty>
           ) : (
             // Keyed by search and filter so the feed starts from the top page again when either changes.
-            <Feed key={`${query}|${kind}`} items={shown} courses={data.courses} quizReady={data.quizReady} />
+            <Feed key={`${query}|${kind}`} items={shown} courses={data.courses} stats={data.stats} />
           )}
         </div>
       )}
@@ -88,29 +90,14 @@ export default function Explore() {
   );
 }
 
-function Feed({ items, courses, quizReady }: { items: Material[]; courses: Map<string, Course>; quizReady: Set<string> }) {
+function Feed({ items, courses, stats }: { items: Material[]; courses: Map<string, Course>; stats: CardStats }) {
   const [count, setCount] = useState(PAGE_SIZE);
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        {items.slice(0, count).map((m, i) => {
-          const c = courses.get(m.courseId);
-          return (
-            <article key={m.id} className={`card card-rot flex flex-col ${i >= PAGE_SIZE ? "animate-row-in" : ""}`}>
-              <div className="flex items-start justify-between gap-2">
-                <span className="eyebrow">{c?.code ?? m.courseId}{c ? ` · ${c.name}` : ""}</span>
-                <span className={materialType(m) === "paper" ? "badge-accent shrink-0" : "badge shrink-0"}>{MATERIAL_TYPES[materialType(m)]}</span>
-              </div>
-              <Link href={`/materials/${m.id}`} className="mt-1 font-semibold hover:underline">{m.title}</Link>
-              <p className="mt-1 line-clamp-3 flex-1 text-sm text-ink-soft">{plainSnippet(m.text)}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                <Link href={`/users/${m.uploaderId}`} className="hover:text-ink hover:underline">{m.uploaderName}</Link>
-                <span>· {timeAgo(m.createdAt)}</span>
-                {quizReady.has(m.id) && <span className="badge-accent ml-auto">Kuis siap duel</span>}
-              </div>
-            </article>
-          );
-        })}
+        {items.slice(0, count).map((m) => (
+          <MaterialCard key={m.id} m={m} course={courses.get(m.courseId)} discussions={stats.discussions.get(m.id)} quizSize={stats.quizSize.get(m.id)} />
+        ))}
       </div>
       {count < items.length ? (
         <button className="btn-ghost w-full" onClick={() => setCount(count + PAGE_SIZE)}>

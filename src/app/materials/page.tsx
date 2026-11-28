@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { MATERIAL_TYPES, materialType, myMaterials } from "@/lib/peerseus";
-import type { Course, MaterialType, Quiz } from "@/lib/types";
+import { loadCardStats } from "@/lib/materialStats";
+import type { Course, MaterialType } from "@/lib/types";
+import MaterialCard, { MaterialGrid } from "@/components/MaterialCard";
 import MaterialsTabs from "@/components/MaterialsTabs";
-import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
 type Show = "" | "publik" | "privat" | MaterialType;
 
@@ -16,12 +18,10 @@ export default function MyMaterials() {
   const uid = profile!.id;
   const [show, setShow] = useState<Show>("");
   const { data, error, reload } = useAsync(async () => {
-    const [materials, courses, quizzes] = await Promise.all([
-      myMaterials(uid),
-      db.list<Course>("courses"),
-      db.list<Quiz>("quizzes", [["createdBy", "==", uid]]),
-    ]);
-    return { materials, courses: new Map(courses.map((c) => [c.id, c])), quizzes: new Map(quizzes.map((q) => [q.materialId, q])) };
+    const [materials, courses] = await Promise.all([myMaterials(uid), db.list<Course>("courses")]);
+    // Discussions and quizzes exist only for public materials: one read per course that has one, not one per card.
+    const stats = await loadCardStats([...new Set(materials.filter((m) => m.isPublic !== false).map((m) => m.courseId))]);
+    return { materials, courses: new Map(courses.map((c) => [c.id, c])), stats };
   }, [uid]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -54,24 +54,12 @@ export default function MyMaterials() {
             ))}
           </div>
           {shown.length === 0 ? <Empty>Tidak ada materi yang cocok.</Empty> : (
-            <CollapsibleRows key={show} items={shown}>
-              {(m) => {
-                const quiz = data.quizzes.get(m.id);
-                const course = data.courses.get(m.courseId);
-                return (
-                  <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                    <Link href={`/materials/${m.id}`} className="min-w-0 flex-1 hover:underline">
-                      <div className="font-medium">{m.title}</div>
-                      <div className="text-xs text-muted">{course?.code ?? m.courseId} · {MATERIAL_TYPES[materialType(m)]} · {timeAgo(m.updatedAt ?? m.createdAt)}</div>
-                    </Link>
-                    <div className="flex items-center gap-2">
-                      <span className="badge">{isPrivate(m) ? "Privat" : quiz?.status === "published" ? "Publik · kuis siap" : "Publik"}</span>
-                      <Link href={`/materials/${m.id}/edit`} className="btn-ghost !py-1.5">Edit</Link>
-                    </div>
-                  </div>
-                );
-              }}
-            </CollapsibleRows>
+            <MaterialGrid key={show} items={shown}>
+              {(m) => (
+                <MaterialCard key={m.id} m={m} course={data.courses.get(m.courseId)} discussions={data.stats.discussions.get(m.id)} quizSize={data.stats.quizSize.get(m.id)}
+                  action={<Link href={`/materials/${m.id}/edit`} className="btn-ghost !px-3 !py-1 text-xs">Edit</Link>} />
+              )}
+            </MaterialGrid>
           )}
         </div>
       )}
