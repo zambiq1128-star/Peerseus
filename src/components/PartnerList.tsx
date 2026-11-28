@@ -29,9 +29,9 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
         {data.recs.map(({ member, profile: p, reasons }) => (
           <div key={member.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-2">
-                <Link href={`/users/${member.uid}`} className="min-w-0 break-words font-medium hover:underline">{member.name}</Link>
-                <AccountBadge itb={p?.isItbVerified} className="mt-0.5 shrink-0 whitespace-nowrap" />
+              <div>
+                <Link href={`/users/${member.uid}`} className="break-words font-medium hover:underline">{member.name}</Link>
+                <AccountBadge itb={p?.isItbVerified} className="ml-2 inline-block whitespace-nowrap align-middle" />
               </div>
               <div className="text-xs text-muted">
                 {[...academicLabel(p, member.major).split(" · "), entryYearLabel(p), `rating ${member.elo}${member.isBot ? " · demo" : ""}`].filter(Boolean).map((part, i) => (

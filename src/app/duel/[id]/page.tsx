@@ -88,7 +88,7 @@ function WaitingRoom({ duel, uid, now }: { duel: Duel; uid: string; now: number 
   return (
     <Page width="narrow">
       <div className="card space-y-5 text-center !p-8">
-        <div className="eyebrow">Menunggu {displayOpponentName(duel, duel.opponentId)} menerima</div>
+        <div className="eyebrow">Menunggu jawaban lawan</div>
         <Versus duel={duel} uid={uid} />
         <div className="font-display text-6xl font-bold tabular-nums text-cyan" aria-label={`Sisa waktu ${clock(left)}`}>{clock(left)}</div>
         <p className="text-sm text-muted">Begitu diterima, kalian berdua langsung masuk ke duel.</p>
@@ -104,7 +104,7 @@ function Invited({ duel, uid, now }: { duel: Duel; uid: string; now: number }) {
   return (
     <Page width="narrow">
       <div className="card space-y-5 text-center !p-8">
-        <div className="eyebrow">{duel.challengerName} mengajakmu duel</div>
+        <div className="eyebrow">Kamu diajak duel</div>
         <Versus duel={duel} uid={uid} />
         <p className="text-sm text-muted">Sisa <span className="tabular-nums">{clock(inviteMsLeft(duel, now))}</span> untuk menjawab. Menolak tidak mengubah rating siapa pun.</p>
         <InviteActions duel={duel} uid={uid} className="justify-center" />
