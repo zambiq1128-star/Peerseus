@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { createDuel, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
+import { activeOutgoingInvite, createInvite, DUEL_QUESTIONS, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
 import type { Course, Quiz } from "@/lib/types";
 import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
@@ -23,6 +23,7 @@ function NewDuel() {
   const [quizId, setQuizId] = useState("");
   const [oppId, setOppId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
 
   const { data, error, reload } = useAsync(async () => {
     let courseId = courseParam;
@@ -32,7 +33,9 @@ function NewDuel() {
     const quizzes = (await db.list<Quiz>("quizzes", [["courseId", "==", courseId]])).filter((q) => q.status === "published");
     const me = await getMembership(courseId, uid);
     const opponents = await suggestOpponents(courseId, uid);
-    return { course, quizzes, opponents, me };
+    // Only one outgoing invite may wait at a time.
+    const waiting = await activeOutgoingInvite(uid);
+    return { course, quizzes, opponents, me, waiting };
   }, [quizParam, courseParam, uid]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -49,11 +52,17 @@ function NewDuel() {
   const opp = data.opponents.find((o) => o.uid === (oppId || opponentParam)) ?? data.opponents[0];
   const myElo = data.me?.elo ?? 1000;
 
-  async function start() {
+  async function invite() {
     setBusy(true);
-    if (!data!.me || data!.me.left) { await joinCourse(profile!, data!.course!.id); await refresh(); }
-    const d = await createDuel(quiz, profile!, opp);
-    router.push(`/duel/${d.id}`);
+    setErr("");
+    try {
+      if (!data!.me || data!.me.left) { await joinCourse(profile!, data!.course!.id); await refresh(); }
+      // The invite's page is the waiting room; both players land there when it is accepted.
+      router.push(`/duel/${await createInvite(quiz, profile!, opp)}`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Gagal mengirim ajakan");
+      setBusy(false);
+    }
   }
 
   return (
@@ -90,8 +99,18 @@ function NewDuel() {
         </div>
       </div>
 
-      <button className="btn-primary w-full !py-3" disabled={busy} onClick={start}>{busy ? "Menyiapkan…" : `Mulai duel vs ${opp.name.split(" ")[0]}`}</button>
-      {!opp.isBot && <p className="text-center text-xs text-muted">Kamu jawab duluan. {opp.name} menjawab soal yang sama nanti, lalu hasilnya dibandingkan.</p>}
+      {data.waiting ? (
+        <div className="callout flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm font-medium">Ajakanmu ke {data.waiting.opponentName} masih menunggu jawaban.</span>
+          <Link href={`/duel/${data.waiting.id}`} className="btn-primary">Lihat ajakan</Link>
+        </div>
+      ) : (
+        <button className="btn-primary w-full !py-3" disabled={busy} onClick={invite}>{busy ? "Mengirim…" : `Ajak duel ${opp.name.split(" ")[0]}`}</button>
+      )}
+      {err && <p className="text-center text-sm text-bad">{err}</p>}
+      <p className="text-center text-xs text-muted">
+        {opp.isBot ? `${opp.name} teman demo, langsung menerima.` : `${opp.name} punya 2 menit untuk menerima. Setelah diterima, kalian main bersamaan.`}
+      </p>
     </Page>
   );
 }

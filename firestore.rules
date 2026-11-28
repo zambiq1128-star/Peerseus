@@ -11,8 +11,8 @@ rules_version = '2';
 // so a hidden field must not be in users/{uid} at all, and the rules refuse a profile that still has one.
 // Private materials (Materiku) live in privateMaterials, readable and writable only by their uploader;
 // public ones stay in materials, which must not hold a private one.
-// Duels: only the opponent can decline (status "declined"), only a pending duel they haven't played,
-// and a declined duel can't change again.
+// Duels (duel langsung): the challenger invites as themselves; only the opponent accepts or declines, only the
+// challenger cancels, either may mark an invite older than 2 minutes expired; finished duels never change.
 // Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
 // Proposed questions (questionProposals): readable by the proposer and the material's uploader; only that
 // uploader accepts or rejects them, and the proposer can withdraw one while it is pending.
@@ -108,24 +108,71 @@ service cloud.firestore {
       allow update: if mine() && staysMine();
     }
 
-    // Duels stay writable by any allowed user (both players' results land in one document), except
-    // "declined": only the opponent sets it, from "pending" with their side unplayed, and nothing else changes.
+    // Duels (duel langsung). Only live duels (mode "live") are created and changed; old turn-based ones
+    // ("pending", "completed", "declined" without a mode) are history and never change again.
+    // invited → ready (accepted) → playing → completed, or invited → declined | expired | cancelled.
+    // Times come from the server: invitedAt, acceptedAt, declinedAt, cancelledAt, expiredAt == request.time.
     match /duels/{id} {
+      function d() { return resource.data; }
+      function n() { return request.resource.data; }
+      function me() { return request.auth.uid; }
+      function changed() { return n().diff(d()).affectedKeys(); }
+      function inviteOpen() { return d().status == 'invited' && request.time <= d().invitedAt + duration.value(2, 'm'); }
+      function inviteOver() { return d().status == 'invited' && request.time > d().invitedAt + duration.value(2, 'm'); }
+      // opponentIsBot must match the opponent's profile, so a real person can't be "accepted" by the challenger.
+      function botFlagHonest(x) {
+        let u = /databases/$(database)/documents/users/$(x.opponentId);
+        return x.get('opponentIsBot', false) == (exists(u) && get(u).data.get('isBot', false) == true);
+      }
+      function validInvite() {
+        return n().get('mode', '') == 'live'
+          && n().status == 'invited'
+          && n().id == id
+          && n().challengerId == me()
+          && n().opponentId is string && n().opponentId != me()
+          && n().participants == [n().challengerId, n().opponentId]
+          && n().invitedAt == request.time
+          && n().questions is list && n().questions.size() > 0
+          && !n().keys().hasAny(['acceptedAt', 'declinedAt', 'cancelledAt', 'expiredAt', 'challenger', 'opponent', 'winnerId', 'eloChange'])
+          && botFlagHonest(n());
+      }
+      function accepts() {
+        return inviteOpen()
+          && (me() == d().opponentId || (d().get('opponentIsBot', false) == true && me() == d().challengerId))
+          && n().status == 'ready' && n().acceptedAt == request.time
+          && changed().hasOnly(['status', 'acceptedAt']);
+      }
       function declines() {
-        return request.resource.data.get('status', '') == 'declined';
+        return inviteOpen() && me() == d().opponentId && d().get('opponentIsBot', false) != true
+          && n().status == 'declined' && n().declinedAt == request.time
+          && changed().hasOnly(['status', 'declinedAt']);
       }
-      function validDecline() {
-        return resource.data.status == 'pending'
-          && request.auth.uid == resource.data.opponentId
-          && !resource.data.keys().hasAny(['opponent'])
-          && resource.data.get('opponentIsBot', false) != true
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'declinedAt']);
+      function cancels() {
+        return d().status == 'invited' && me() == d().challengerId
+          && n().status == 'cancelled' && n().cancelledAt == request.time
+          && changed().hasOnly(['status', 'cancelledAt']);
       }
-      allow read, delete: if allowed();
-      allow create: if allowed() && !declines();
-      allow update: if allowed()
-        && resource.data.get('status', '') != 'declined'
-        && (!declines() || validDecline());
+      function expires() {
+        return inviteOver() && me() in d().participants
+          && n().status == 'expired' && n().expiredAt == request.time
+          && changed().hasOnly(['status', 'expiredAt']);
+      }
+      // Playing: each player adds only their own side, once (the challenger also adds a demo peer's side).
+      // The write that completes the duel adds the result. Langkah 3 tightens this further.
+      function mySide() { return me() == d().challengerId ? 'challenger' : 'opponent'; }
+      function plays() {
+        let sides = d().get('opponentIsBot', false) == true && me() == d().challengerId ? ['challenger', 'opponent'] : [mySide()];
+        return d().status in ['ready', 'playing'] && me() in d().participants
+          && n().status in ['ready', 'playing', 'completed']
+          && changed().hasOnly(sides.concat(['status', 'winnerId', 'eloChange']))
+          && !('challenger' in changed() && 'challenger' in d()) && !('opponent' in changed() && 'opponent' in d())
+          && (n().status != 'completed' || n().keys().hasAll(['challenger', 'opponent', 'winnerId', 'eloChange']));
+      }
+      allow read: if allowed();
+      allow create: if allowed() && validInvite();
+      allow update: if allowed() && d().get('mode', '') == 'live'
+        && (accepts() || declines() || cancels() || expires() || plays());
+      allow delete: if false;
     }
 
     // Kuis mandiri history: one document per finished run, only its owner reads or deletes it.

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { isMyTurn, latestMaterials, MATERIAL_TYPES, materialType, myDuels } from "@/lib/peerseus";
+import { latestMaterials, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import { daysLeft, deadlineLabel, isUrgent, nearestOpportunities, OPP_TYPES } from "@/lib/opportunities";
 import { discussionNotices, markSeen, type DiscussionNotice } from "@/lib/discussions";
 import { proposalsToReview } from "@/lib/proposals";
@@ -11,6 +11,7 @@ import type { Course, Membership, Opportunity, QuestionProposal } from "@/lib/ty
 import { Ransom } from "@/components/Ransom";
 import { Splat, Starburst } from "@/components/Decor";
 import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { InviteActions, InviteText, useIncomingInvites } from "@/components/DuelInvites";
 
 export default function Home() {
   return (
@@ -58,13 +59,27 @@ function Hero() {
   );
 }
 
+/** Duel invites waiting for my answer (live); the banner shows the same on every other page. */
+function IncomingInvites({ uid }: { uid: string }) {
+  const { invites, now } = useIncomingInvites(uid);
+  if (!invites.length) return null;
+  return (
+    <div className="callout space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <InviteText duel={invites[0]} now={now} />
+        <InviteActions key={invites[0].id} duel={invites[0]} uid={uid} />
+      </div>
+      {invites.length > 1 && <Link href="/duels" className="link text-xs">+{invites.length - 1} ajakan lain</Link>}
+    </div>
+  );
+}
+
 function HomeBody() {
   const { profile } = useAuth();
   const uid = profile!.id;
   const { data, error, reload } = useAsync(async () => {
     const courses = (await db.list<Course>("courses")).sort((a, b) => a.code.localeCompare(b.code));
     const ms = await db.list<Membership>("memberships", [["uid", "==", uid]]);
-    const duels = await myDuels(uid);
     const latest = await latestMaterials(profile!.courseIds);
     // Questions others proposed for my quizzes (empty until firestore.rules allow questionProposals).
     const toReview = await proposalsToReview(uid).catch(() => [] as QuestionProposal[]);
@@ -72,24 +87,18 @@ function HomeBody() {
     const notices = await discussionNotices(uid).catch(() => ({ toAnswer: [], oppToAnswer: [], answered: [] }));
     // Peluang mendekati deadline; a failed load must not break the home page either.
     const opps = await nearestOpportunities(profile!.major, 3).catch(() => [] as Opportunity[]);
-    return { courses, ms, duels, latest, toReview, notices, opps };
+    return { courses, ms, latest, toReview, notices, opps };
   }, [uid, profile?.courseIds.length]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
-  const myTurn = data.duels.filter((d) => isMyTurn(d, uid));
   const joined = data.courses.filter((c) => profile!.courseIds.includes(c.id));
   // Pending proposals grouped by material, in the order they arrived (newest first).
   const reviewByMaterial = [...new Map(data.toReview.map((p) => [p.materialId, { id: p.materialId, title: p.materialTitle, n: data.toReview.filter((x) => x.materialId === p.materialId).length }])).values()];
 
   return (
     <Page>
-      {myTurn.length > 0 && (
-        <div className="callout flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-medium">{myTurn.length} tantangan duel menunggu jawabanmu.</span>
-          <Link href={`/duel/${myTurn[0].id}`} className="btn-primary">Jawab sekarang</Link>
-        </div>
-      )}
+      <IncomingInvites uid={uid} />
 
       {reviewByMaterial.length > 0 && (
         <Section title={`Usulan soal menunggu (${data.toReview.length})`}>
