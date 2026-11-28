@@ -4,7 +4,7 @@ import type { CourseInfo } from "./curriculum";
 import { db, newId, serverNow, serverTime } from "./db";
 import { eloDelta, START_ELO } from "./elo";
 import { ensureSeeded } from "./seed";
-import type { Course, Duel, DuelSide, Material, MaterialType, Membership, Question, Quiz, UserProfile } from "./types";
+import type { Course, Duel, DuelSide, LiveSide, Material, MaterialType, Membership, Question, Quiz, UserProfile } from "./types";
 
 export const DUEL_QUESTIONS = 6;
 export const SECONDS_PER_QUESTION = 20;
@@ -339,8 +339,56 @@ export async function expireInvite(id: string) {
     .catch(() => undefined);
 }
 
-// ---------- Duel: answers and result ----------
-function scoreSide(questions: Question[], answers: number[], timesMs: number[]): DuelSide {
+// ---------- Duel langsung: playing and the result ----------
+export const QUESTION_MS = SECONDS_PER_QUESTION * 1000;
+/** Each player writes lastSeen this often while the duel runs. */
+export const HEARTBEAT_MS = 10_000;
+/** No write for this long = the player left: their remaining questions count as wrong. */
+export const LEFT_AFTER_MS = 30_000;
+/** Extra time after the last question's 20 s before the duel is over for everyone. */
+export const END_GRACE_MS = 5_000;
+// firestore.rules check the same limits with the server's clock; act a little later so the write isn't refused.
+const RULES_SLACK_MS = 1_500;
+
+export type Role = "challenger" | "opponent";
+export const roleOf = (d: Duel, uid: string): Role | null => (d.challengerId === uid ? "challenger" : d.opponentId === uid ? "opponent" : null);
+export const liveOf = (d: Duel, role: Role) => (role === "challenger" ? d.challengerLive : d.opponentLive);
+export const other = (role: Role): Role => (role === "challenger" ? "opponent" : "challenger");
+
+/** Server time after which nobody can still be answering: startAt + 20 s per question + a short grace. */
+export function deadlineOf(d: Duel) {
+  const s = startAtOf(d);
+  return s === null ? null : s + d.questions.length * QUESTION_MS + END_GRACE_MS;
+}
+
+const answered = (side?: LiveSide) => side?.answers?.length ?? 0; // a heartbeat alone has no answers yet
+
+/** Why the duel can be settled now, or null while someone is still playing. */
+export function endReason(d: Duel, now = serverNow()): Duel["endReason"] | null {
+  if (d.status !== "ready" && d.status !== "playing") return null;
+  const n = d.questions.length;
+  const c = d.challengerLive, o = d.opponentLive;
+  if (answered(c) >= n && answered(o) >= n) return "done";
+  if (now > (deadlineOf(d) ?? Infinity) + RULES_SLACK_MS) return "timeout";
+  const over = (side?: LiveSide) => answered(side) >= n || now > (side?.lastSeen ?? d.acceptedAt ?? 0) + LEFT_AFTER_MS + RULES_SLACK_MS;
+  return over(c) && over(o) ? "left" : null;
+}
+
+/** Saves my answers so far (also the opponent's progress "soal 4/6"); the first write moves the duel to "playing". */
+export async function saveLiveSide(d: Duel, role: Role, answers: number[], timesMs: number[]) {
+  const side: LiveSide = { answers, timesMs, lastSeen: serverTime() };
+  await db.update("duels", d.id, { [`${role}Live`]: side, ...(d.status === "ready" && { status: "playing" }) });
+}
+
+/** "Still here": only lastSeen changes. */
+export async function heartbeat(d: Duel, role: Role) {
+  await db.update("duels", d.id, { [`${role}Live.lastSeen`]: serverTime(), ...(d.status === "ready" && { status: "playing" }) });
+}
+
+function finalSide(questions: Question[], side?: LiveSide): DuelSide {
+  // Questions never answered (left or out of time) count as wrong, with the full 20 s.
+  const answers = questions.map((_, i) => side?.answers?.[i] ?? -1);
+  const timesMs = questions.map((_, i) => side?.timesMs?.[i] ?? QUESTION_MS);
   return {
     answers,
     timesMs,
@@ -350,18 +398,11 @@ function scoreSide(questions: Question[], answers: number[], timesMs: number[]):
   };
 }
 
-/** Demo peers answer based on their topic accuracy. */
-function simulateBot(duel: Duel, bot: Membership): DuelSide {
-  const answers: number[] = [];
-  const times: number[] = [];
-  for (const q of duel.questions) {
-    const st = bot.topicStats[q.topic];
-    const p = st && st.total ? st.correct / st.total : 0.5 + (bot.elo - 1000) / 800;
-    const correct = Math.random() < Math.min(0.95, Math.max(0.15, p));
-    answers.push(correct ? q.answerIndex : (q.answerIndex + 1 + Math.floor(Math.random() * 3)) % q.options.length);
-    times.push(Math.round(4000 + Math.random() * 11000));
-  }
-  return scoreSide(duel.questions, answers, times);
+/** Higher score wins; equal score → faster total time wins (by more than 0.5 s); otherwise a draw. 1 = challenger wins. */
+export function duelResult(c: DuelSide, o: DuelSide): 1 | 0.5 | 0 {
+  if (c.score !== o.score) return c.score > o.score ? 1 : 0;
+  if (Math.abs(c.totalMs - o.totalMs) > 500) return c.totalMs < o.totalMs ? 1 : 0;
+  return 0.5;
 }
 
 function withTopicStats(m: Membership, questions: Question[], answers: number[]) {
@@ -374,54 +415,59 @@ function withTopicStats(m: Membership, questions: Question[], answers: number[])
 }
 
 /**
- * Saves my answers in one transaction. The transaction that sees both sides finished also decides the
- * winner and updates both ratings, so the result is computed exactly once even if both submit together.
+ * Ends the duel once (both finished, time is up, or a player left): one transaction writes both final sides,
+ * the winner, eloChange and both memberships. A duel that is already "completed" is left alone, so the
+ * rating can never change twice, whoever calls this and however often. Against a demo peer nobody's rating
+ * or win count changes; the human's topicStats still do.
  */
-export async function submitDuel(duelId: string, uid: string, answers: number[], timesMs: number[]) {
+export async function settleDuel(id: string) {
   return db.transaction(async (tx) => {
-    const duel = await tx.get<Duel>("duels", duelId);
-    if (!duel) throw new Error("Duel tidak ditemukan");
-    const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
-    if (!role) throw new Error("Kamu bukan peserta duel ini");
-    if (duel[role]) return duel; // already saved (e.g. a retry)
-    if (!isLive(duel) || (duel.status !== "ready" && duel.status !== "playing")) throw new Error("Duel ini sudah tidak bisa dimainkan");
-    const mc = await tx.get<Membership>("memberships", `${duel.courseId}_${duel.challengerId}`);
-    const mo = await tx.get<Membership>("memberships", `${duel.courseId}_${duel.opponentId}`);
-
-    const patch: Partial<Duel> = { [role]: scoreSide(duel.questions, answers, timesMs) };
-    if (role === "challenger" && duel.opponentIsBot && !duel.opponent && mo) patch.opponent = simulateBot(duel, mo);
-    const members = new Map<string, Record<string, unknown>>();
-    const mine = role === "challenger" ? mc : mo;
-    if (mine && !mine.isBot) members.set(mine.id, { topicStats: withTopicStats(mine, duel.questions, answers) });
-
-    const c = patch.challenger ?? duel.challenger;
-    const o = patch.opponent ?? duel.opponent;
-    if (c && o) {
-      // Higher score wins; equal score → faster total time wins (by more than 0.5 s); otherwise a draw.
-      let result: 1 | 0.5 | 0 = 0.5;
-      if (c.score !== o.score) result = c.score > o.score ? 1 : 0;
-      else if (Math.abs(c.totalMs - o.totalMs) > 500) result = c.totalMs < o.totalMs ? 1 : 0;
-      const [dc, dO] = eloDelta(mc?.elo ?? START_ELO, mo?.elo ?? START_ELO, result);
-      const bump = (m: Membership | null, d: number, r: 1 | 0.5 | 0) => {
-        if (!m) return;
-        members.set(m.id, {
-          ...members.get(m.id),
-          elo: m.elo + d,
+    const d = await tx.get<Duel>("duels", id);
+    if (!d) return null;
+    const reason = endReason(d);
+    if (!reason) return d;
+    const mc = await tx.get<Membership>("memberships", `${d.courseId}_${d.challengerId}`);
+    const mo = await tx.get<Membership>("memberships", `${d.courseId}_${d.opponentId}`);
+    const c = finalSide(d.questions, d.challengerLive);
+    const o = finalSide(d.questions, d.opponentLive);
+    const result = duelResult(c, o);
+    const bot = !!d.opponentIsBot;
+    const [dc, dO] = bot ? [0, 0] : eloDelta(mc?.elo ?? START_ELO, mo?.elo ?? START_ELO, result);
+    const patch = {
+      challenger: c,
+      opponent: o,
+      status: "completed" as const,
+      winnerId: result === 1 ? d.challengerId : result === 0 ? d.opponentId : null,
+      eloChange: { challenger: dc, opponent: dO },
+      completedAt: serverTime(),
+      endReason: reason,
+    };
+    const apply = (m: Membership | null, side: DuelSide, delta: number, r: 1 | 0.5 | 0) => {
+      if (!m || m.isBot) return;
+      tx.update("memberships", m.id, {
+        topicStats: withTopicStats(m, d.questions, side.answers),
+        ...(!bot && {
+          elo: m.elo + delta,
           wins: m.wins + (r === 1 ? 1 : 0),
           losses: m.losses + (r === 0 ? 1 : 0),
           draws: m.draws + (r === 0.5 ? 1 : 0),
-        });
-      };
-      bump(mc, dc, result);
-      bump(mo, dO, (1 - result) as 1 | 0.5 | 0);
-      patch.status = "completed";
-      patch.winnerId = result === 1 ? duel.challengerId : result === 0 ? duel.opponentId : null;
-      patch.eloChange = { challenger: dc, opponent: dO };
-    }
-    tx.update("duels", duelId, patch as Record<string, unknown>);
-    members.forEach((data, id) => tx.update("memberships", id, data));
-    return { ...duel, ...patch } as Duel;
+        }),
+      });
+    };
+    tx.update("duels", id, patch);
+    apply(mc, c, dc, result);
+    apply(mo, o, dO, (1 - result) as 1 | 0.5 | 0);
+    return { ...d, ...patch, completedAt: Date.now() } as Duel;
   });
+}
+
+/** How a demo peer answers question q: right with its topic accuracy, after 4–15 s like a person. */
+export function botAnswer(bot: Membership, q: Question) {
+  const st = bot.topicStats[q.topic];
+  const p = st && st.total ? st.correct / st.total : 0.5 + (bot.elo - 1000) / 800;
+  const correct = Math.random() < Math.min(0.95, Math.max(0.15, p));
+  const answer = correct ? q.answerIndex : (q.answerIndex + 1 + Math.floor(Math.random() * 3)) % q.options.length;
+  return { answer, ms: Math.round(4000 + Math.random() * 11000) };
 }
 
 export async function myDuels(uid: string) {
