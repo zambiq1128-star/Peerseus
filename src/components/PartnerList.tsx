@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { recommendPartners, weakTopicsOf, getMembership } from "@/lib/peerseus";
+import type { Course } from "@/lib/types";
 import { AccountBadge, Empty, ErrorState, Spinner, useAsync } from "./ui";
 
 export default function PartnerList({ courseId, focusTopics, limit = 5 }: { courseId: string; focusTopics?: string[]; limit?: number }) {
@@ -11,7 +13,8 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
   const { data, error, reload } = useAsync(async () => {
     const me = await getMembership(courseId, uid);
     const weak = focusTopics?.length ? focusTopics : weakTopicsOf(me);
-    return { weak, recs: await recommendPartners(courseId, uid, weak, limit) };
+    const course = await db.get<Course>("courses", courseId);
+    return { weak, courseCode: course?.code ?? courseId.toUpperCase(), recs: await recommendPartners(courseId, uid, weak, limit) };
   }, [courseId, uid, (focusTopics ?? []).join(",")]);
 
   if (error) return <ErrorState title="Gagal memuat teman belajar" message={error} onRetry={reload} />;
@@ -20,7 +23,7 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">
-        {data.weak.length && data.recs.some((r) => r.byTopic) ? <>Dipilih karena kuat di topik yang perlu kamu perkuat: <b className="text-ink">{data.weak.join(", ")}</b>.</> : "Selesaikan duel agar rekomendasi disesuaikan dengan topikmu. Sementara ini diurutkan dari level yang mirip."}
+        {data.weak.length && data.recs.some((r) => r.byTopic) ? <>Dipilih karena kuat di topik yang masih lemah di {data.courseCode}: <b className="text-ink">{data.weak.join(", ")}</b>.</> : "Selesaikan duel agar rekomendasi disesuaikan dengan topikmu. Sementara ini diurutkan dari level yang mirip."}
       </p>
       <div className="rows">
         {data.recs.map(({ member, profile: p, reasons }) => (

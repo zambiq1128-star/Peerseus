@@ -114,18 +114,18 @@ function NewDuel() {
             <div className="rows">
               {data.opponents.map((o) => (
                 <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-navy-3"}`}>
-                  <span className="flex items-center gap-2 text-sm">
+                  <span className="flex min-w-0 items-center gap-2 text-sm">
                     <input type="radio" checked={opp.uid === o.uid} onChange={() => setOppId(o.uid)} />
-                    <span>
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{o.name}</span>
+                    <span className="min-w-0">
+                      <span className="flex items-start gap-2">
+                        <span className="min-w-0 break-words font-medium">{o.name}</span>
                         <PairStreakBadge streak={data.pairs.get(o.uid)} />
-                        <span className="text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
+                        <span className="shrink-0 pt-0.5 text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
                       </span>
                       <PairStreakHint streak={data.pairs.get(o.uid)} />
                     </span>
                   </span>
-                  <span className="text-sm font-semibold">{o.elo}</span>
+                  <span className="shrink-0 text-sm font-semibold tabular-nums">{o.elo}</span>
                 </label>
               ))}
             </div>

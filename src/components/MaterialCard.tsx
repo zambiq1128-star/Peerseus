@@ -53,16 +53,19 @@ export default function MaterialCard({ m, course, discussions = 0, quizSize, var
       )}
       {full && description && <p className="mt-2 line-clamp-2 break-words text-sm text-ink-soft">{description}</p>}
       <div className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 pt-3 text-xs text-muted">
-        <Link href={`/users/${m.uploaderId}`} className="hover:text-ink hover:underline">{m.uploaderName}</Link>
-        <span aria-hidden>·</span>
-        <span>{timeAgo(m.createdAt)}</span>
+        {/* Name, time and diskusi count stay on one line; only the name is shortened (with "…") when it is too long. */}
+        <span className="flex min-w-0 max-w-full items-center gap-x-2">
+          <Link href={`/users/${m.uploaderId}`} title={m.uploaderName} className="min-w-0 truncate hover:text-ink hover:underline">{m.uploaderName}</Link>
+          <span aria-hidden>·</span>
+          <span className="whitespace-nowrap">{timeAgo(m.createdAt)}</span>
+          {discussions > 0 && <><span aria-hidden>·</span><span className="whitespace-nowrap">{discussions} diskusi</span></>}
+        </span>
         {m.attachment && (
           <svg role="img" aria-label="Ada file asli" viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <title>Ada file asli</title>
             <path d="m21 11-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9" />
           </svg>
         )}
-        {discussions > 0 && <><span aria-hidden>·</span><span>{discussions} diskusi</span></>}
         {quizSize !== undefined && <span className="badge-accent ml-auto whitespace-nowrap">Kuis · {quizSize} soal</span>}
         {action}
       </div>
