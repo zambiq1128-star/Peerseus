@@ -102,7 +102,7 @@ export type Question = {
   explanation: string;
   topic: string;
   /** Set on questions another user proposed and the uploader accepted (questionProposals). */
-  proposedBy?: { id: string; name: string };
+  proposedBy?: { id: string; name: string; /** When the uploader accepted it (ms). Missing on older questions, which count as recent. */ acceptedAt?: number };
 };
 
 /**

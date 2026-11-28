@@ -8,6 +8,7 @@ import { courseMembers, joinCourse, MATERIAL_TYPES, materialType, PRIVATE_MATERI
 import type { Course, Material, MaterialType, Membership, Quiz } from "@/lib/types";
 import { CollapsibleRows, Empty, ErrorState, LIST_LIMIT, NotFound, Page, PageHeader, ShowMoreButton, Spinner, TopicBar, useAsync } from "@/components/ui";
 import PartnerList from "@/components/PartnerList";
+import ContributorBoard from "@/components/ContributorBoard";
 
 const TABS = { materi: "Materi", peringkat: "Peringkat", partner: "Teman belajar" } as const;
 type Tab = keyof typeof TABS;
@@ -17,6 +18,7 @@ export default function CoursePage() {
   const { profile, refresh } = useAuth();
   const uid = profile!.id;
   const [tab, setTab] = useState<Tab>("materi");
+  const [board, setBoard] = useState<"kontributor" | "duel">("kontributor");
   const [kind, setKind] = useState<"" | MaterialType>("");
   const joined = profile!.courseIds.includes(id);
 
@@ -121,7 +123,18 @@ export default function CoursePage() {
         )
       }</div>}
 
-      {tab === "peringkat" && <Leaderboard key="peringkat" members={data.members} uid={uid} />}
+      {tab === "peringkat" && (
+        <div key="peringkat" className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {(["kontributor", "duel"] as const).map((r) => (
+              <button key={r} aria-pressed={board === r} onClick={() => setBoard(r)} className={board === r ? "chip-active" : "chip"}>
+                {r === "kontributor" ? "Kontributor" : "Duel"}
+              </button>
+            ))}
+          </div>
+          {board === "kontributor" ? <ContributorBoard courseId={id} uid={uid} /> : <Leaderboard members={data.members} uid={uid} />}
+        </div>
+      )}
 
       {tab === "partner" && (
         <div key="partner" className="animate-page-in">
