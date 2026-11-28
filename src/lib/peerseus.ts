@@ -541,7 +541,9 @@ export function missedTopics(duel: Duel, uid: string) {
 }
 
 // ---------- Study partner recommendation ----------
-export type PartnerRec = { member: Membership; profile: UserProfile | null; score: number; reasons: string[] };
+export type PartnerRec = { member: Membership; profile: UserProfile | null; score: number; reasons: string[];
+  /** True when this candidate has accuracy data for at least one of the topics to strengthen (so the pick is by topic, not just level). */
+  byTopic: boolean };
 
 const acc = (m: Membership, t: string) => {
   const s = m.topicStats[t];
@@ -581,7 +583,7 @@ export async function recommendPartners(courseId: string, uid: string, focusTopi
     if (myProgram && myProgram === (profile?.program || profile?.dreamProgram)) {
       reasons.push(profile?.program && myProfile?.program ? `Sama-sama ${myProgram}` : `Sama-sama incar ${myProgram}`);
     } else if (sameMajor) reasons.push(`Sama-sama ${m.major}`);
-    recs.push({ member: m, profile, score: 0.6 * complement + 0.3 * eloSim + 0.1 * sameMajor, reasons });
+    recs.push({ member: m, profile, score: 0.6 * complement + 0.3 * eloSim + 0.1 * sameMajor, reasons, byTopic: strengths.length > 0 });
   }
   return recs.sort((a, b) => b.score - a.score).slice(0, limit);
 }

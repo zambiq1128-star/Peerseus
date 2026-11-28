@@ -314,6 +314,9 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const theirs = meC ? duel.opponent : duel.challenger;
   const oppName = meC ? duel.opponentName : duel.challengerName;
   const missed = missedTopics(duel, uid);
+  // Pembahasan: wrong questions first (keeping their original numbers), open by default when there is one.
+  const review = duel.questions.map((q, i) => ({ q, i, ok: mine.answers[i] === q.answerIndex })).sort((a, b) => Number(a.ok) - Number(b.ok) || a.i - b.i);
+  const wrongCount = review.filter((r) => !r.ok).length;
   const discuss = useQuestionDiscussions(duel.quizId);
   const done = duel.status === "completed";
   const declined = duel.status === "declined";
@@ -387,15 +390,15 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         <PartnerList courseId={duel.courseId} focusTopics={missed} limit={3} />
       </Section>
 
-      <details className="card">
-        <summary className="cursor-pointer font-semibold">Pembahasan soal</summary>
+      <details className="card" open={wrongCount > 0}>
+        <summary className="cursor-pointer font-semibold">Pembahasan soal{wrongCount > 0 && <span className="ml-2 text-sm font-normal text-bad">{wrongCount} soal salah</span>}</summary>
         <ol className="mt-4 space-y-4">
-          {duel.questions.map((q, i) => {
+          {review.map(({ q, i }) => {
             const a = mine.answers[i];
             const ok = a === q.answerIndex;
             return (
               <li key={q.id} className="border-b border-line pb-3 text-sm last:border-0">
-                <div className="font-medium"><span className={ok ? "text-good" : "text-bad"}>{ok ? "Benar" : "Salah"}</span> · <MathText text={q.question} /></div>
+                <div className="font-medium"><span className={ok ? "text-good" : "text-bad"}>{i + 1}. {ok ? "Benar" : "Salah"}</span> · <MathText text={q.question} /></div>
                 <div className="mt-1">
                   Jawaban: <b><MathText text={q.options[q.answerIndex]} /></b>
                   {!ok && <span className="text-bad"> · kamu: {a === -1 ? "waktu habis" : <MathText text={q.options[a]} />}</span>}
