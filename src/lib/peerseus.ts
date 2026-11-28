@@ -322,13 +322,24 @@ export async function createInvite(quiz: Quiz, me: UserProfile, opponent: Pick<M
   return id;
 }
 
-/** Creates the five users/bot_* documents once (rules need them for opponentIsBot). Safe to call again. */
-export async function ensureLadderBots() {
-  await Promise.all(LADDER_BOTS.map(async (b) => {
-    if ((await db.get<UserProfile>("users", b.id))?.isBot) return;
-    const profile: UserProfile = { id: b.id, name: b.name, major: "", year: 1, bio: b.tagline, isPublic: false, isBot: true, courseIds: [], createdAt: Date.now() };
-    await db.set("users", b.id, profile);
-  }));
+let ladderSync: Promise<void> | null = null;
+
+/**
+ * Makes the five users/bot_* documents match bots.ts (rules need them for opponentIsBot). Creates missing ones and,
+ * when an existing one has a different name/bio (e.g. the old Greek names), updates just those two fields.
+ * Safe to call again; runs once per page load, and retries after a failure.
+ */
+export function ensureLadderBots() {
+  ladderSync ??= Promise.all(LADDER_BOTS.map(async (b) => {
+    const cur = await db.get<UserProfile>("users", b.id);
+    if (!cur?.isBot) {
+      const profile: UserProfile = { id: b.id, name: b.name, major: "", year: 1, bio: b.tagline, isPublic: false, isBot: true, courseIds: [], createdAt: Date.now() };
+      await db.set("users", b.id, profile);
+    } else if (cur.name !== b.name || cur.bio !== b.tagline) {
+      await db.update("users", b.id, { name: b.name, bio: b.tagline });
+    }
+  })).then(() => undefined, (e) => { ladderSync = null; throw e; });
+  return ladderSync;
 }
 
 /** Ids of the ladder bots I have beaten in this course (from my duel history; no extra collection). */

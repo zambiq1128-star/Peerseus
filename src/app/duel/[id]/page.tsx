@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { ladderAnswer, ladderBot } from "@/lib/bots";
+import { ladderAnswer, ladderBot, LADDER_BOTS } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
 import {
@@ -367,7 +367,8 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         )}
         {done && ladder && (
           <>
-            <p className="mt-4 text-lg font-semibold">{won ? `Kamu mengalahkan ${ladder.name}!` : draw ? `Seri melawan ${ladder.name}` : `${ladder.name} menang kali ini`}</p>
+            <p className="mt-4 text-lg font-semibold">{won ? `Kamu mengalahkan ${oppName}!` : draw ? `Seri melawan ${oppName}` : `${oppName} menang kali ini`}</p>
+            {won && ladder.level === LADDER_BOTS.length && <p className="mt-1 text-lg font-semibold text-cyan">Kamu sampai di Ithaca!</p>}
             <p className="mt-1 text-sm text-muted">Lawan bot: rating tidak berubah dan tidak masuk hitungan menang/kalah. Topik yang kamu jawab tetap tercatat.</p>
           </>
         )}
