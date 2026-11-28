@@ -7,7 +7,7 @@ import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { isLadderBotId } from "@/lib/bots";
 import { ensureLadderBots, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
-import { StreakStats } from "@/components/Streak";
+import { PairStreakStats, StreakStats, usePairStreaks } from "@/components/Streak";
 import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
@@ -17,6 +17,8 @@ import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageH
 export default function UserPage() {
   const { id } = useParams<{ id: string }>();
   const { profile: me } = useAuth();
+  // Pair streak: counted from the viewer's own duels, so it only exists when they have dueled this person.
+  const pairs = usePairStreaks(me?.id, !!me && me.id !== id && !isLadderBotId(id));
   const { data, error, reload } = useAsync(async () => {
     // A ladder bot's profile must show the current Odyssey name/bio even if the old document was never refreshed.
     if (isLadderBotId(id)) await ensureLadderBots().catch(() => {});
@@ -64,6 +66,7 @@ export default function UserPage() {
       )}
 
       {!user.isBot && <StreakStats streak={user.streak} />}
+      {!isMe && !user.isBot && <PairStreakStats streak={pairs.get(user.id)} />}
 
       <Section title="Mata kuliah">
         {data.memberships.length === 0 ? <Empty>Belum ikut mata kuliah.</Empty> : (

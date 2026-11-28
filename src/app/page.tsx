@@ -63,12 +63,12 @@ function Hero() {
 
 /** Duel invites waiting for my answer (live); the banner shows the same on every other page. */
 function IncomingInvites({ uid }: { uid: string }) {
-  const { invites, now } = useIncomingInvites(uid);
+  const { invites, now, pairs } = useIncomingInvites(uid);
   if (!invites.length) return null;
   return (
     <div className="callout space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <InviteText duel={invites[0]} now={now} />
+        <InviteText duel={invites[0]} now={now} pairs={pairs} />
         <InviteActions key={invites[0].id} duel={invites[0]} uid={uid} />
       </div>
       {invites.length > 1 && <Link href="/duels" className="link text-xs">+{invites.length - 1} ajakan lain</Link>}

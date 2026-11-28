@@ -89,3 +89,7 @@ Subtle and CSS-only. Tune it in the `@theme` block of `src/app/globals.css`:
 ## Long lists
 
 `CollapsibleRows` (in `ui.tsx`) shows `LIST_LIMIT` (5) rows, then "Lihat semua (N)". It starts collapsed on every visit and is keyed by the active filter so changing a chip collapses it again. Used for the Materi tab, Materiku, duel history (duels waiting on you are pinned above it) and both lists on a profile. Peringkat uses the same button on a table and keeps your own row visible under the top 5.
+
+## Pair streak badge (streak duel dengan teman)
+
+`PairStreakBadge`, `PairStreakHint`, `PairStreakStats`, `PairStreakResult` in `src/components/Streak.tsx`. 🔥 + number in `text-cyan` (#00bbfa) beside a friend's name (`font-display`, same size as the top-bar streak badge). Nothing renders when the pair streak is not alive (0). "At risk" (last duel yesterday) is only dim text, `text-muted` (#6d9ac7) "Duel hari ini supaya streak nggak putus", never red: red stays for bad status. Inside a `callout` (blue fill, white text: result line, invite text) the number and "+1 hari" stay white; cyan on that fill fails contrast. Load with `usePairStreaks(uid, enabled)` once per page; never per friend.

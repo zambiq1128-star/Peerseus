@@ -14,7 +14,7 @@ export default function Duels() {
   const { profile } = useAuth();
   const uid = profile!.id;
   const { data, loading, error } = useQuery<Duel>("duels", [["participants", "array-contains", uid]]);
-  const { invites, now: inviteNow } = useIncomingInvites(uid);
+  const { invites, now: inviteNow, pairs } = useIncomingInvites(uid);
   const waiting = data.some((d) => d.status === "invited");
   const now = useNow(waiting);
   if (error) return <ErrorState message={error.message} onRetry={() => location.reload()} />;
@@ -31,7 +31,7 @@ export default function Duels() {
           <div className="rows">
             {invites.map((d) => (
               <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-                <InviteText duel={d} now={inviteNow} />
+                <InviteText duel={d} now={inviteNow} pairs={pairs} />
                 <InviteActions duel={d} uid={uid} />
               </div>
             ))}

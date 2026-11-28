@@ -6,7 +6,9 @@ import { useAuth } from "@/lib/auth";
 import { displayOpponentName, LADDER_BOTS, type LadderBot } from "@/lib/bots";
 import { db } from "@/lib/db";
 import { activeOutgoingInvite, createInvite, defeatedLadderBots, DUEL_QUESTIONS, ensureLadderBots, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
+import { loadMyPairStreaks, type PairStreak } from "@/lib/pairStreak";
 import type { Course, Quiz } from "@/lib/types";
+import { PairStreakBadge, PairStreakHint } from "@/components/Streak";
 import { Empty, ErrorState, Page, PageHeader, Spinner, useAsync } from "@/components/ui";
 
 export default function NewDuelPage() {
@@ -46,7 +48,9 @@ function NewDuel() {
     // Keep users/bot_* in step with bots.ts (new names); failure here must not block the page.
     ensureLadderBots().catch(() => {});
     const beaten = await defeatedLadderBots(uid, courseId);
-    return { course, quizzes, opponents, me, waiting, beaten };
+    // Pair streaks come from my own duels in one query; a failure only hides the badges.
+    const pairs = await loadMyPairStreaks(uid).catch(() => new Map<string, PairStreak>());
+    return { course, quizzes, opponents, me, waiting, beaten, pairs };
   }, [quizParam, courseParam, uid]);
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -112,8 +116,14 @@ function NewDuel() {
                 <label key={o.uid} className={`flex cursor-pointer items-center justify-between gap-3 p-3 ${opp.uid === o.uid ? "bg-accent-soft" : "hover:bg-navy-3"}`}>
                   <span className="flex items-center gap-2 text-sm">
                     <input type="radio" checked={opp.uid === o.uid} onChange={() => setOppId(o.uid)} />
-                    <span className="font-medium">{o.name}</span>
-                    <span className="text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
+                    <span>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{o.name}</span>
+                        <PairStreakBadge streak={data.pairs.get(o.uid)} />
+                        <span className="text-xs text-muted">{o.major}{o.isBot ? " · demo" : ""}</span>
+                      </span>
+                      <PairStreakHint streak={data.pairs.get(o.uid)} />
+                    </span>
                   </span>
                   <span className="text-sm font-semibold">{o.elo}</span>
                 </label>

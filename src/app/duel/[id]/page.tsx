@@ -4,9 +4,10 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { recordActivityQuietly } from "@/lib/activity";
 import { useAuth } from "@/lib/auth";
-import { displayOpponentName, ladderAnswer, ladderBot, LADDER_BOTS } from "@/lib/bots";
+import { displayOpponentName, isLadderBotId, ladderAnswer, ladderBot, LADDER_BOTS } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
+import { wibDay } from "@/lib/streak";
 import {
   acceptInvite, botAnswer, cancelInvite, clock, decidedByTime, deadlineOf, duelState, END_GRACE_MS, endReason, expireInvite, getMembership, HEARTBEAT_MS,
   heartbeat, inviteMsLeft, liveOf, missedTopics, other, QUESTION_MS, roleOf, saveLiveSide, SECONDS_PER_QUESTION, settleDuel, startAtOf,
@@ -16,7 +17,7 @@ import { ErrorState, NotFound, Page, Section, Spinner, useCountUp } from "@/comp
 import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
 import { InviteActions, useNow } from "@/components/DuelInvites";
 import PartnerList from "@/components/PartnerList";
-import { StreakNotice } from "@/components/Streak";
+import { PairStreakResult, StreakNotice, usePairStreaks } from "@/components/Streak";
 import { MathText } from "@/components/Markdown";
 
 export default function DuelPage() {
@@ -341,6 +342,11 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
     if (!done || typeof duel.completedAt !== "number" || serverNow() - duel.completedAt > 30 * 60 * 1000) return;
     void recordActivityQuietly(uid, duel.completedAt).then((r) => { if (r?.message) setStreakMsg(r.message); });
   }, [done, duel.completedAt, uid]);
+  // Pair streak with this person (human duels only), counted from my duels once the result is in.
+  const friendId = meC ? duel.opponentId : duel.challengerId;
+  const humanDone = done && !duel.opponentIsBot && !isLadderBotId(friendId);
+  const pair = usePairStreaks(uid, humanDone).get(friendId);
+  const pairRaised = !!pair && pair.todayDuels === 1 && typeof duel.completedAt === "number" && wibDay(duel.completedAt) === wibDay(serverNow());
   const verdict = declined ? "Ditolak" : expired ? "Kedaluwarsa" : !done ? "Menunggu" : won ? "Menang" : draw ? "Seri" : "Kalah";
 
   return (
@@ -388,6 +394,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
       </div>
 
       <StreakNotice message={streakMsg} />
+      {humanDone && <PairStreakResult name={oppName} streak={pair} raised={pairRaised} />}
 
       <Section title="Topik yang perlu diperkuat">
         {missed.length ? (
