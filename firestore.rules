@@ -10,7 +10,8 @@ rules_version = '2';
 // which only the owner can read (src/lib/privacy.ts). Firestore rules allow or deny whole documents,
 // so a hidden field must not be in users/{uid} at all, and the rules refuse a profile that still has one.
 // Private materials (Materiku) live in privateMaterials, readable and writable only by their uploader;
-// public ones stay in materials, which must not hold a private one.
+// public ones stay in materials, which must not hold a private one. Public materials: anyone allowed reads and
+// may add one report; only the uploader creates, edits and deletes (seed samples: created once, never rewritten).
 // Duels (duel langsung): the challenger invites as themselves; only the opponent accepts or declines, only the
 // challenger cancels, either may mark an invite older than 2 minutes expired; finished duels never change.
 // Solo practice history (practiceAttempts) is readable only by its owner and can't be edited.
@@ -90,9 +91,21 @@ service cloud.firestore {
     }
 
     // Public materials. Private ones (isPublic == false) belong in privateMaterials.
+    // Only the uploader creates (as themselves), edits (also moving it to another course) and deletes one; the
+    // uploader never changes. Anyone allowed may add one report. The first seed creates the two samples as their
+    // demo uploader; create only, so nobody can rewrite them afterwards.
     match /materials/{id} {
-      allow read, delete: if allowed();
-      allow create, update: if allowed() && request.resource.data.get('isPublic', true) == true;
+      function seedSample(d) {
+        let samples = {'mat_ma_limit': 'bot_dimas', 'mat_fi_newton': 'bot_bima'};
+        return id in samples && d.uploaderId == samples[id];
+      }
+      allow read: if allowed();
+      allow create: if allowed() && request.resource.data.get('isPublic', true) == true
+        && (request.resource.data.uploaderId == request.auth.uid || seedSample(request.resource.data));
+      allow update: if allowed() && request.resource.data.get('isPublic', true) == true
+        && ((resource.data.uploaderId == request.auth.uid && request.resource.data.uploaderId == resource.data.uploaderId)
+          || addsReport());
+      allow delete: if allowed() && resource.data.uploaderId == request.auth.uid;
     }
 
     match /privateMaterials/{id} {

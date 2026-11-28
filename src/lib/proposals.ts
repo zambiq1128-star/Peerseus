@@ -64,8 +64,13 @@ export async function myProposals(uid: string, materialId: string) {
 
 /** Proposals waiting for me as the uploader: of one material, or of all my materials (home page). */
 export async function proposalsToReview(uid: string, materialId?: string) {
-  const list = await db.list<QuestionProposal>(PROPOSALS, [["uploaderId", "==", uid], ["status", "==", "pending"]]);
-  return newestFirst(materialId ? list.filter((p) => p.materialId === materialId) : list);
+  const [list, mine] = await Promise.all([
+    db.list<QuestionProposal>(PROPOSALS, [["uploaderId", "==", uid], ["status", "==", "pending"]]),
+    // Proposals for a material I deleted stay (only the proposer may remove them); skip them.
+    db.list<{ id: string }>("materials", [["uploaderId", "==", uid]]),
+  ]);
+  const live = new Set(mine.map((m) => m.id));
+  return newestFirst(list.filter((p) => live.has(p.materialId) && (!materialId || p.materialId === materialId)));
 }
 
 /** Adds the (possibly edited) question to the quiz, credited to the proposer. */

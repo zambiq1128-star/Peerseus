@@ -30,7 +30,12 @@ function NewDuel() {
 
   const { data, error, reload } = useAsync(async () => {
     let courseId = courseParam;
-    if (quizParam) courseId = (await db.get<Quiz>("quizzes", quizParam))?.courseId ?? null;
+    if (quizParam) {
+      // "Ajak lagi" / "Duel lagi" from an old duel whose material (and quiz) was deleted since.
+      const q = await db.get<Quiz>("quizzes", quizParam);
+      if (!q) return { gone: true as const };
+      courseId = q.courseId;
+    }
     if (!courseId) return null;
     const course = await db.get<Course>("courses", courseId);
     const quizzes = (await db.list<Quiz>("quizzes", [["courseId", "==", courseId]])).filter((q) => q.status === "published");
@@ -44,6 +49,9 @@ function NewDuel() {
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (data === undefined) return <Spinner />;
+  if (data && "gone" in data) {
+    return <NoDuel title="Kuis ini sudah dihapus" back={{ href: "/", label: "Ke mata kuliahku" }}>Materinya sudah dihapus pengunggahnya. Riwayat duelnya tetap ada; pilih kuis lain dari halaman mata kuliah.</NoDuel>;
+  }
   if (!data || !data.course) {
     return <NoDuel title="Pilih kuis dulu" back={{ href: "/", label: "Ke mata kuliahku" }}>Buka materi yang sudah punya kuis, lalu klik “Mulai duel”.</NoDuel>;
   }
