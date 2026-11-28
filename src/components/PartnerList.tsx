@@ -24,13 +24,13 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
       </p>
       <div className="rows">
         {data.recs.map(({ member, profile: p, reasons }) => (
-          <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div>
-              <div className="font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span><AccountBadge itb={p?.isItbVerified} className="ml-2" /></div>
+          <div key={member.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="break-words font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span><AccountBadge itb={p?.isItbVerified} className="ml-2 whitespace-nowrap" /></div>
               {reasons.length > 0 && <div className="text-xs text-good">{reasons.join(" · ")}</div>}
               {p?.contact && <div className="mt-1 text-xs text-muted">Kontak: <span className="text-ink">{p.contact}</span></div>}
             </div>
-            <Link href={`/duel/new?course=${courseId}&opponent=${member.uid}`} className="btn-ghost !py-1.5">Ajak duel</Link>
+            <Link href={`/duel/new?course=${courseId}&opponent=${member.uid}`} className="btn-ghost shrink-0 self-start !py-1.5 sm:self-center">Ajak duel</Link>
           </div>
         ))}
       </div>

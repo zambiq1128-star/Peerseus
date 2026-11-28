@@ -30,9 +30,9 @@ export default function Duels() {
         <Section title={`Ajakan masuk (${invites.length})`}>
           <div className="rows">
             {invites.map((d) => (
-              <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div key={d.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <InviteText duel={d} now={inviteNow} pairs={pairs} />
-                <InviteActions duel={d} uid={uid} />
+                <InviteActions duel={d} uid={uid} className="shrink-0" />
               </div>
             ))}
           </div>

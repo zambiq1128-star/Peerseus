@@ -125,13 +125,16 @@ export function usePairStreaks(uid: string | null | undefined, enabled = true): 
   return s && s.uid === uid ? s.map : NO_PAIRS;
 }
 
-/** "🔥 N" beside a friend's name; renders nothing when the pair streak is not alive. */
+/** Tooltip / aria text for the pair streak badge ("Sekapal" = the streak of two friends dueling each other). */
+export const sekapalLabel = (n: number) => `Sekapal: ${n} hari berturut-turut duel bersama`;
+
+/** "⛵ N" beside a friend's name; renders nothing when the pair streak is not alive. */
 export function PairStreakBadge({ streak }: { streak: PairStreak | null | undefined }) {
   if (!streak || streak.current <= 0) return null;
   return (
-    <span title={`Streak duel ${streak.current} hari`} aria-label={`Streak duel ${streak.current} hari`}
+    <span title={sekapalLabel(streak.current)} aria-label={sekapalLabel(streak.current)}
       className="inline-flex shrink-0 items-center gap-0.5 font-display text-sm leading-none tracking-wider text-cyan">
-      <span aria-hidden>🔥</span><span className="tabular-nums">{streak.current}</span>
+      <span aria-hidden>⛵</span><span className="tabular-nums">{streak.current}</span>
     </span>
   );
 }
@@ -139,7 +142,7 @@ export function PairStreakBadge({ streak }: { streak: PairStreak | null | undefi
 /** Small dim hint under a friend's name when the streak ends today unless you duel. */
 export function PairStreakHint({ streak }: { streak: PairStreak | null | undefined }) {
   if (!streak || streak.current <= 0 || !streak.atRisk) return null;
-  return <span className="block text-xs text-muted">Duel hari ini supaya streak nggak putus</span>;
+  return <span className="block text-xs text-muted">Duel hari ini supaya Sekapal nggak putus</span>;
 }
 
 /** Profile line: running and best pair streak. Nothing at 0 and 0. */
@@ -148,10 +151,11 @@ export function PairStreakStats({ streak }: { streak: PairStreak | null | undefi
   return (
     <div className="card flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
       <span className="flex items-center gap-2">
-        <span aria-hidden>🔥</span>Streak duel kalian: <b className="font-display text-2xl tabular-nums text-cyan">{streak.current}</b> hari
+        <span aria-hidden>⛵</span>Sekapal kalian: <b className="font-display text-2xl tabular-nums text-cyan">{streak.current}</b> hari
       </span>
       <span className="text-muted">Terbaik: <b className="text-ink">{streak.best}</b></span>
-      {streak.atRisk && <span className="w-full text-xs text-muted">Duel hari ini supaya streak nggak putus</span>}
+      <span className="w-full text-xs text-muted">Hari berturut-turut kalian saling duel.</span>
+      {streak.atRisk && <span className="w-full text-xs text-muted">Duel hari ini supaya Sekapal nggak putus</span>}
     </div>
   );
 }
@@ -161,7 +165,7 @@ export function PairStreakResult({ name, streak, raised }: { name: string; strea
   if (!streak || streak.current <= 0) return null;
   return (
     <p role="status" className="callout text-center font-semibold">
-      <span aria-hidden>🔥 </span>Streak duel dengan {name}: <span className="tabular-nums">{streak.current}</span> hari
+      <span aria-hidden>⛵ </span>Sekapal dengan {name}: <span className="tabular-nums">{streak.current}</span> hari
       {raised && <span className="ml-2 text-sm font-bold">+1 hari</span>}
     </p>
   );
