@@ -220,6 +220,8 @@ export function texToMarkdown(src: string): string {
 export function plainSnippet(text: string, max = 240) {
   return plainTex(
     text
+      // Image placeholders left behind by PDF extraction, e.g. "[Gambar: Ilustrasi baterai…]".
+      .replace(/\[Gambar:[^\]]*\]/gi, " ")
       .replace(/```[\s\S]*?```/g, " ")
       .replace(/\$\$[\s\S]*?\$\$|\\\[[\s\S]*?\\\]/g, " [rumus] ")
       .replace(/\$([^$\n]+)\$|\\\((.+?)\\\)/g, (_, a: string | undefined, b: string | undefined) => a ?? b ?? "")

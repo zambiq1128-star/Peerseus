@@ -98,7 +98,7 @@ export default function Opportunities() {
           )}
         </div>
       )}
-      <p className="text-xs text-muted">Info bertanda “(contoh)” adalah data contoh untuk demo.</p>
+      {data.list.some((o) => o.postedBy === "seed") && <p className="text-xs text-muted">Info bertanda “(contoh)” adalah data contoh untuk demo.</p>}
     </Page>
   );
 }
