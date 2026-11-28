@@ -10,7 +10,7 @@ import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 import InviteBanner from "./DuelInvites";
 import LoginScreen, { loginStyles as ls } from "./Login";
-import { StreakBadge, useStreak } from "./Streak";
+import { useStreak } from "./Streak";
 import { Spinner } from "./ui";
 
 const NAV = [
@@ -60,7 +60,7 @@ export function AppHeader(props: { path: string; firstName: string; uid: string;
   return (
     <header className={`${props.setup ? "relative" : "sticky top-0"} z-20 animate-slide-down border-b-4 border-white bg-black text-white`}>
       {/* Decorative: blue diagonal strip behind the profile link, a thin white slash, and a blue wedge under the bar. */}
-      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-[30%] bg-volt [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)] sm:w-1/3" />
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-[30%] bg-volt [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)] sm:block sm:w-1/3" />
       <div aria-hidden className="pointer-events-none absolute hidden sm:block inset-y-0 right-[40%] w-3 translate-x-[0.4rem] bg-white [clip-path:polygon(60%_0,100%_0,40%_100%,0_100%)] sm:right-1/3" />
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-3 bg-volt [clip-path:polygon(0_0,100%_0,58%_100%,0_100%)]" />
       <div className="relative mx-auto flex max-w-page items-center gap-1 px-4 py-2.5 sm:gap-4">
@@ -68,13 +68,13 @@ export function AppHeader(props: { path: string; firstName: string; uid: string;
           ? <div className="animate-slide-left"><Logo /></div>
           : <Link href="/" aria-label="Peerseus, ke beranda" className="animate-slide-left"><Logo /></Link>}
         {props.setup && <div className="flex-1" />}
-        {!props.setup && <nav aria-label="Menu utama" className="flex flex-1 gap-1 pl-0.5 sm:gap-1.5 sm:pl-3">
+        {!props.setup && <nav aria-label="Menu utama" className="flex shrink-0 gap-1 pl-0.5 sm:flex-1 sm:gap-1.5 sm:pl-3">
           {NAV.map((n, i) => {
             const active = n.match(path);
             return (
               <Link key={n.href} href={n.href} aria-current={active ? "page" : undefined}
                 style={{ animationDelay: `${60 + i * 60}ms` }}
-                className={`animate-slide-left whitespace-nowrap px-2.5 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:-rotate-2 focus-visible:bg-white focus-visible:text-black sm:px-5 sm:text-base sm:tracking-widest ${active ? "-rotate-2 bg-volt text-white" : "text-white hover:bg-white hover:text-black"}`}>
+                className={`animate-slide-left whitespace-nowrap px-1.5 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:-rotate-2 focus-visible:bg-white focus-visible:text-black sm:px-5 sm:text-base sm:tracking-widest ${active ? "-rotate-2 bg-volt text-white" : "text-white hover:bg-white hover:text-black"}`}>
                 {n.label}
               </Link>
             );
@@ -84,10 +84,17 @@ export function AppHeader(props: { path: string; firstName: string; uid: string;
           <button type="button" onClick={props.onLogout}
             className="animate-slide-right relative bg-white px-4 py-1.5 font-display text-[13px] uppercase tracking-wider text-black transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:bg-black hover:text-white sm:text-sm">Keluar</button>
         ) : (
-        <div className="animate-slide-right relative flex items-center gap-1 [animation-delay:240ms]">
-        <StreakBadge current={streak.current} />
-        <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          className={`max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{props.firstName}</Link>
+        <div className="relative ml-auto flex min-w-0">
+          {/* Phones: the blue slant is tied to the profile pill (behind it, from 16px left of it to the screen edge), so the pill never sits half on black. */}
+          <div aria-hidden className="pointer-events-none absolute -inset-y-2.5 -left-4 -right-4 bg-volt [clip-path:polygon(24%_0,100%_0,100%_100%,0_100%)] sm:hidden" />
+          <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
+            aria-label={streak.current > 0 ? `Profil, streak ${streak.current} hari` : "Profil"}
+            className={`animate-slide-right relative flex min-w-0 items-center gap-1 px-2 py-1.5 sm:gap-1.5 sm:px-3 font-display text-[13px] uppercase tracking-wider transition duration-150 [animation-delay:240ms] [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>
+            <span className="min-w-0 truncate">{props.firstName}</span>
+            {streak.current > 0 && (
+              <span aria-hidden className={`shrink-0 whitespace-nowrap tabular-nums ${onProfile ? "text-black" : "text-cyan"}`}>🔥{streak.current}</span>
+            )}
+          </Link>
         </div>
         )}
       </div>

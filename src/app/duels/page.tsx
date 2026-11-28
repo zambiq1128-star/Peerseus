@@ -104,8 +104,10 @@ function DuelRow({ d, uid, now }: { d: Duel; uid: string; now: number }) {
   return (
     <Link href={`/duel/${d.id}`} className="row-link">
       <div className="min-w-0">
-        <div className="font-medium">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
-        <div className="text-xs text-muted">{d.quizTitle} · {timeAgo(d.createdAt)}</div>
+        <div className="truncate font-medium">vs {opp}</div>
+        <div className="truncate text-xs text-muted">{d.quizTitle}</div>
+        {/* Satu baris pendek: "kamu menantang · 1 jam lalu" tidak pernah patah. */}
+        <div className="whitespace-nowrap text-xs text-muted">{meC ? "kamu menantang" : "menantangmu"} · {timeAgo(d.createdAt)}</div>
       </div>
       <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {mine && <span className="text-sm font-bold">{mine.score} – {theirs ? theirs.score : "?"}</span>}
