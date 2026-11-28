@@ -1,5 +1,5 @@
 import { firebaseEnabled } from "./firebase";
-import type { Question } from "./types";
+import type { Duel, Question } from "./types";
 
 /**
  * Tangga bot ala chess.com: lima rintangan di "perjalanan pulang ke Ithaca" (Odyssey karya Homer; kamu berperan sebagai Odysseus), urut dari mudah ke sulit.
@@ -40,6 +40,15 @@ export const LADDER_BOTS: LadderBot[] = [
 
 export const ladderBot = (id: string | undefined | null) => LADDER_BOTS.find((b) => b.id === id) ?? null;
 export const isLadderBotId = (id: string | undefined | null) => ladderBot(id) !== null;
+
+/**
+ * Name to show for one side of a duel. A ladder bot always shows its CURRENT name from bots.ts (a duel stores the
+ * name from when it was created, e.g. "Zeus" before the Odyssey rename); a person keeps the stored name.
+ */
+export function displayOpponentName(duel: Pick<Duel, "challengerId" | "challengerName" | "opponentId" | "opponentName">, sideUid: string) {
+  const stored = sideUid === duel.challengerId ? duel.challengerName : duel.opponentName;
+  return ladderBot(sideUid)?.name ?? stored;
+}
 
 /**
  * Teman demo lama (bot_alya, bot_bima, dst. dari seed) dan bot tangga bukan orang sungguhan. Di Firebase keduanya

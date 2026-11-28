@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { LADDER_BOTS, type LadderBot } from "@/lib/bots";
+import { displayOpponentName, LADDER_BOTS, type LadderBot } from "@/lib/bots";
 import { db } from "@/lib/db";
 import { activeOutgoingInvite, createInvite, defeatedLadderBots, DUEL_QUESTIONS, ensureLadderBots, getMembership, joinCourse, SECONDS_PER_QUESTION, suggestOpponents } from "@/lib/peerseus";
 import type { Course, Quiz } from "@/lib/types";
@@ -135,7 +135,7 @@ function NewDuel() {
 
       {data.waiting ? (
         <div className="callout flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-medium">Ajakanmu ke {data.waiting.opponentName} masih menunggu jawaban.</span>
+          <span className="text-sm font-medium">Ajakanmu ke {displayOpponentName(data.waiting, data.waiting.opponentId)} masih menunggu jawaban.</span>
           <Link href={`/duel/${data.waiting.id}`} className="btn-primary">Lihat ajakan</Link>
         </div>
       ) : tab === "bot" ? (
