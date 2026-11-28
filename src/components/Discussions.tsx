@@ -37,6 +37,8 @@ export function Discussions({ parent, quiz = null, me }: { parent: DiscussionPar
     if (!data || arrived || !filter) return;
     setArrived(true);
     if (!shown?.length) setAsking(true);
+    // A single match (the usual case from "Bahas soal ini"): show its content and best answer straight away.
+    else if (shown.length === 1) setOpenId(shown[0].id);
     document.getElementById("diskusi")?.scrollIntoView({ block: "start" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, filter]);

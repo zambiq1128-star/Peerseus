@@ -20,7 +20,7 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">
-        {data.weak.length ? <>Dipilih karena kuat di topik yang perlu kamu perkuat: <b className="text-ink">{data.weak.join(", ")}</b>.</> : "Selesaikan duel agar rekomendasi disesuaikan dengan topikmu. Sementara ini diurutkan dari level yang mirip."}
+        {data.weak.length && data.recs.some((r) => r.byTopic) ? <>Dipilih karena kuat di topik yang perlu kamu perkuat: <b className="text-ink">{data.weak.join(", ")}</b>.</> : "Selesaikan duel agar rekomendasi disesuaikan dengan topikmu. Sementara ini diurutkan dari level yang mirip."}
       </p>
       <div className="rows">
         {data.recs.map(({ member, profile: p, reasons }) => (
