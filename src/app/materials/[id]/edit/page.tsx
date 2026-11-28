@@ -3,11 +3,11 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { deleteMaterial, getMaterial, materialLinks, materialType, MOVE_BLOCKED, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
+import { deleteMaterial, getMaterial, materialLinks, materialType, MOVE_BLOCKED, parseTopics, setMaterialPublic, updateMaterial } from "@/lib/peerseus";
 import type { Course, MaterialType } from "@/lib/types";
 import MaterialComposer from "@/components/MaterialComposer";
 import AttachmentField, { attachmentToSave, cleanUpAttachment, draftOf, useAttachmentConfig, type AttachmentDraft } from "@/components/AttachmentField";
-import { ErrorState, MaterialTypeField, NotFound, Page, PageHeader, PrivateField, Section, Spinner, useAsync } from "@/components/ui";
+import { DescriptionField, ErrorState, MaterialTypeField, NotFound, Page, PageHeader, PrivateField, Section, Spinner, useAsync } from "@/components/ui";
 
 export default function EditMaterial() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +29,7 @@ export default function EditMaterial() {
   const [type, setType] = useState<MaterialType>("materi");
   const [isPrivate, setIsPrivate] = useState(false);
   const [topics, setTopics] = useState("");
+  const [description, setDescription] = useState("");
   const [text, setText] = useState("");
   const [attachment, setAttachment] = useState<AttachmentDraft>(null);
   const attachmentCfg = useAttachmentConfig();
@@ -42,6 +43,7 @@ export default function EditMaterial() {
     setType(materialType(material));
     setIsPrivate(material.isPublic === false);
     setTopics(material.topics.join(", "));
+    setDescription(material.description ?? "");
     setText(material.text);
     setAttachment(draftOf(material.attachment));
   }, [material]);
@@ -69,13 +71,15 @@ export default function EditMaterial() {
     e.preventDefault();
     setErr("");
     if (!text.trim()) return setErr("Isi materi tidak boleh kosong.");
+    const parsed = parseTopics(topics, material!.topics);
+    if (parsed.error) return setErr(parsed.error);
     setBusy(true);
     try {
       // Team Drive files never go into privateMaterials (they are readable by anyone with the link), and own-Drive links never go public.
       const file = await attachmentToSave(attachment, isPrivate);
       const m = await setMaterialPublic({ ...material!, attachment: file }, !isPrivate);
       const move = courseId && courseId !== material!.courseId && canMove ? { courseId } : {};
-      await updateMaterial(m, { title: title.trim(), type, topics: topics.split(",").map((t) => t.trim()).filter(Boolean), text: text.trim(), attachment: file, ...move });
+      await updateMaterial(m, { title: title.trim(), type, topics: parsed.topics, description: description.trim(), text: text.trim(), attachment: file, ...move });
       await cleanUpAttachment(material!.attachment, file);
       // replace: the edit page leaves the history, so "Kembali" on the material goes to where the user came from.
       router.replace(`/materials/${id}`);
@@ -95,9 +99,10 @@ export default function EditMaterial() {
       <form onSubmit={save} className="card space-y-4">
         <div className="grid gap-4 sm:grid-cols-[2fr_2fr_1fr]">
           <div><label className="label">Judul</label><input className="input" required value={title} onChange={(e) => setTitle(e.target.value)} /></div>
-          <div><label className="label">Topik (pisahkan dengan koma)</label><input className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} /></div>
+          <div><label className="label" htmlFor="topik">Topik (pisahkan dengan koma, maks 30 karakter per topik)</label><input id="topik" className="input" required value={topics} onChange={(e) => setTopics(e.target.value)} /></div>
           <MaterialTypeField value={type} onChange={setType} />
         </div>
+        <DescriptionField value={description} onChange={setDescription} />
         <div className="sm:max-w-md">
           <label className="label" htmlFor="mata-kuliah">Mata kuliah</label>
           <select id="mata-kuliah" className="input disabled:cursor-not-allowed disabled:opacity-60" value={courseId} disabled={!canMove} aria-describedby="mata-kuliah-info" onChange={(e) => setCourseId(e.target.value)}>

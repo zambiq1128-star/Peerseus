@@ -30,6 +30,10 @@
   background: repeating-linear-gradient(115deg, #fff 0 1px, transparent 1px 14px);
 }
 
+/* Setup header: pinned to the top; the content starts below it. */
+.top { position: absolute; inset: 0 0 auto 0; z-index: 10; }
+.withTop .inner { padding-top: 6.5rem; }
+
 .inner {
   position: relative;
   display: flex;

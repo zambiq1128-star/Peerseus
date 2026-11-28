@@ -73,6 +73,7 @@ export default function MaterialPage() {
           {isUploader && <> · <Link href={`/materials/${material.id}/edit`} replace className="link">Edit materi</Link></>}
         </>}
       />
+      {material.description?.trim() && <p className="-mt-2 max-w-prose break-words text-ink-soft">{material.description.trim()}</p>}
 
       {/* Step 1: the quiz (the main action on this page) */}
       {quiz?.status === "published" && (

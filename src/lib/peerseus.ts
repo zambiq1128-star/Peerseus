@@ -2,6 +2,7 @@
 import { hiddenFromPeople, isLadderBotId, LADDER_BOTS } from "./bots";
 import { callAi, newAiState, type Reply, type WaitInfo } from "./convert";
 import type { CourseInfo } from "./curriculum";
+import { loadCardStats } from "./materialStats";
 import { db, newId, serverNow, serverTime } from "./db";
 import { eloDelta, START_ELO } from "./elo";
 import { ensureSeeded } from "./seed";
@@ -128,20 +129,15 @@ export async function myMaterials(uid: string): Promise<Material[]> {
   return [...pub, ...priv].sort((a, b) => b.createdAt - a.createdAt);
 }
 
-/** Newest public materials in these courses, each with whether its quiz is ready for duels (home page). */
-export async function latestMaterials(courseIds: string[], limit = 5): Promise<{ material: Material; quizReady: boolean }[]> {
-  // One query per course: the data layer only filters with == (a user has a handful of courses).
-  const perCourse = await Promise.all(
-    courseIds.map(async (id) => {
-      const [materials, quizzes] = await Promise.all([
-        db.list<Material>("materials", [["courseId", "==", id]]),
-        db.list<Quiz>("quizzes", [["courseId", "==", id]]),
-      ]);
-      const ready = new Set(quizzes.filter((q) => q.status === "published").map((q) => q.materialId));
-      return materials.map((material) => ({ material, quizReady: ready.has(material.id) }));
-    }),
-  );
-  const latest = perCourse.flat().sort((a, b) => b.material.createdAt - a.material.createdAt).slice(0, limit);
+/** Newest public materials in these courses with what a card shows (home page). */
+export async function latestMaterials(courseIds: string[], limit = 5): Promise<{ material: Material; quizSize?: number; discussions: number }[]> {
+  // Two reads per course (materials) plus one stats read per course: the data layer only filters with == (a user has a handful of courses).
+  const [materials, stats] = await Promise.all([
+    Promise.all(courseIds.map((id) => db.list<Material>("materials", [["courseId", "==", id]]))),
+    loadCardStats(courseIds),
+  ]);
+  const latest = materials.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit)
+    .map((material) => ({ material, quizSize: stats.quizSize.get(material.id), discussions: stats.discussions.get(material.id) ?? 0 }));
   const named = await withUploaderNames(latest.map((x) => x.material));
   return latest.map((x, i) => ({ ...x, material: named[i] }));
 }
@@ -155,7 +151,22 @@ export async function createMaterial(input: Omit<Material, "id" | "createdAt" | 
   return m;
 }
 
-export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text" | "attachment"> & Partial<Pick<Material, "courseId">>) {
+export const DESCRIPTION_MAX = 120;
+export const TOPIC_MAX = 30;
+
+/**
+ * Topics typed as "a, b, c". A new topic may have at most TOPIC_MAX characters; topics the material already has
+ * (`existing`) are kept as they are, so editing an old material is never blocked by its old data.
+ */
+export function parseTopics(raw: string, existing: string[] = []): { topics: string[]; error?: string } {
+  const topics = raw.split(",").map((t) => t.trim()).filter(Boolean);
+  const tooLong = topics.find((t) => t.length > TOPIC_MAX && !existing.includes(t));
+  return tooLong
+    ? { topics, error: `Topik “${tooLong.slice(0, 20)}…” terlalu panjang (${tooLong.length} karakter). Tiap topik maksimal ${TOPIC_MAX} karakter; pisahkan dengan koma.` }
+    : { topics };
+}
+
+export async function updateMaterial(m: Material, patch: Pick<Material, "title" | "type" | "topics" | "text" | "attachment" | "description"> & Partial<Pick<Material, "courseId">>) {
   await db.update(colOf(m), m.id, { ...patch, format: "markdown", updatedAt: Date.now() });
 }
 

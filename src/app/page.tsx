@@ -3,14 +3,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { latestMaterials, MATERIAL_TYPES, materialType } from "@/lib/peerseus";
+import { latestMaterials } from "@/lib/peerseus";
+import MaterialCard from "@/components/MaterialCard";
 import { daysLeft, deadlineLabel, isUrgent, nearestOpportunities, OPP_TYPES } from "@/lib/opportunities";
 import { discussionNotices, markSeen, type DiscussionNotice } from "@/lib/discussions";
 import { proposalsToReview } from "@/lib/proposals";
 import type { Course, Membership, Opportunity, QuestionProposal } from "@/lib/types";
 import { Ransom } from "@/components/Ransom";
 import { Splat, Starburst } from "@/components/Decor";
-import { Empty, ErrorState, Page, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
+import { Empty, ErrorState, Page, Section, Spinner, useAsync } from "@/components/ui";
 import { InviteActions, InviteText, useIncomingInvites } from "@/components/DuelInvites";
 
 export default function Home() {
@@ -171,16 +172,8 @@ function HomeBody() {
       {data.latest.length > 0 && (
         <Section title="Materi terbaru di mata kuliahku">
           <div className="rows">
-            {data.latest.map(({ material: m, quizReady }) => (
-              <Link key={m.id} href={`/materials/${m.id}`} className="row-link">
-                <div className="min-w-0">
-                  <div className="font-medium">{m.title}</div>
-                  <div className="text-xs text-muted">
-                    {data.courses.find((c) => c.id === m.courseId)?.code ?? m.courseId} · {MATERIAL_TYPES[materialType(m)]} · oleh {m.uploaderName} · {timeAgo(m.createdAt)}
-                  </div>
-                </div>
-                {quizReady && <span className="badge-accent shrink-0">Kuis siap duel</span>}
-              </Link>
+            {data.latest.map(({ material: m, quizSize, discussions }) => (
+              <MaterialCard key={m.id} variant="compact" m={m} course={data.courses.find((c) => c.id === m.courseId)} discussions={discussions} quizSize={quizSize} />
             ))}
           </div>
         </Section>
