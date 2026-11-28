@@ -29,6 +29,29 @@ type AuthState = {
 
 const Ctx = createContext<AuthState | null>(null);
 const LOCAL_UID_KEY = "peerseus:uid";
+// Demo mode: the account is remembered per tab (sessionStorage) as well as for new tabs (localStorage),
+// so two tabs of one browser can be two people (sign out in the second tab, then sign in with another name).
+function localUid() {
+  try {
+    const tab = sessionStorage.getItem(LOCAL_UID_KEY);
+    if (tab) return tab;
+    const last = localStorage.getItem(LOCAL_UID_KEY);
+    if (last) sessionStorage.setItem(LOCAL_UID_KEY, last); // this tab keeps it even if another tab switches account
+    return last;
+  } catch {
+    return localStorage.getItem(LOCAL_UID_KEY);
+  }
+}
+function setLocalUid(id: string | null) {
+  for (const store of [sessionStorage, localStorage]) {
+    try {
+      if (id) store.setItem(LOCAL_UID_KEY, id);
+      else store.removeItem(LOCAL_UID_KEY);
+    } catch {
+      // storage blocked: the account just isn't remembered
+    }
+  }
+}
 
 /**
  * Only ITB accounts and listed guests get in (see access.ts).
@@ -119,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       });
     }
-    const id = localStorage.getItem(LOCAL_UID_KEY);
+    const id = localUid();
     load(id).finally(() => setLoading(false));
   }, [load]);
 
@@ -155,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const id = newId("u_");
       await ensureSeeded();
       await db.set<UserProfile>("users", id, { ...p, id, year: 1, isPublic: true, courseIds: [], createdAt: Date.now() });
-      localStorage.setItem(LOCAL_UID_KEY, id);
+      setLocalUid(id);
       setAuthName(p.name);
       await load(id);
     },
@@ -168,7 +191,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     async logout() {
       if (firebaseEnabled) await signOut(getAuth(getFirebaseApp()));
-      else localStorage.removeItem(LOCAL_UID_KEY);
+      else setLocalUid(null);
       setAuthEmail("");
       setUid(null);
       setProfile(null);
