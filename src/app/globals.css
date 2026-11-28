@@ -158,7 +158,7 @@ body::before {
  */
 .ransom { display: block; line-height: 1; }
 .ransom-line { display: block; }
-.ransom-word { display: inline-block; white-space: nowrap; margin: 0 0.16em 0.1em 0; }
+.ransom-word { display: inline-block; white-space: nowrap; margin: 0 0.4em 0.1em 0; }
 .ransom-l { display: inline-block; padding: 0.02em 0.09em 0; margin: 0 0.015em; line-height: 1.02; font-weight: 400; letter-spacing: 0; }
 .ransom-l[data-tile="white"] { background: #fff; color: #0a0a0a; }
 .ransom-l[data-tile="blue"] { background: var(--color-accent); color: #fff; outline: 0.035em solid #0a0a0a; }
@@ -279,8 +279,8 @@ body::before {
 /* Segmented control and tabs */
 @utility seg { @apply px-4 py-1.5 font-display text-sm uppercase tracking-widest text-white transition duration-150 hover:bg-white hover:text-black disabled:opacity-50; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
 @utility seg-active { @apply px-4 py-1.5 font-display text-sm uppercase tracking-widest bg-accent text-white; clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); }
-@utility tab { @apply -mb-px px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-widest text-muted transition duration-150 hover:text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
-@utility tab-active { @apply -mb-px bg-accent px-5 pb-2 pt-1.5 font-display text-base uppercase tracking-widest text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+@utility tab { @apply -mb-px whitespace-nowrap px-3 pb-2 pt-1.5 font-display text-sm uppercase tracking-wide sm:px-5 sm:text-base sm:tracking-widest text-muted transition duration-150 hover:text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+@utility tab-active { @apply -mb-px whitespace-nowrap bg-accent px-3 pb-2 pt-1.5 font-display text-sm uppercase tracking-wide sm:px-5 sm:text-base sm:tracking-widest text-white; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
 /* Bordered list with dividers; hovered row turns blue. */
 @utility rows { @apply divide-y-2 divide-line border-[3px] border-white bg-surface; box-shadow: 5px 5px 0 var(--color-accent); clip-path: var(--p5-cut-b); }
 @utility row-link { @apply flex items-center justify-between gap-3 p-4 transition-all duration-150 hover:bg-accent hover:text-white; box-shadow: inset 0 0 0 0 #fff; &:hover { box-shadow: inset 6px 0 0 0 #fff; } }

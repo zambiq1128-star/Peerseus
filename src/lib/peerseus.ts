@@ -424,6 +424,17 @@ export function duelResult(c: DuelSide, o: DuelSide): 1 | 0.5 | 0 {
   return 0.5;
 }
 
+/**
+ * Display only: a finished duel with equal scores that still has a winner was decided by time
+ * (same rule as duelResult: the difference is more than 0.5 s). Returns both total times, or null.
+ */
+export function decidedByTime(d: Duel): { challengerMs: number; opponentMs: number } | null {
+  if (d.status !== "completed" || !d.challenger || !d.opponent || !d.winnerId) return null;
+  if (d.challenger.score !== d.opponent.score) return null;
+  if (Math.abs(d.challenger.totalMs - d.opponent.totalMs) <= 500) return null;
+  return { challengerMs: d.challenger.totalMs, opponentMs: d.opponent.totalMs };
+}
+
 function withTopicStats(m: Membership, questions: Question[], answers: number[]) {
   const stats = { ...m.topicStats };
   questions.forEach((q, i) => {

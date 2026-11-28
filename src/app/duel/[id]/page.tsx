@@ -7,7 +7,7 @@ import { ladderAnswer, ladderBot } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
 import {
-  acceptInvite, botAnswer, cancelInvite, clock, deadlineOf, duelState, END_GRACE_MS, endReason, expireInvite, getMembership, HEARTBEAT_MS,
+  acceptInvite, botAnswer, cancelInvite, clock, decidedByTime, deadlineOf, duelState, END_GRACE_MS, endReason, expireInvite, getMembership, HEARTBEAT_MS,
   heartbeat, inviteMsLeft, liveOf, missedTopics, other, QUESTION_MS, roleOf, saveLiveSide, SECONDS_PER_QUESTION, settleDuel, startAtOf,
 } from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
@@ -329,6 +329,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const theirScore = useCountUp(theirs ? theirs.score : 0, 700, 450);
   const shownDelta = useCountUp(delta, 1400, 800);
   const ladder = ladderBot(meC ? duel.opponentId : duel.challengerId);
+  const byTime = decidedByTime(duel);
   const verdict = declined ? "Ditolak" : expired ? "Kedaluwarsa" : !done ? "Menunggu" : won ? "Menang" : draw ? "Seri" : "Kalah";
 
   return (
@@ -349,6 +350,12 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
             <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : expired ? "tidak main" : "belum main"}</div>
           </div>
         </div>
+        {byTime && (
+          <p className="mx-auto mt-5 max-w-sm text-sm text-ink-soft">
+            <span className="font-semibold text-ink">Skor sama, yang lebih cepat menang.</span>{" "}
+            Total waktu kamu {(mine.totalMs / 1000).toFixed(1)} detik, {oppName} {(theirs!.totalMs / 1000).toFixed(1)} detik.
+          </p>
+        )}
         {done && !duel.opponentIsBot && (
           <div className={`mx-auto mt-6 inline-block animate-slam bg-navy-3 px-6 py-2 [animation-delay:700ms] [clip-path:polygon(14px_0,100%_0,calc(100%-14px)_100%,0_100%)] ${delta >= 0 ? "text-cyan" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
             <span className="mr-3 text-xs font-semibold uppercase tracking-widest text-muted">Rating</span>

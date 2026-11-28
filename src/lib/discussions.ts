@@ -273,7 +273,7 @@ export async function questionDiscussionCounts(materialId: string, uid: string):
  * One material or opportunity with discussions that need me. `keys` are the "seen" keys that clicking the row
  * marks as seen; `href` opens its Diskusi section.
  */
-export type DiscussionNotice = { parentId: string; title: string; href: string; count: number; keys: string[] };
+export type DiscussionNotice = { parentId: string; title: string; href: string; count: number; keys: string[]; /** Every counted question is a "Cari tim": its answers read as replies ("dibalas"), not answers. */ replied?: boolean };
 
 const SEEN_KEY = (uid: string) => `peerseus:diskusi-dilihat:${uid}`;
 
@@ -336,12 +336,14 @@ export async function discussionNotices(uid: string): Promise<{ toAnswer: Discus
       const keys = x.ds.filter((d) => d.authorId !== uid && d.answers.length === 0).map((d) => `q:${d.id}`).filter((k) => !seen.has(k));
       if (keys.length) (x.ref.kind === "material" ? toAnswer : oppToAnswer).push(notice(keys));
     }
-    const keys = x.ds.filter((d) => d.authorId === uid)
-      .map((d) => [d.id, d.answers.filter((a) => a.authorId !== uid).length] as const)
-      .filter(([, n]) => n > 0)
-      .map(([id, n]) => `a:${id}:${n}`)
-      .filter((k) => !seen.has(k));
-    if (keys.length) answered.push(notice(keys));
+    const replied = x.ds.filter((d) => d.authorId === uid)
+      .map((d) => ({ d, n: d.answers.filter((a) => a.authorId !== uid).length }))
+      .filter(({ d, n }) => n > 0 && !seen.has(`a:${d.id}:${n}`));
+    if (replied.length) {
+      const keys = replied.map(({ d, n }) => `a:${d.id}:${n}`);
+      // Replies to "Cari tim" posts read as "dibalas"; a parent with both kinds keeps the neutral "dijawab".
+      answered.push({ ...notice(keys), replied: replied.every(({ d }) => d.kind === "cari-tim") });
+    }
   }
   return { toAnswer, oppToAnswer, answered };
 }

@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
+import { db } from "@/lib/db";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@/lib/live";
-import { clock, duelState, inviteMsLeft, type DuelState } from "@/lib/peerseus";
-import type { Duel } from "@/lib/types";
+import { clock, decidedByTime, duelState, inviteMsLeft, type DuelState } from "@/lib/peerseus";
+import type { Course, Duel } from "@/lib/types";
 import { InviteActions, InviteText, useIncomingInvites, useNow } from "@/components/DuelInvites";
-import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo } from "@/components/ui";
+import { CollapsibleRows, Empty, ErrorState, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 export default function Duels() {
   const { profile } = useAuth();
@@ -22,7 +24,7 @@ export default function Duels() {
   const sorted = [...data].sort((a, b) => b.createdAt - a.createdAt);
   return (
     <Page>
-      <PageHeader title="Duel" sub="Ajakan masuk dan riwayat duelmu." />
+      <PageHeader title="Duel" sub="Ajakan masuk dan riwayat duelmu." action={<StartDuel courseIds={profile!.courseIds} />} />
       {invites.length > 0 && (
         <Section title={`Ajakan masuk (${invites.length})`}>
           <div className="rows">
@@ -42,6 +44,28 @@ export default function Duels() {
         </CollapsibleRows>
       )}
     </Page>
+  );
+}
+
+/** Header action: start a duel. /duel/new needs a course, so with several courses I pick one first. */
+function StartDuel({ courseIds }: { courseIds: string[] }) {
+  const { data } = useAsync(async () => {
+    const all = await db.list<Course>("courses");
+    return all.filter((c) => courseIds.includes(c.id)).sort((a, b) => a.code.localeCompare(b.code));
+  }, [courseIds.join(",")]);
+  const [picked, setPicked] = useState("");
+  if (!data) return null;
+  if (!data.length) return <Link href="/courses" className="btn-primary">Atur mata kuliah</Link>;
+  const course = data.find((c) => c.id === picked) ?? data[0];
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {data.length > 1 && (
+        <select aria-label="Mata kuliah untuk duel" className="input !w-auto" value={course.id} onChange={(e) => setPicked(e.target.value)}>
+          {data.map((c) => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
+        </select>
+      )}
+      <Link href={`/duel/new?course=${course.id}`} className="btn-primary">Mulai duel</Link>
+    </div>
   );
 }
 
@@ -69,18 +93,20 @@ function DuelRow({ d, uid, now }: { d: Duel; uid: string; now: number }) {
   const theirs = meC ? d.opponent : d.challenger;
   const s = duelState(d, now);
   const open = isOpen(d, uid, now);
-  const label = s === "completed" ? (d.winnerId === uid ? "Menang" : d.winnerId === null ? "Seri" : "Kalah")
+  // Equal scores but a winner: it was decided by time, so say so ("3 – 3 Kalah" alone looks like a bug).
+  const byTime = decidedByTime(d) ? " · waktu" : "";
+  const label = s === "completed" ? (d.winnerId === uid ? "Menang" : d.winnerId === null ? "Seri" : "Kalah") + (d.winnerId ? byTime : "")
     : (s === "ready" || s === "playing") && mine ? "Menunggu lawan"
     : s === "invited" ? `${LABEL.invited} · ${clock(inviteMsLeft(d, now))}`
     : LABEL[s];
   const badge = s === "completed" ? (d.winnerId === uid ? "badge-good" : d.winnerId === null ? "badge" : "badge-bad") : open ? "badge-strong" : "badge";
   return (
     <Link href={`/duel/${d.id}`} className="row-link">
-      <div>
+      <div className="min-w-0">
         <div className="font-medium">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
         <div className="text-xs text-muted">{d.quizTitle} · {timeAgo(d.createdAt)}</div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {mine && <span className="text-sm font-bold">{mine.score} – {theirs ? theirs.score : "?"}</span>}
         <span className={`${badge} tabular-nums`}>{label}</span>
       </div>

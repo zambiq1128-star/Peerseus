@@ -37,8 +37,8 @@ function Hero() {
         <div className="absolute -right-24 top-0 h-full w-2/3 opacity-40 [background:radial-gradient(#0a0a0a_1.6px,transparent_2px)_0_0/9px_9px] [clip-path:polygon(34%_0,100%_0,100%_100%,0_100%)]" />
         <div className="absolute right-[34%] top-0 hidden h-full w-3 bg-white sm:block [clip-path:polygon(70%_0,100%_0,30%_100%,0_100%)]" />
         <div className="absolute inset-0 opacity-[0.08] [background:repeating-linear-gradient(115deg,#fff_0_1px,transparent_1px_16px)]" />
-        <Splat seed={7} className="absolute -right-10 bottom-4 h-56 w-56 animate-slam text-white [animation-delay:350ms] sm:right-16 sm:top-10 sm:h-80 sm:w-80" />
-        <Splat seed={19} className="absolute -right-6 bottom-8 h-48 w-48 animate-slam text-black [animation-delay:450ms] sm:right-20 sm:top-14 sm:h-72 sm:w-72" />
+        <Splat seed={7} className="absolute -right-8 bottom-2 h-28 w-28 animate-slam text-white [animation-delay:350ms] sm:bottom-auto sm:right-16 sm:top-10 sm:h-80 sm:w-80" />
+        <Splat seed={19} className="absolute -right-6 bottom-4 h-24 w-24 animate-slam text-black [animation-delay:450ms] sm:bottom-auto sm:right-20 sm:top-14 sm:h-72 sm:w-72" />
         <Starburst seed={3} className="absolute right-4 top-6 h-24 w-24 animate-slam text-white [animation-delay:560ms] sm:right-[30%] sm:top-auto sm:bottom-24 sm:h-32 sm:w-32" />
         <Starburst seed={11} points={9} className="absolute bottom-16 left-[46%] hidden h-14 w-14 animate-slam text-accent [animation-delay:640ms] sm:block" />
       </div>
@@ -202,7 +202,7 @@ function DiscussionNotices({ uid, title, label, items }: { uid: string; title: s
           <Link key={n.parentId} href={n.href} className="row-link"
             onClick={() => { markSeen(uid, n.keys); setGone([...gone, n.parentId]); }}>
             <span className="text-sm font-medium">{n.title}</span>
-            <span className="badge-accent shrink-0">{n.count} {label}</span>
+            <span className="badge-accent shrink-0">{n.count} {n.replied ? "dibalas" : label}</span>
           </Link>
         ))}
       </div>
