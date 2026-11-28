@@ -10,7 +10,7 @@ import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 import InviteBanner from "./DuelInvites";
 import LoginScreen, { loginStyles as ls } from "./Login";
-import { StreakBadge, useStreak } from "./Streak";
+import { useStreak } from "./Streak";
 import { Spinner } from "./ui";
 
 const NAV = [
@@ -84,11 +84,14 @@ export function AppHeader(props: { path: string; firstName: string; uid: string;
           <button type="button" onClick={props.onLogout}
             className="animate-slide-right relative bg-white px-4 py-1.5 font-display text-[13px] uppercase tracking-wider text-black transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:bg-black hover:text-white sm:text-sm">Keluar</button>
         ) : (
-        <div className="animate-slide-right relative flex items-center gap-1 [animation-delay:240ms]">
-        <StreakBadge current={streak.current} />
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          className={`max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{props.firstName}</Link>
-        </div>
+          aria-label={streak.current > 0 ? `Profil, streak ${streak.current} hari` : "Profil"}
+          className={`animate-slide-right flex max-w-[5.5rem] items-center gap-1.5 px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [animation-delay:240ms] [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>
+          <span className="min-w-0 truncate">{props.firstName}</span>
+          {streak.current > 0 && (
+            <span aria-hidden className={`shrink-0 whitespace-nowrap tabular-nums ${onProfile ? "text-black" : "text-cyan"}`}>🔥{streak.current}</span>
+          )}
+        </Link>
         )}
       </div>
     </header>

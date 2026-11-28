@@ -28,17 +28,6 @@ export function streakView(streak: Streak | null | undefined) {
   };
 }
 
-/** Small flame + number beside the name in the top bar; renders nothing at 0. */
-export function StreakBadge({ current }: { current: number }) {
-  if (current <= 0) return null;
-  return (
-    <span title={`Streak ${current} hari`} aria-label={`Streak ${current} hari`}
-      className="inline-flex shrink-0 items-center gap-0.5 font-display text-[13px] leading-none tracking-wider text-white sm:text-sm">
-      <span aria-hidden>🔥</span><span className="tabular-nums">{current}</span>
-    </span>
-  );
-}
-
 const WEEKDAY = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const dayName = (day: string) => WEEKDAY[new Date(`${day}T00:00:00Z`).getUTCDay()];
 

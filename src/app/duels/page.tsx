@@ -104,8 +104,11 @@ function DuelRow({ d, uid, now }: { d: Duel; uid: string; now: number }) {
   return (
     <Link href={`/duel/${d.id}`} className="row-link">
       <div className="min-w-0">
-        <div className="font-medium">vs {opp} <span className="text-xs font-normal text-muted">· {meC ? "kamu menantang" : "menantangmu"}</span></div>
-        <div className="text-xs text-muted">{d.quizTitle} · {timeAgo(d.createdAt)}</div>
+        <div className="truncate font-medium">vs {opp}</div>
+        {/* Pieces stay on one line; " · " is the only place the line may wrap. A very long quiz title is cut with "…" instead of pushing the score aside. */}
+        <div className="text-xs text-muted">
+          <span className="whitespace-nowrap">{meC ? "kamu menantang" : "menantangmu"}</span> · <span className="inline-block max-w-full truncate align-bottom">{d.quizTitle}</span> · <span className="whitespace-nowrap">{timeAgo(d.createdAt)}</span>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-3 whitespace-nowrap">
         {mine && <span className="text-sm font-bold">{mine.score} – {theirs ? theirs.score : "?"}</span>}
