@@ -1,7 +1,7 @@
 "use client";
 import { callAi, newAiState, type Reply, type WaitInfo } from "./convert";
 import type { CourseInfo } from "./curriculum";
-import { db, newId } from "./db";
+import { db, newId, serverNow, serverTime } from "./db";
 import { eloDelta, START_ELO } from "./elo";
 import { ensureSeeded } from "./seed";
 import type { Course, Duel, DuelSide, Material, MaterialType, Membership, Question, Quiz, UserProfile } from "./types";
@@ -213,10 +213,57 @@ export async function suggestOpponents(courseId: string, uid: string) {
   return all.sort((a, b) => Math.abs(a.elo - myElo) - Math.abs(b.elo - myElo));
 }
 
-export async function createDuel(quiz: Quiz, me: UserProfile, opponent: Membership) {
+// ---------- Duel langsung: invites ----------
+/** An invite nobody answers expires after 2 minutes. */
+export const INVITE_TTL_MS = 2 * 60 * 1000;
+/** Both players start together, this long after the invite was accepted (server time). */
+export const DUEL_START_DELAY_MS = 5000;
+// firestore.rules compare with the server's clock; wait a little past 2:00 so marking "expired" isn't refused.
+const EXPIRE_SLACK_MS = 1500;
+
+export const isLive = (d: Duel) => d.mode === "live";
+
+/** Milliseconds left to answer an invite, by server time (0 when it's no longer waiting). */
+export function inviteMsLeft(d: Duel, now = serverNow()) {
+  if (d.status !== "invited" || d.invitedAt === undefined) return 0;
+  return Math.max(0, d.invitedAt + INVITE_TTL_MS - now);
+}
+export const isActiveInvite = (d: Duel, now = serverNow()) => inviteMsLeft(d, now) > 0;
+
+/** When the game starts (server time), once accepted: acceptedAt + 5 s. Computed, never stored. */
+export const startAtOf = (d: Duel) => (d.acceptedAt === undefined ? null : d.acceptedAt + DUEL_START_DELAY_MS);
+
+export type DuelState = Exclude<Duel["status"], "pending">;
+/**
+ * The duel's state for display: an invite past 2 minutes is "expired" even before someone marks it,
+ * and an old turn-based duel that never finished ("pending") is "expired" too (no rating change).
+ */
+export function duelState(d: Duel, now = serverNow()): DuelState {
+  if (d.status === "pending") return "expired";
+  if (d.status === "invited" && !isActiveInvite(d, now)) return "expired";
+  return d.status;
+}
+
+/** mm:ss for a countdown. */
+export function clock(ms: number) {
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+/** My invite that is still waiting for an answer (a person has at most one). */
+export async function activeOutgoingInvite(uid: string) {
+  const ds = await db.list<Duel>("duels", [["challengerId", "==", uid], ["status", "==", "invited"]]);
+  return ds.find((d) => isActiveInvite(d)) ?? null;
+}
+
+/** Sends an invite (or returns the one still waiting, since only one may be active). Returns the duel id. */
+export async function createInvite(quiz: Quiz, me: UserProfile, opponent: Membership) {
+  const waiting = await activeOutgoingInvite(me.id);
+  if (waiting) return waiting.id;
   const id = newId("duel_");
   const duel: Duel = {
     id,
+    mode: "live",
     courseId: quiz.courseId,
     quizId: quiz.id,
     quizTitle: quiz.title,
@@ -225,15 +272,74 @@ export async function createDuel(quiz: Quiz, me: UserProfile, opponent: Membersh
     opponentId: opponent.uid,
     opponentName: opponent.name,
     opponentIsBot: !!opponent.isBot,
-    status: "pending",
+    status: "invited",
+    invitedAt: serverTime(),
     questions: shuffle(quiz.questions).slice(0, DUEL_QUESTIONS),
     participants: [me.id, opponent.uid],
     createdAt: Date.now(),
   };
   await db.set("duels", id, duel);
-  return duel;
+  return id;
 }
 
+/** Why an invite can no longer be answered. */
+function inviteGone(d: Duel | null) {
+  if (!d) return "Duel tidak ditemukan";
+  const state = duelState(d);
+  if (state === "cancelled") return `${d.challengerName} membatalkan ajakan ini`;
+  if (state === "declined") return "Ajakan ini sudah ditolak";
+  if (state === "expired") return "Ajakan ini sudah kedaluwarsa";
+  return "Ajakan ini sudah dijawab";
+}
+
+/** The opponent accepts (for a demo peer the challenger's browser accepts on its behalf). */
+export async function acceptInvite(id: string, uid: string) {
+  await db.transaction(async (tx) => {
+    const d = await tx.get<Duel>("duels", id);
+    if (!d || !isActiveInvite(d)) throw new Error(inviteGone(d));
+    const forBot = d.opponentIsBot && d.challengerId === uid;
+    if (d.opponentId !== uid && !forBot) throw new Error("Hanya lawan yang bisa menerima ajakan ini");
+    tx.update("duels", id, { status: "ready", acceptedAt: serverTime() });
+  });
+}
+
+/** The opponent can decline an invite that is still waiting. Demo peers never decline. */
+export function canDecline(d: Duel, uid: string) {
+  return isLive(d) && isActiveInvite(d) && d.opponentId === uid && !d.opponentIsBot;
+}
+
+/** Declines an invite: the duel ends as "declined" and nobody's rating changes. */
+export async function declineDuel(id: string, uid: string) {
+  await db.transaction(async (tx) => {
+    const d = await tx.get<Duel>("duels", id);
+    if (!d || !canDecline(d, uid)) throw new Error(d && d.opponentId === uid ? inviteGone(d) : "Duel ini sudah tidak bisa ditolak");
+    tx.update("duels", id, { status: "declined", declinedAt: serverTime() });
+  });
+}
+
+/** The challenger withdraws an invite nobody has answered yet. */
+export async function cancelInvite(id: string, uid: string) {
+  await db.transaction(async (tx) => {
+    const d = await tx.get<Duel>("duels", id);
+    if (!d || d.challengerId !== uid) throw new Error("Hanya penantang yang bisa membatalkan ajakan");
+    if (d.status !== "invited") throw new Error(inviteGone(d));
+    tx.update("duels", id, { status: "cancelled", cancelledAt: serverTime() });
+  });
+}
+
+/** Marks an unanswered invite past 2 minutes as expired (either player may). Quietly does nothing otherwise. */
+export async function expireInvite(id: string) {
+  await db
+    .transaction(async (tx) => {
+      const d = await tx.get<Duel>("duels", id);
+      if (!d || d.status !== "invited" || d.invitedAt === undefined) return;
+      if (serverNow() < d.invitedAt + INVITE_TTL_MS + EXPIRE_SLACK_MS) return;
+      tx.update("duels", id, { status: "expired", expiredAt: serverTime() });
+    })
+    .catch(() => undefined);
+}
+
+// ---------- Duel: answers and result ----------
 function scoreSide(questions: Question[], answers: number[], timesMs: number[]): DuelSide {
   return {
     answers,
@@ -258,82 +364,64 @@ function simulateBot(duel: Duel, bot: Membership): DuelSide {
   return scoreSide(duel.questions, answers, times);
 }
 
-async function addTopicStats(courseId: string, uid: string, questions: Question[], answers: number[]) {
-  const m = await getMembership(courseId, uid);
-  if (!m || m.isBot) return;
+function withTopicStats(m: Membership, questions: Question[], answers: number[]) {
   const stats = { ...m.topicStats };
   questions.forEach((q, i) => {
     const s = stats[q.topic] ?? { correct: 0, total: 0 };
     stats[q.topic] = { correct: s.correct + (answers[i] === q.answerIndex ? 1 : 0), total: s.total + 1 };
   });
-  await db.update("memberships", m.id, { topicStats: stats });
+  return stats;
 }
 
+/**
+ * Saves my answers in one transaction. The transaction that sees both sides finished also decides the
+ * winner and updates both ratings, so the result is computed exactly once even if both submit together.
+ */
 export async function submitDuel(duelId: string, uid: string, answers: number[], timesMs: number[]) {
-  const duel = await db.get<Duel>("duels", duelId);
-  if (!duel) throw new Error("Duel tidak ditemukan");
-  const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
-  if (!role) throw new Error("Kamu bukan peserta duel ini");
-  if (duel.status === "declined") throw new Error(`${duel.opponentName} menolak duel ini`);
-  if (duel[role]) return duel;
+  return db.transaction(async (tx) => {
+    const duel = await tx.get<Duel>("duels", duelId);
+    if (!duel) throw new Error("Duel tidak ditemukan");
+    const role = duel.challengerId === uid ? "challenger" : duel.opponentId === uid ? "opponent" : null;
+    if (!role) throw new Error("Kamu bukan peserta duel ini");
+    if (duel[role]) return duel; // already saved (e.g. a retry)
+    if (!isLive(duel) || (duel.status !== "ready" && duel.status !== "playing")) throw new Error("Duel ini sudah tidak bisa dimainkan");
+    const mc = await tx.get<Membership>("memberships", `${duel.courseId}_${duel.challengerId}`);
+    const mo = await tx.get<Membership>("memberships", `${duel.courseId}_${duel.opponentId}`);
 
-  duel[role] = scoreSide(duel.questions, answers, timesMs);
-  await addTopicStats(duel.courseId, uid, duel.questions, answers);
+    const patch: Partial<Duel> = { [role]: scoreSide(duel.questions, answers, timesMs) };
+    if (role === "challenger" && duel.opponentIsBot && !duel.opponent && mo) patch.opponent = simulateBot(duel, mo);
+    const members = new Map<string, Record<string, unknown>>();
+    const mine = role === "challenger" ? mc : mo;
+    if (mine && !mine.isBot) members.set(mine.id, { topicStats: withTopicStats(mine, duel.questions, answers) });
 
-  if (role === "challenger" && duel.opponentIsBot) {
-    const bot = await getMembership(duel.courseId, duel.opponentId);
-    if (bot) duel.opponent = simulateBot(duel, bot);
-  }
-
-  if (duel.challenger && duel.opponent) await finalize(duel);
-  else await db.set("duels", duel.id, duel);
-  return duel;
-}
-
-async function finalize(duel: Duel) {
-  const c = duel.challenger!, o = duel.opponent!;
-  // Higher score wins; equal score → faster total time wins; equal both → draw.
-  let result: 1 | 0.5 | 0 = 0.5;
-  if (c.score !== o.score) result = c.score > o.score ? 1 : 0;
-  else if (Math.abs(c.totalMs - o.totalMs) > 500) result = c.totalMs < o.totalMs ? 1 : 0;
-
-  const mc = await getMembership(duel.courseId, duel.challengerId);
-  const mo = await getMembership(duel.courseId, duel.opponentId);
-  const [dc, dO] = eloDelta(mc?.elo ?? START_ELO, mo?.elo ?? START_ELO, result);
-  const bump = (m: Membership | null, d: number, r: 1 | 0.5 | 0) =>
-    m &&
-    db.update("memberships", m.id, {
-      elo: m.elo + d,
-      wins: m.wins + (r === 1 ? 1 : 0),
-      losses: m.losses + (r === 0 ? 1 : 0),
-      draws: m.draws + (r === 0.5 ? 1 : 0),
-    });
-  await bump(mc, dc, result);
-  await bump(mo, dO, (1 - result) as 1 | 0.5 | 0);
-
-  duel.status = "completed";
-  duel.winnerId = result === 1 ? duel.challengerId : result === 0 ? duel.opponentId : null;
-  duel.eloChange = { challenger: dc, opponent: dO };
-  await db.set("duels", duel.id, duel);
-}
-
-/** A pending duel waiting on my answer (declined and finished duels never are). */
-export function isMyTurn(d: Duel, uid: string) {
-  return d.status === "pending" && !(d.challengerId === uid ? d.challenger : d.opponent);
-}
-
-/** The opponent can decline a pending challenge they haven't played. Demo peers never decline. */
-export function canDecline(d: Duel, uid: string) {
-  return d.status === "pending" && d.opponentId === uid && !d.opponent && !d.opponentIsBot;
-}
-
-/** Declines a challenge: the duel ends as "declined" and nobody's rating changes. */
-export async function declineDuel(id: string, uid: string) {
-  const d = await db.get<Duel>("duels", id);
-  if (!d || !canDecline(d, uid)) throw new Error("Duel ini sudah tidak bisa ditolak");
-  const declinedAt = Date.now();
-  await db.update("duels", d.id, { status: "declined", declinedAt });
-  return { ...d, status: "declined" as const, declinedAt };
+    const c = patch.challenger ?? duel.challenger;
+    const o = patch.opponent ?? duel.opponent;
+    if (c && o) {
+      // Higher score wins; equal score → faster total time wins (by more than 0.5 s); otherwise a draw.
+      let result: 1 | 0.5 | 0 = 0.5;
+      if (c.score !== o.score) result = c.score > o.score ? 1 : 0;
+      else if (Math.abs(c.totalMs - o.totalMs) > 500) result = c.totalMs < o.totalMs ? 1 : 0;
+      const [dc, dO] = eloDelta(mc?.elo ?? START_ELO, mo?.elo ?? START_ELO, result);
+      const bump = (m: Membership | null, d: number, r: 1 | 0.5 | 0) => {
+        if (!m) return;
+        members.set(m.id, {
+          ...members.get(m.id),
+          elo: m.elo + d,
+          wins: m.wins + (r === 1 ? 1 : 0),
+          losses: m.losses + (r === 0 ? 1 : 0),
+          draws: m.draws + (r === 0.5 ? 1 : 0),
+        });
+      };
+      bump(mc, dc, result);
+      bump(mo, dO, (1 - result) as 1 | 0.5 | 0);
+      patch.status = "completed";
+      patch.winnerId = result === 1 ? duel.challengerId : result === 0 ? duel.opponentId : null;
+      patch.eloChange = { challenger: dc, opponent: dO };
+    }
+    tx.update("duels", duelId, patch as Record<string, unknown>);
+    members.forEach((data, id) => tx.update("memberships", id, data));
+    return { ...duel, ...patch } as Duel;
+  });
 }
 
 export async function myDuels(uid: string) {

@@ -8,6 +8,7 @@ import { firebaseEnabled } from "@/lib/firebase";
 import { academicOf, academicPatch, FACULTIES, readNim, suggestAcademic, type Academic } from "@/lib/itb";
 import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
+import InviteBanner from "./DuelInvites";
 import LoginScreen, { loginStyles as ls } from "./Login";
 import { Spinner } from "./ui";
 
@@ -38,6 +39,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
       <div key={path} aria-hidden="true" className="sweep" />
       <AppHeader path={path} firstName={profile.name.split(" ")[0]} />
       <main className="flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <InviteBanner uid={uid} path={path} />
     </div>
   );
 }

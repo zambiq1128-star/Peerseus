@@ -166,6 +166,8 @@ export type DuelSide = {
   finishedAt: number;
 };
 
+export type DuelStatus = "invited" | "ready" | "playing" | "completed" | "declined" | "expired" | "cancelled" | "pending";
+
 export type Duel = {
   id: string;
   courseId: string;
@@ -176,13 +178,23 @@ export type Duel = {
   opponentId: string;
   opponentName: string;
   opponentIsBot?: boolean;
-  status: "pending" | "completed" | "declined";
+  /** "live" = duel langsung (invite → accept → both play at once). Missing = old turn-based duel (history only). */
+  mode?: "live";
+  /**
+   * Live: invited → ready (accepted) → playing → completed, or invited → declined | expired | cancelled.
+   * "pending" = an old turn-based duel; it is never played again and shows as "Kedaluwarsa" if unfinished.
+   */
+  status: DuelStatus;
   questions: Question[];
   challenger?: DuelSide;
   opponent?: DuelSide;
   winnerId?: string | null; // null = draw
   eloChange?: { challenger: number; opponent: number };
-  declinedAt?: number; // set when the opponent declines a pending challenge (no rating change)
+  declinedAt?: number; // set when the opponent declines (no rating change); server time for live duels
+  invitedAt?: number; // server time the invite was sent (live)
+  acceptedAt?: number; // server time the opponent accepted (live); the game starts DUEL_START_DELAY_MS later
+  cancelledAt?: number; // server time the challenger withdrew the invite (live)
+  expiredAt?: number; // server time someone marked an unanswered invite expired (live)
   participants: string[];
   createdAt: number;
 };

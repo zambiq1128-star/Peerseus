@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { declineDuel } from "@/lib/peerseus";
 
-/** "Tolak" with an inline "Ya, tolak / Batal" step, so one stray click doesn't decline a challenge. */
+/** "Tolak" with an inline "Ya, tolak / Batal" step, so one stray click doesn't decline an invite. */
 export default function DeclineDuel({ duelId, uid, onDone, className = "" }: { duelId: string; uid: string; onDone: () => void; className?: string }) {
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +26,7 @@ export default function DeclineDuel({ duelId, uid, onDone, className = "" }: { d
         <button type="button" className="btn-ghost !py-1.5" onClick={() => setAsking(true)}>Tolak</button>
       ) : (
         <>
-          <span className="text-xs text-muted">Tolak tantangan ini?</span>
+          <span className="text-xs text-muted">Tolak ajakan ini?</span>
           <button type="button" className="btn !py-1.5 bg-bad text-black hover:bg-white" disabled={busy} onClick={decline}>{busy ? "Menolak…" : "Ya, tolak"}</button>
           <button type="button" className="btn-ghost !py-1.5" disabled={busy} onClick={() => setAsking(false)}>Batal</button>
         </>
