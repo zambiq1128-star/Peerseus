@@ -132,7 +132,7 @@ service cloud.firestore {
           && n().opponentId is string && n().opponentId != me()
           && n().participants == [n().challengerId, n().opponentId]
           && n().invitedAt == request.time
-          && n().questions is list && n().questions.size() > 0
+          && n().questions is list && n().questions.size() > 0 && n().questions.size() <= 6
           && !n().keys().hasAny(['acceptedAt', 'declinedAt', 'cancelledAt', 'expiredAt', 'challenger', 'opponent', 'winnerId', 'eloChange'])
           && botFlagHonest(n());
       }
@@ -157,21 +157,96 @@ service cloud.firestore {
           && n().status == 'expired' && n().expiredAt == request.time
           && changed().hasOnly(['status', 'expiredAt']);
       }
-      // Playing: each player adds only their own side, once (the challenger also adds a demo peer's side).
-      // The write that completes the duel adds the result. Langkah 3 tightens this further.
-      function mySide() { return me() == d().challengerId ? 'challenger' : 'opponent'; }
+      // Playing: each player writes only their own live side (challengerLive / opponentLive: answers so far, times,
+      // lastSeen == request.time). Answers only grow, never past the number of questions, and none before the start
+      // (acceptedAt + 5 s; 1 s slack for clocks). The challenger also writes a demo peer's side.
+      function liveKeys() {
+        return d().get('opponentIsBot', false) == true && me() == d().challengerId
+          ? ['challengerLive', 'opponentLive']
+          : [me() == d().challengerId ? 'challengerLive' : 'opponentLive'];
+      }
+      function liveOk(key) {
+        let a0 = d().get(key, {}).get('answers', []);
+        let t0 = d().get(key, {}).get('timesMs', []);
+        let after = n().get(key, {});
+        let a1 = after.get('answers', []);
+        let t1 = after.get('timesMs', []);
+        return !(key in changed())
+          || (after.keys().hasOnly(['answers', 'timesMs', 'lastSeen'])
+            && after.lastSeen == request.time
+            && a1.size() >= a0.size() && a1.size() <= d().questions.size() && t1.size() == a1.size()
+            && (a0.size() == 0 || a1[0:a0.size()] == a0) && (t0.size() == 0 || t1[0:t0.size()] == t0)
+            && (a1.size() == a0.size() || request.time >= d().acceptedAt + duration.value(4, 's')));
+      }
       function plays() {
-        let sides = d().get('opponentIsBot', false) == true && me() == d().challengerId ? ['challenger', 'opponent'] : [mySide()];
         return d().status in ['ready', 'playing'] && me() in d().participants
-          && n().status in ['ready', 'playing', 'completed']
-          && changed().hasOnly(sides.concat(['status', 'winnerId', 'eloChange']))
-          && !('challenger' in changed() && 'challenger' in d()) && !('opponent' in changed() && 'opponent' in d())
-          && (n().status != 'completed' || n().keys().hasAll(['challenger', 'opponent', 'winnerId', 'eloChange']));
+          && (n().status == d().status || n().status == 'playing')
+          && changed().hasOnly(liveKeys().concat(['status']))
+          && liveOk('challengerLive') && liveOk('opponentLive');
+      }
+      // Settling, exactly once (status "completed" never changes again): both final sides, winnerId, eloChange,
+      // completedAt == request.time and endReason in one write, only when the duel is over by the server's clock:
+      // the last question's time is up (start + 20 s each + 5 s), or each side answered everything or was silent 30 s.
+      function over(key) {
+        let l = d().get(key, {});
+        return l.get('answers', []).size() == d().questions.size()
+          || request.time > l.get('lastSeen', d().acceptedAt) + duration.value(30, 's');
+      }
+      function timeUp() {
+        return request.time > d().acceptedAt + duration.value(10 + 20 * d().questions.size(), 's');
+      }
+      // Final sides keep the live answers (missing ones are -1) and their score and total time add up.
+      // Written out per question (at most 6, see validInvite) because rules have no loops.
+      function scoreOf(a, q) {
+        return (q.size() > 0 && a[0] == q[0].answerIndex ? 1 : 0) + (q.size() > 1 && a[1] == q[1].answerIndex ? 1 : 0)
+          + (q.size() > 2 && a[2] == q[2].answerIndex ? 1 : 0) + (q.size() > 3 && a[3] == q[3].answerIndex ? 1 : 0)
+          + (q.size() > 4 && a[4] == q[4].answerIndex ? 1 : 0) + (q.size() > 5 && a[5] == q[5].answerIndex ? 1 : 0);
+      }
+      function sumOf(t) {
+        return (t.size() > 0 ? t[0] : 0) + (t.size() > 1 ? t[1] : 0) + (t.size() > 2 ? t[2] : 0)
+          + (t.size() > 3 ? t[3] : 0) + (t.size() > 4 ? t[4] : 0) + (t.size() > 5 ? t[5] : 0);
+      }
+      function finalOk(f, live, q) {
+        let liveA = live.get('answers', []);
+        let liveT = live.get('timesMs', []);
+        return f.answers.size() == q.size() && f.timesMs.size() == q.size()
+          && (liveA.size() == 0 || f.answers[0:liveA.size()] == liveA) && (liveT.size() == 0 || f.timesMs[0:liveT.size()] == liveT)
+          && f.score == scoreOf(f.answers, q) && f.totalMs == sumOf(f.timesMs);
+      }
+      // Same rule as the app: higher score wins, then faster total time by more than 0.5 s, otherwise a draw (null).
+      function winnerOk() {
+        let c = n().challenger;
+        let o = n().opponent;
+        let w = n().winnerId;
+        return c.score > o.score ? w == d().challengerId
+          : c.score < o.score ? w == d().opponentId
+          : math.abs(c.totalMs - o.totalMs) > 500 ? w == (c.totalMs < o.totalMs ? d().challengerId : d().opponentId)
+          : w == null;
+      }
+      // Elo K = 32: the two changes cancel out and neither is more than 32; a duel against a demo peer is 0/0.
+      function eloOk() {
+        let e = n().eloChange;
+        return e.keys().hasOnly(['challenger', 'opponent']) && e.challenger is int && e.opponent is int
+          && e.challenger + e.opponent == 0 && math.abs(e.challenger) <= 32
+          && (d().get('opponentIsBot', false) != true || (e.challenger == 0 && e.opponent == 0));
+      }
+      function settles() {
+        return d().status in ['ready', 'playing'] && me() in d().participants
+          && n().status == 'completed' && n().completedAt == request.time
+          && n().endReason in ['done', 'timeout', 'left']
+          && changed().hasOnly(['challenger', 'opponent', 'status', 'winnerId', 'eloChange', 'completedAt', 'endReason'])
+          && (timeUp() || (over('challengerLive') && over('opponentLive')))
+          && finalOk(n().challenger, d().get('challengerLive', {}), d().questions)
+          && finalOk(n().opponent, d().get('opponentLive', {}), d().questions)
+          && winnerOk() && eloOk();
       }
       allow read: if allowed();
       allow create: if allowed() && validInvite();
       allow update: if allowed() && d().get('mode', '') == 'live'
-        && (accepts() || declines() || cancels() || expires() || plays());
+        // Checked by the current status first, so each write only evaluates the rules that can apply to it.
+        && (d().status == 'invited' ? (accepts() || declines() || cancels() || expires())
+          : n().status == 'completed' ? settles()
+          : plays());
       allow delete: if false;
     }
 

@@ -166,6 +166,13 @@ export type DuelSide = {
   finishedAt: number;
 };
 
+/** A player's answers while a live duel runs: written only by that player (a demo peer's by the challenger). */
+export type LiveSide = {
+  answers: number[]; // -1 = timed out
+  timesMs: number[];
+  lastSeen: number; // server time of the last write (an answer or the heartbeat every ~10 s)
+};
+
 export type DuelStatus = "invited" | "ready" | "playing" | "completed" | "declined" | "expired" | "cancelled" | "pending";
 
 export type Duel = {
@@ -195,6 +202,10 @@ export type Duel = {
   acceptedAt?: number; // server time the opponent accepted (live); the game starts DUEL_START_DELAY_MS later
   cancelledAt?: number; // server time the challenger withdrew the invite (live)
   expiredAt?: number; // server time someone marked an unanswered invite expired (live)
+  challengerLive?: LiveSide; // live: answers so far, progress and heartbeat
+  opponentLive?: LiveSide;
+  completedAt?: number; // live: server time of the one transaction that decided the result
+  endReason?: "done" | "timeout" | "left"; // both finished, time ran out, or someone stopped answering for 30 s
   participants: string[];
   createdAt: number;
 };

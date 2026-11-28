@@ -5,7 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
-import { acceptInvite, cancelInvite, clock, duelState, expireInvite, inviteMsLeft, missedTopics, SECONDS_PER_QUESTION, startAtOf, submitDuel } from "@/lib/peerseus";
+import {
+  acceptInvite, botAnswer, cancelInvite, clock, deadlineOf, duelState, END_GRACE_MS, endReason, expireInvite, getMembership, HEARTBEAT_MS,
+  heartbeat, inviteMsLeft, liveOf, missedTopics, other, QUESTION_MS, roleOf, saveLiveSide, SECONDS_PER_QUESTION, settleDuel, startAtOf,
+} from "@/lib/peerseus";
 import type { Duel } from "@/lib/types";
 import { ErrorState, NotFound, Page, Section, Spinner, useCountUp } from "@/components/ui";
 import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
@@ -129,79 +132,160 @@ function Ended({ duel, uid }: { duel: Duel; uid: string }) {
   );
 }
 
-/** After the invite is accepted: a shared countdown to startAt (server time), then the questions. */
+/**
+ * The live game. Before startAt (server time): VS screen and 3-2-1. Then each player answers at their own pace
+ * (20 s per question), saving only their own side, with a heartbeat every 10 s. Whoever's browser sees the duel
+ * over (both done, time up, or a player silent for 30 s) settles it in one transaction; the page then shows
+ * the result. Against a demo peer, this (the challenger's) browser also plays the peer's side.
+ */
 function Play({ duel, uid }: { duel: Duel; uid: string }) {
+  const role = roleOf(duel, uid)!;
+  const total = duel.questions.length;
   const startAt = startAtOf(duel) ?? 0;
+  const lastQuestionEnds = (deadlineOf(duel) ?? 0) - END_GRACE_MS;
   const now = useNow(true, 250);
   const started = now >= startAt;
-  const [i, setI] = useState(0);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [times, setTimes] = useState<number[]>([]);
+  const mine = liveOf(duel, role);
+  const theirs = liveOf(duel, other(role));
+  // Resume after a reload: answers already saved stay, the next question starts fresh.
+  const [answers, setAnswers] = useState<number[]>(() => mine?.answers ?? []);
+  const [times, setTimes] = useState<number[]>(() => mine?.timesMs ?? []);
+  const [i, setI] = useState(() => mine?.answers?.length ?? 0);
   const [picked, setPicked] = useState<number | null>(null);
   const [left, setLeft] = useState(SECONDS_PER_QUESTION);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const t0 = useRef(0);
+  const shownAt = useRef(0);
+  const latest = useRef(duel);
+  latest.current = duel;
+  const lastSettle = useRef(0);
   const q = duel.questions[i];
+  const done = i >= total;
 
+  // Heartbeat from the start until the page closes (also while waiting for the opponent).
   useEffect(() => {
-    if (!started || picked !== null) return;
-    t0.current = Date.now();
-    setLeft(SECONDS_PER_QUESTION);
-    const iv = setInterval(() => {
-      const l = SECONDS_PER_QUESTION - Math.floor((Date.now() - t0.current) / 1000);
+    if (!started) return;
+    const beat = () => void heartbeat(latest.current, role).catch(() => undefined);
+    beat();
+    const iv = setInterval(beat, HEARTBEAT_MS);
+    return () => clearInterval(iv);
+  }, [started, role]);
+
+  // Settle as soon as the duel is over; settleDuel does nothing if it isn't (or is already settled).
+  const over = endReason(duel, now) !== null;
+  useEffect(() => {
+    if (!over || Date.now() - lastSettle.current < 3000) return;
+    lastSettle.current = Date.now();
+    void settleDuel(duel.id).catch(() => undefined);
+  }, [over, now, duel.id]);
+
+  // Demo peer: answers one question at a time after a human-like pause, from the challenger's browser.
+  const botPlays = started && role === "challenger" && !!duel.opponentIsBot;
+  useEffect(() => {
+    if (!botPlays) return;
+    let stop = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const d = latest.current;
+    getMembership(d.courseId, d.opponentId).then((bot) => {
+      if (!bot || stop) return;
+      const saved = latest.current.opponentLive;
+      const a = [...(saved?.answers ?? [])], t = [...(saved?.timesMs ?? [])];
+      const next = () => {
+        if (stop || a.length >= d.questions.length) return;
+        const { answer, ms } = botAnswer(bot, d.questions[a.length]);
+        timer = setTimeout(() => {
+          if (stop) return;
+          a.push(answer);
+          t.push(ms);
+          void saveLiveSide(latest.current, "opponent", [...a], [...t]).catch(() => undefined);
+          next();
+        }, ms);
+      };
+      next();
+    });
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+    // Only (re)starts when play starts: every live update makes a new duel object, which must not reset the bot.
+  }, [botPlays]);
+
+  // Per-question clock: 20 s from when it appears, never past the last question's end.
+  useEffect(() => {
+    if (!started || done || picked !== null) return;
+    shownAt.current = Date.now();
+    const tick = () => {
+      const l = Math.min(
+        SECONDS_PER_QUESTION - Math.floor((Date.now() - shownAt.current) / 1000),
+        Math.floor((lastQuestionEnds - serverNow()) / 1000),
+      );
       setLeft(l);
       if (l <= 0) choose(-1);
-    }, 250);
+    };
+    tick();
+    const iv = setInterval(tick, 250);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [started, i, picked]);
+  }, [started, i, picked, done]);
 
   function choose(k: number) {
-    if (picked !== null) return;
+    if (picked !== null || done) return;
     setPicked(k);
-    const ms = Math.min(Date.now() - t0.current, SECONDS_PER_QUESTION * 1000);
+    const ms = Math.max(0, Math.min(Date.now() - shownAt.current, QUESTION_MS));
     const a = [...answers, k], t = [...times, ms];
     setAnswers(a);
     setTimes(t);
-    setTimeout(async () => {
-      if (i + 1 < duel.questions.length) {
-        setI(i + 1);
-        setPicked(null);
-      } else {
-        setSubmitting(true);
-        // On success the live duel document now holds my side, so the page switches to the result.
-        await submitDuel(duel.id, uid, a, t).catch((e) => setError(e instanceof Error ? e.message : "Gagal menyimpan jawaban"));
-      }
+    // A failed save (e.g. the duel was just settled) shows up as the live document changing to the result.
+    void saveLiveSide(latest.current, role, a, t).catch(() => undefined);
+    setTimeout(() => {
+      setI((x) => x + 1);
+      setPicked(null);
     }, 1100);
   }
 
+  const theirCount = theirs?.answers?.length ?? 0;
+  const progress = theirCount >= total ? "Lawan: selesai" : `Lawan: soal ${theirCount + 1}/${total}`;
+
   if (!started) {
-    const n = Math.max(1, Math.ceil((startAt - now) / 1000));
+    const n = Math.ceil((startAt - now) / 1000);
     return (
       <Page width="narrow">
         <div className="card space-y-5 text-center !p-8">
           <div className="eyebrow">Ajakan diterima</div>
           <Versus duel={duel} uid={uid} />
-          <div key={n} className="animate-slam font-display text-8xl font-bold tabular-nums text-cyan" aria-live="polite">{n}</div>
+          {n <= 3 ? (
+            <div key={n} className="animate-slam font-display text-8xl font-bold tabular-nums text-cyan" aria-live="assertive">{Math.max(n, 1)}</div>
+          ) : (
+            <p className="font-display text-2xl uppercase tracking-widest text-cyan" aria-live="polite">Siap-siap…</p>
+          )}
           <p className="text-sm text-muted">Duel mulai bersamaan untuk kalian berdua.</p>
         </div>
       </Page>
     );
   }
-  if (error) return <ErrorState title="Jawaban gagal disimpan" message={error} hint="Buka daftar duel untuk melihat keadaannya." />;
-  if (submitting) return <Spinner label="Menghitung hasil…" />;
+
+  if (done) {
+    return (
+      <Page width="narrow">
+        <div className="card space-y-4 text-center !p-8">
+          <div className="eyebrow">Kamu selesai</div>
+          <h1 className="font-display text-4xl font-bold uppercase">Menunggu lawan</h1>
+          <p className="font-display text-2xl tabular-nums text-cyan" aria-live="polite">{progress}</p>
+          <p className="text-sm text-muted">Hasil muncul begitu lawan selesai. Kalau lawan berhenti menjawab 30 detik, sisa soalnya dihitung salah.</p>
+        </div>
+      </Page>
+    );
+  }
 
   return (
     <Page width="narrow">
       <div>
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium">Soal {i + 1} dari {duel.questions.length} <span className="text-muted">· {q.topic}</span></span>
+        <div className="mb-2 flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium">Soal {i + 1} dari {total} <span className="text-muted">· {q.topic}</span></span>
           <span className={`font-display text-3xl font-bold tabular-nums ${left <= 5 ? "inline-block animate-tick text-bad" : "text-cyan"}`}>{Math.max(left, 0)}<span className="ml-1 text-sm font-medium uppercase tracking-wider text-muted">detik</span></span>
         </div>
-        <div className="mb-4 h-1.5 bg-line">
+        <div className="mb-2 h-1.5 bg-line">
           <div className={`h-1.5 transition-all ${left <= 5 ? "bg-bad" : "bg-cyan"}`} style={{ width: `${(Math.max(left, 0) / SECONDS_PER_QUESTION) * 100}%` }} />
         </div>
+        <p className="mb-4 text-right text-xs font-semibold uppercase tracking-widest text-muted tabular-nums" aria-live="polite">{progress}</p>
         <div key={i} className="card animate-page-in !p-6">
           <h2 className="text-lg font-semibold leading-snug"><MathText text={q.question} /></h2>
           <div className="mt-5 grid gap-2">
@@ -261,12 +345,15 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
             <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : expired ? "tidak main" : "belum main"}</div>
           </div>
         </div>
-        {done && (
+        {done && !duel.opponentIsBot && (
           <div className={`mx-auto mt-6 inline-block animate-slam bg-navy-3 px-6 py-2 [animation-delay:700ms] [clip-path:polygon(14px_0,100%_0,calc(100%-14px)_100%,0_100%)] ${delta >= 0 ? "text-cyan" : "text-bad"}`} aria-label={`Rating ${delta >= 0 ? "+" : ""}${delta}`}>
             <span className="mr-3 text-xs font-semibold uppercase tracking-widest text-muted">Rating</span>
             <span aria-hidden className="font-display text-5xl font-bold tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
           </div>
         )}
+        {done && duel.opponentIsBot && <p className="mt-4 text-sm text-muted">Lawan teman demo: rating tidak berubah. Topik yang kamu jawab tetap tercatat.</p>}
+        {done && duel.endReason === "left" && <p className="mt-2 text-sm text-muted">Ada pemain yang berhenti menjawab lebih dari 30 detik, jadi sisa soalnya dihitung salah.</p>}
+        {done && duel.endReason === "timeout" && <p className="mt-2 text-sm text-muted">Waktu duel habis; soal yang belum dijawab dihitung salah.</p>}
         {(declined || expired) && <p className="mt-4 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
         {!done && !declined && !expired && <p className="mt-4 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
       </div>
