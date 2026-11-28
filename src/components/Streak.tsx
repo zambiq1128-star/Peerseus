@@ -1,5 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
 import { serverNow } from "@/lib/db";
+import { loadMyPairStreaks, type PairStreak } from "@/lib/pairStreak";
 import { useDoc } from "@/lib/live";
 import {
   displayCurrent, lastSevenDays, recordedToday, shieldAvailable, wibDay, type Streak,
@@ -103,4 +105,64 @@ export function StreakStats({ streak }: { streak: Streak | null | undefined }) {
 export function StreakNotice({ message }: { message: string | null | undefined }) {
   if (!message) return null;
   return <p role="status" className="callout animate-slam text-center font-semibold">{message}</p>;
+}
+
+// Streak duel dengan teman (aturan di src/lib/pairStreak.ts): dihitung dari duel milikku, tidak disimpan.
+
+const NO_PAIRS = new Map<string, PairStreak>();
+
+/** My pair streaks by friend uid, loaded once per page (one query, not one per friend). Empty until loaded or on failure. */
+export function usePairStreaks(uid: string | null | undefined, enabled = true): Map<string, PairStreak> {
+  const [s, setS] = useState<{ uid: string; map: Map<string, PairStreak> } | null>(null);
+  useEffect(() => {
+    if (!uid || !enabled) return;
+    let live = true;
+    loadMyPairStreaks(uid).then((map) => live && setS({ uid, map }), () => undefined);
+    return () => {
+      live = false;
+    };
+  }, [uid, enabled]);
+  return s && s.uid === uid ? s.map : NO_PAIRS;
+}
+
+/** "🔥 N" beside a friend's name; renders nothing when the pair streak is not alive. */
+export function PairStreakBadge({ streak }: { streak: PairStreak | null | undefined }) {
+  if (!streak || streak.current <= 0) return null;
+  return (
+    <span title={`Streak duel ${streak.current} hari`} aria-label={`Streak duel ${streak.current} hari`}
+      className="inline-flex shrink-0 items-center gap-0.5 font-display text-sm leading-none tracking-wider text-cyan">
+      <span aria-hidden>🔥</span><span className="tabular-nums">{streak.current}</span>
+    </span>
+  );
+}
+
+/** Small dim hint under a friend's name when the streak ends today unless you duel. */
+export function PairStreakHint({ streak }: { streak: PairStreak | null | undefined }) {
+  if (!streak || streak.current <= 0 || !streak.atRisk) return null;
+  return <span className="block text-xs text-muted">Duel hari ini supaya streak nggak putus</span>;
+}
+
+/** Profile line: running and best pair streak. Nothing at 0 and 0. */
+export function PairStreakStats({ streak }: { streak: PairStreak | null | undefined }) {
+  if (!streak || (streak.current <= 0 && streak.best <= 0)) return null;
+  return (
+    <div className="card flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+      <span className="flex items-center gap-2">
+        <span aria-hidden>🔥</span>Streak duel kalian: <b className="font-display text-2xl tabular-nums text-cyan">{streak.current}</b> hari
+      </span>
+      <span className="text-muted">Terbaik: <b className="text-ink">{streak.best}</b></span>
+      {streak.atRisk && <span className="w-full text-xs text-muted">Duel hari ini supaya streak nggak putus</span>}
+    </div>
+  );
+}
+
+/** Result screen line for a human duel. `+1 hari` when this duel is the first of today (it raised the streak). */
+export function PairStreakResult({ name, streak, raised }: { name: string; streak: PairStreak | null | undefined; raised: boolean }) {
+  if (!streak || streak.current <= 0) return null;
+  return (
+    <p role="status" className="callout text-center font-semibold">
+      <span aria-hidden>🔥 </span>Streak duel dengan {name}: <span className="tabular-nums">{streak.current}</span> hari
+      {raised && <span className="ml-2 text-sm font-bold">+1 hari</span>}
+    </p>
+  );
 }

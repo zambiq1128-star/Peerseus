@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { serverNow } from "@/lib/db";
 import { useQuery, useServerOffset } from "@/lib/live";
 import { acceptInvite, clock, expireInvite, inviteMsLeft, isActiveInvite } from "@/lib/peerseus";
+import type { PairStreak } from "@/lib/pairStreak";
 import type { Duel } from "@/lib/types";
+import { usePairStreaks } from "./Streak";
 import DeclineDuel from "./DeclineDuel";
 
 /** Server time, re-read every `ms` while `on` (so countdowns move and invites past 2 minutes disappear). */
@@ -36,7 +38,9 @@ export function useIncomingInvites(uid: string | null | undefined) {
     }
   }, [stale]);
   const invites = data.filter((d) => isActiveInvite(d, now)).sort((a, b) => (b.invitedAt ?? 0) - (a.invitedAt ?? 0));
-  return { invites, now };
+  // Pair streaks are only loaded while someone is waiting for my answer.
+  const pairs = usePairStreaks(uid, invites.length > 0);
+  return { invites, now, pairs };
 }
 
 /** "Terima" (goes to the duel) and "Tolak" (with its confirm step) for one incoming invite. */
@@ -65,10 +69,14 @@ export function InviteActions({ duel, uid, className = "" }: { duel: Duel; uid: 
 }
 
 /** One line about an incoming invite: who, which quiz, time left. */
-export function InviteText({ duel, now }: { duel: Duel; now: number }) {
+export function InviteText({ duel, now, pairs }: { duel: Duel; now: number; pairs?: Map<string, PairStreak> }) {
+  const days = pairs?.get(duel.challengerId)?.current ?? 0;
   return (
     <div className="min-w-0">
-      <div className="font-semibold">{duel.challengerName} mengajakmu duel</div>
+      <div className="font-semibold">
+        {duel.challengerName} mengajakmu duel
+        {days > 0 && <span className="whitespace-nowrap"> · <span aria-hidden>🔥 </span>{days} hari</span>}
+      </div>
       <div className="text-xs text-muted">
         {duel.quizTitle} · sisa <span className="tabular-nums">{clock(inviteMsLeft(duel, now))}</span>
       </div>
@@ -81,13 +89,13 @@ export function InviteText({ duel, now }: { duel: Duel; now: number }) {
  * shows the invite with the same buttons: the home page, /duels and the invite's own page.
  */
 export default function InviteBanner({ uid, path }: { uid: string; path: string }) {
-  const { invites, now } = useIncomingInvites(uid);
+  const { invites, now, pairs } = useIncomingInvites(uid);
   const shown = invites.filter((d) => path !== `/duel/${d.id}`);
   if (path === "/" || path === "/duels" || shown.length === 0) return null;
   const d = shown[0];
   return (
     <div role="status" aria-live="polite" className="callout fixed inset-x-4 bottom-4 z-30 animate-slide-right space-y-3 sm:left-auto sm:w-[26rem]">
-      <InviteText duel={d} now={now} />
+      <InviteText duel={d} now={now} pairs={pairs} />
       <InviteActions key={d.id} duel={d} uid={uid} />
       {shown.length > 1 && <p className="text-xs">+{shown.length - 1} ajakan lain di halaman Duel.</p>}
     </div>
