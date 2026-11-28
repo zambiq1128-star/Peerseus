@@ -75,7 +75,7 @@ export async function acceptProposal(p: QuestionProposal, edited: Question) {
   const quiz = await db.get<Quiz>("quizzes", p.quizId);
   if (!quiz || quiz.status !== "published") throw new Error("Kuisnya tidak ditemukan.");
   if (!canAddQuestions(quiz)) throw new Error(`Kuis ini sudah ${MAX_QUIZ_QUESTIONS} soal. Tolak usulan ini atau biarkan menunggu.`);
-  const question: Question = { ...tidy(edited), id: p.question.id, proposedBy: { id: p.proposerId, name: p.proposerName } };
+  const question: Question = { ...tidy(edited), id: p.question.id, proposedBy: { id: p.proposerId, name: p.proposerName, acceptedAt: Date.now() } };
   await db.update("quizzes", quiz.id, { questions: [...quiz.questions, question] });
   await db.update(PROPOSALS, p.id, { status: "accepted", question, reviewedAt: Date.now() });
 }
