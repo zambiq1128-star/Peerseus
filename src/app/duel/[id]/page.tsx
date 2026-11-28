@@ -352,7 +352,10 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   return (
     <Page width="narrow">
       <div className={`card [overflow:clip] [overflow-clip-margin:12px] text-center !p-8 ${edge}`}>
-        <div className="eyebrow">{declined ? `${oppName} menolak duel ini` : expired ? `${oppName} tidak menjawab` : !done ? `Menunggu ${oppName}` : `Duel melawan ${oppName}`}</div>
+        {(() => {
+          const line = declined ? `${oppName} menolak duel ini` : expired ? `${oppName} tidak menjawab` : !done ? `Menunggu ${oppName}` : `Duel melawan ${oppName}`;
+          return <div className="eyebrow block max-w-full truncate" title={line}>{line}</div>;
+        })()}
         <h1 className={`mt-1 animate-slam text-7xl sm:text-8xl ${tone} ${done && won ? "animate-glow" : ""}`}>{verdict}</h1>
         <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-end gap-x-3 sm:gap-x-8">
           <div className="min-w-0 animate-slide-left text-center [animation-delay:150ms]">
