@@ -24,13 +24,21 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
       </p>
       <div className="rows">
         {data.recs.map(({ member, profile: p, reasons }) => (
-          <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div>
-              <div className="font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span><AccountBadge itb={p?.isItbVerified} className="ml-2" /></div>
+          <div key={member.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <div>
+                <Link href={`/users/${member.uid}`} className="break-words font-medium hover:underline">{member.name}</Link>
+                <AccountBadge itb={p?.isItbVerified} className="ml-2 inline-block whitespace-nowrap align-middle" />
+              </div>
+              <div className="text-xs text-muted">
+                {[...academicLabel(p, member.major).split(" · "), entryYearLabel(p), `rating ${member.elo}${member.isBot ? " · demo" : ""}`].filter(Boolean).map((part, i) => (
+                  <span key={i}>{i > 0 && " · "}<span className="whitespace-nowrap">{part}</span></span>
+                ))}
+              </div>
               {reasons.length > 0 && <div className="text-xs text-good">{reasons.join(" · ")}</div>}
               {p?.contact && <div className="mt-1 text-xs text-muted">Kontak: <span className="text-ink">{p.contact}</span></div>}
             </div>
-            <Link href={`/duel/new?course=${courseId}&opponent=${member.uid}`} className="btn-ghost !py-1.5">Ajak duel</Link>
+            <Link href={`/duel/new?course=${courseId}&opponent=${member.uid}`} className="btn-ghost shrink-0 self-start !py-1.5 sm:self-center">Ajak duel</Link>
           </div>
         ))}
       </div>

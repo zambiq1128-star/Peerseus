@@ -6,7 +6,7 @@ import { useQuery, useServerOffset } from "@/lib/live";
 import { acceptInvite, clock, expireInvite, inviteMsLeft, isActiveInvite } from "@/lib/peerseus";
 import type { PairStreak } from "@/lib/pairStreak";
 import type { Duel } from "@/lib/types";
-import { usePairStreaks } from "./Streak";
+import { sekapalLabel, usePairStreaks } from "./Streak";
 import DeclineDuel from "./DeclineDuel";
 
 /** Server time, re-read every `ms` while `on` (so countdowns move and invites past 2 minutes disappear). */
@@ -72,10 +72,10 @@ export function InviteActions({ duel, uid, className = "" }: { duel: Duel; uid: 
 export function InviteText({ duel, now, pairs }: { duel: Duel; now: number; pairs?: Map<string, PairStreak> }) {
   const days = pairs?.get(duel.challengerId)?.current ?? 0;
   return (
-    <div className="min-w-0">
+    <div className="min-w-0 flex-1">
       <div className="font-semibold">
         {duel.challengerName} mengajakmu duel
-        {days > 0 && <span className="whitespace-nowrap"> · <span aria-hidden>🔥 </span>{days} hari</span>}
+        {days > 0 && <span className="whitespace-nowrap" title={sekapalLabel(days)} aria-label={sekapalLabel(days)}> · <span aria-hidden>⛵ </span>{days} hari</span>}
       </div>
       <div className="text-xs text-muted">
         {duel.quizTitle} · sisa <span className="tabular-nums">{clock(inviteMsLeft(duel, now))}</span>
