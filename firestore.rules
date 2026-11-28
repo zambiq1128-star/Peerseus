@@ -24,6 +24,7 @@ rules_version = '2';
 // their owner, never on their own writing, never edited.
 // Opportunities (Hub Peluang): anyone allowed reads; only the sharer creates (as themselves), edits and deletes;
 // anyone may add one report. Seed samples (postedBy "seed") are read-only.
+// Clock check (clockSync/{uid}): only its owner, only the server's time.
 // Hackathon rules otherwise: any allowed user can read and write the rest of the app data
 // (duels update both players' ratings). Tighten before real users.
 service cloud.firestore {
@@ -318,9 +319,18 @@ service cloud.firestore {
       allow delete: if allowed() && poster();
     }
 
+    // Server clock check (syncServerClock in src/lib/db.ts): each person writes only their own document,
+    // holding only the server's time, and reads it back to measure how far their device clock is off.
+    match /clockSync/{uid} {
+      allow read: if allowed() && request.auth.uid == uid;
+      allow create, update: if allowed() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['t'])
+        && request.resource.data.t == request.time;
+    }
+
     // All other app data.
     match /{col}/{rest=**} {
-      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals', 'opportunities', 'discussions', 'discussionAnswers', 'discussionVotes']) && allowed();
+      allow read, write: if !(col in ['config', 'users', 'materials', 'privateMaterials', 'duels', 'practiceAttempts', 'questionProposals', 'opportunities', 'discussions', 'discussionAnswers', 'discussionVotes', 'clockSync']) && allowed();
     }
   }
 }
