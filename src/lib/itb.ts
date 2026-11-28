@@ -153,7 +153,8 @@ export const entryYearLabel = (p: { entryYear?: number } | null | undefined) => 
 /** Short label for other people, e.g. "Teknik Kimia · FTI" or "TPB FTI · incar Teknik Kimia". */
 export function academicLabel(p: Partial<AcademicFields> | null | undefined, fallbackFaculty = ""): string {
   const faculty = p?.major || fallbackFaculty;
-  if (p?.program) return `${p.program} · ${faculty}`;
+  // A program label that already carries the faculty code (e.g. "TPB FTI") does not get it twice.
+  if (p?.program) return !faculty || p.program.split(/[^A-Za-z]+/).includes(faculty) ? p.program : `${p.program} · ${faculty}`;
   if (p?.stage === "tpb") return `TPB ${faculty}${p.dreamProgram ? ` · incar ${p.dreamProgram}` : ""}`;
   return faculty;
 }

@@ -26,7 +26,11 @@ export default function PartnerList({ courseId, focusTopics, limit = 5 }: { cour
         {data.recs.map(({ member, profile: p, reasons }) => (
           <div key={member.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="break-words font-medium"><Link href={`/users/${member.uid}`} className="hover:underline">{member.name}</Link> <span className="text-xs font-normal text-muted">{academicLabel(p, member.major)}{entryYearLabel(p) && ` · ${entryYearLabel(p)}`} · rating {member.elo}{member.isBot ? " · demo" : ""}</span><AccountBadge itb={p?.isItbVerified} className="ml-2 whitespace-nowrap" /></div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/users/${member.uid}`} className="break-words font-medium hover:underline">{member.name}</Link>
+                <AccountBadge itb={p?.isItbVerified} />
+              </div>
+              <div className="text-xs text-muted">{[academicLabel(p, member.major), entryYearLabel(p), `rating ${member.elo}${member.isBot ? " · demo" : ""}`].filter(Boolean).join(" · ")}</div>
               {reasons.length > 0 && <div className="text-xs text-good">{reasons.join(" · ")}</div>}
               {p?.contact && <div className="mt-1 text-xs text-muted">Kontak: <span className="text-ink">{p.contact}</span></div>}
             </div>
