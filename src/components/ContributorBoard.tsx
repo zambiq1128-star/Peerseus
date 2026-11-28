@@ -11,7 +11,7 @@ export default function ContributorBoard({ courseId, uid }: { courseId: string; 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!data) return <Spinner />;
 
-  const rule = `Poin ${WINDOW_DAYS} hari terakhir: jawaban terbaik di diskusi materi ${POINTS.bestAnswer}, soal usulan yang diterima ${POINTS.proposal}, materi publik ${POINTS.material}, tiap upvote untuk jawaban ${POINTS.upvote}.`;
+  const rule = `Poin ${WINDOW_DAYS} hari terakhir: jawaban terbaik di diskusi materi ${POINTS.bestAnswer} (bukan jawaban untuk pertanyaan sendiri), soal usulan yang diterima ${POINTS.proposal}, materi publik ${POINTS.material}, tiap upvote untuk jawaban ${POINTS.upvote}.`;
   if (data.length === 0) {
     return (
       <div className="space-y-3 animate-page-in">

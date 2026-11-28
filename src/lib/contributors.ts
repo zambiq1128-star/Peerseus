@@ -74,7 +74,8 @@ export async function courseContributors(courseId: string, now = Date.now()): Pr
   const byId = new Map(answers.map((a) => [a.id, a]));
   for (const d of discussions) {
     const best = d.bestAnswerId ? byId.get(d.bestAnswerId) : undefined;
-    if (best && best.discussionId === d.id && best.createdAt >= since) add(best.authorId, "bestAnswers");
+    // An answer by the asker themselves can be picked in the UI but earns nothing.
+    if (best && best.discussionId === d.id && best.authorId !== d.authorId && best.createdAt >= since) add(best.authorId, "bestAnswers");
   }
   for (const v of votes) {
     const a = v.targetType === "answer" ? byId.get(v.targetId) : undefined;
