@@ -44,6 +44,10 @@ export async function loadOwnProfile(uid: string): Promise<UserProfile | null> {
 /** Saves the profile, writing each field to the document its privacy switch calls for. */
 export async function saveOwnProfile(p: UserProfile) {
   const { shared, hidden } = splitProfile(p);
+  // The streak is written by recordActivity only; a profile copy held in memory may be older, so keep what is stored.
+  const stored = await db.get<UserProfile>("users", p.id);
+  if (stored?.streak) shared.streak = stored.streak;
+  else delete shared.streak;
   await db.set("users", p.id, shared);
   await db.set(privateCol(p.id), PRIVATE_ID, hidden);
 }

@@ -10,6 +10,7 @@ import { COURSES_PAGE, needsCourses } from "@/lib/peerseus";
 import AcademicFields from "./AcademicFields";
 import InviteBanner from "./DuelInvites";
 import LoginScreen, { loginStyles as ls } from "./Login";
+import { StreakBadge, useStreak } from "./Streak";
 import { Spinner } from "./ui";
 
 const NAV = [
@@ -40,7 +41,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <div key={path} aria-hidden="true" className="sweep" />
-      {setup ? <AppHeader setup onLogout={logout} /> : <AppHeader path={path} firstName={profile.name.split(" ")[0]} />}
+      {setup ? <AppHeader setup onLogout={logout} /> : <AppHeader path={path} firstName={profile.name.split(" ")[0]} uid={uid} />}
       <main className="flex-1 px-4 py-6 sm:py-8">{children}</main>
       {!setup && <InviteBanner uid={uid} path={path} />}
     </div>
@@ -51,9 +52,11 @@ export default function Shell({ children }: { children: React.ReactNode }) {
  * Top bar on every signed-in page (Persona blue style): logo, the three main sections, and the profile link.
  * While setup is unfinished (`setup`): only the logo (not a link) and "Keluar"; not sticky, so it never covers the page intro when scrolling.
  */
-export function AppHeader(props: { path: string; firstName: string; setup?: false } | { setup: true; onLogout: () => void }) {
+export function AppHeader(props: { path: string; firstName: string; uid: string; setup?: false } | { setup: true; onLogout: () => void }) {
   const path = props.setup ? "" : props.path;
   const onProfile = path === "/profile";
+  // Streak beside the name; never while setup is unfinished.
+  const streak = useStreak(props.setup ? null : props.uid);
   return (
     <header className={`${props.setup ? "relative" : "sticky top-0"} z-20 animate-slide-down border-b-4 border-white bg-black text-white`}>
       {/* Decorative: blue diagonal strip behind the profile link, a thin white slash, and a blue wedge under the bar. */}
@@ -81,9 +84,11 @@ export function AppHeader(props: { path: string; firstName: string; setup?: fals
           <button type="button" onClick={props.onLogout}
             className="animate-slide-right relative bg-white px-4 py-1.5 font-display text-[13px] uppercase tracking-wider text-black transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:bg-black hover:text-white sm:text-sm">Keluar</button>
         ) : (
+        <div className="animate-slide-right relative flex items-center gap-1 [animation-delay:240ms]">
+        <StreakBadge current={streak.current} />
         <Link href="/profile" aria-current={onProfile ? "page" : undefined} title="Profil"
-          style={{ animationDelay: "240ms" }}
-          className={`animate-slide-right max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{props.firstName}</Link>
+          className={`max-w-[4.5rem] truncate px-3 py-1.5 font-display text-[13px] uppercase tracking-wider transition duration-150 [clip-path:polygon(9px_0,100%_0,calc(100%-9px)_100%,0_100%)] hover:rotate-2 focus-visible:bg-white focus-visible:text-black sm:max-w-[10rem] sm:text-sm ${onProfile ? "bg-white text-black" : "bg-black text-white hover:bg-white hover:text-black"}`}>{props.firstName}</Link>
+        </div>
         )}
       </div>
     </header>

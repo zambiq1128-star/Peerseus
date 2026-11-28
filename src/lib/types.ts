@@ -1,3 +1,5 @@
+import type { Streak } from "./streak";
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -22,6 +24,8 @@ export type UserProfile = {
   /** Set by the app at sign-in: true for ITB accounts, false for guests. firestore.rules check it matches the token. */
   isItbVerified?: boolean;
   isBot?: boolean;
+  /** Streak harian (src/lib/streak.ts). Public like the rest of users/{uid}; written by recordActivity only. */
+  streak?: Streak;
   courseIds: string[];
   createdAt: number;
 };

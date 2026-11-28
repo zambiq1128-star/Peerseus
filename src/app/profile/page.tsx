@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { academicOf, academicPatch, currentIntakeYear, readNim, type Academic } from "@/lib/itb";
 import { isShown } from "@/lib/privacy";
-import type { Privacy } from "@/lib/types";
 import AcademicFields from "@/components/AcademicFields";
+import { StreakStats } from "@/components/Streak";
+import { useDoc } from "@/lib/live";
+import type { Privacy, UserProfile } from "@/lib/types";
 import { AccountBadge, Page, PageHeader } from "@/components/ui";
 
 const SHOW: Record<keyof Privacy, string> = {
@@ -20,10 +22,12 @@ export default function Profile() {
   const [p, setP] = useState(() => ({ ...profile!, entryYear: profile!.entryYear ?? readNim(authEmail)?.entryYear }));
   const [academic, setAcademic] = useState<Academic>(() => academicOf(profile, { faculty: profile!.major, stage: "tpb", program: "" }));
   const [saved, setSaved] = useState(false);
+  const { data: live } = useDoc<UserProfile>("users", profile!.id);
   return (
     <Page width="narrow">
       <PageHeader title="Profil" sub="Kami hanya menyimpan data yang perlu. Kamu yang menentukan apa yang terlihat orang lain." />
       <div className="space-y-3">
+        <StreakStats streak={live?.streak} />
         {p.isItbVerified !== undefined && (
           <p className="flex items-center gap-2 text-sm text-muted">{p.isItbVerified ? "Akun ITB terverifikasi" : "Kamu masuk sebagai tamu"} <AccountBadge itb={p.isItbVerified} /></p>
         )}
