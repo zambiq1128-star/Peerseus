@@ -134,7 +134,7 @@ function DiscussionRow({ d, ctx, open, onToggle }: { d: DiscussionView; ctx: Ctx
       <button type="button" onClick={onToggle} aria-expanded={open} className="block w-full p-4 text-left transition-colors hover:bg-navy-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           {ctx.parent.kind === "material"
-            ? <span className="badge max-w-full truncate">{contextLabel(d.questionId, ctx.questions)}</span>
+            ? <span className="badge min-w-0 max-w-full" title={contextLabel(d.questionId, ctx.questions)}><span className="truncate">{contextLabel(d.questionId, ctx.questions)}</span></span>
             : <KindBadge kind={kindOf(d)} />}
           {d.best && <span className="badge-good">✓ Terjawab</span>}
         </div>

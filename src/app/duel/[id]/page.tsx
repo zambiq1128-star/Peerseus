@@ -48,7 +48,7 @@ function Versus({ duel, uid }: { duel: Duel; uid: string }) {
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
         <span className="animate-slide-left font-display text-4xl font-bold uppercase tracking-tight sm:text-5xl">Kamu</span>
         <span className="animate-slam font-display text-6xl font-bold italic text-cyan [animation-delay:200ms] sm:text-7xl">VS</span>
-        <h1 className="animate-slide-right min-w-0 break-words font-display text-4xl font-bold uppercase tracking-tight text-ink sm:text-5xl">{opp}</h1>
+        <h1 title={opp} className="animate-slide-right line-clamp-2 min-w-0 max-w-full break-words font-display text-3xl font-bold uppercase tracking-tight text-ink sm:text-5xl">{opp}</h1>
       </div>
       <p className="text-sm text-muted">{duel.quizTitle} · {duel.questions.length} soal · {SECONDS_PER_QUESTION} detik per soal</p>
     </>
@@ -354,15 +354,15 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
       <div className={`card [overflow:clip] [overflow-clip-margin:12px] text-center !p-8 ${edge}`}>
         <div className="eyebrow">{declined ? `${oppName} menolak duel ini` : expired ? `${oppName} tidak menjawab` : !done ? `Menunggu ${oppName}` : `Duel melawan ${oppName}`}</div>
         <h1 className={`mt-1 animate-slam text-7xl sm:text-8xl ${tone} ${done && won ? "animate-glow" : ""}`}>{verdict}</h1>
-        <div className="mt-6 flex items-end justify-center gap-5 sm:gap-10">
-          <div className="animate-slide-left [animation-delay:150ms]">
-            <div className="text-xs font-semibold uppercase tracking-widest text-muted">Kamu</div>
+        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-end gap-x-3 sm:gap-x-8">
+          <div className="min-w-0 animate-slide-left text-center [animation-delay:150ms]">
+            <div className="truncate text-xs font-semibold uppercase tracking-widest text-muted">Kamu</div>
             <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-cyan" : "text-bad") : ""}`}>{myScore}</div>
             <div className="mt-1 text-xs text-muted">{(mine.totalMs / 1000).toFixed(1)} detik</div>
           </div>
           <div className="pb-8 font-display text-3xl italic text-muted">VS</div>
-          <div className="animate-slide-right [animation-delay:150ms]">
-            <div className="max-w-[8rem] truncate text-xs font-semibold uppercase tracking-widest text-muted">{oppName}</div>
+          <div className="min-w-0 animate-slide-right text-center [animation-delay:150ms]">
+            <div className="truncate text-xs font-semibold uppercase tracking-widest text-muted" title={oppName}>{oppName}</div>
             <div className={`font-display text-8xl font-bold leading-none tabular-nums sm:text-9xl ${done && !draw ? (won ? "text-bad" : "text-cyan") : "text-ink-soft"}`}>{theirs ? theirScore : "?"}</div>
             <div className="mt-1 text-xs text-muted">{theirs ? `${(theirs.totalMs / 1000).toFixed(1)} detik` : declined ? "menolak" : expired ? "tidak main" : "belum main"}</div>
           </div>
