@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { ladderAnswer, ladderBot } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
 import { useDoc } from "@/lib/live";
 import {
@@ -184,13 +185,15 @@ function Play({ duel, uid }: { duel: Duel; uid: string }) {
     let stop = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const d = latest.current;
-    getMembership(d.courseId, d.opponentId).then((bot) => {
-      if (!bot || stop) return;
+    // A ladder bot has no membership: fixed accuracy and pause per level. An old demo friend answers by its topic stats.
+    const ladder = ladderBot(d.opponentId);
+    (ladder ? Promise.resolve(null) : getMembership(d.courseId, d.opponentId)).then((bot) => {
+      if (stop || (!bot && !ladder)) return;
       const saved = latest.current.opponentLive;
       const a = [...(saved?.answers ?? [])], t = [...(saved?.timesMs ?? [])];
       const next = () => {
         if (stop || a.length >= d.questions.length) return;
-        const { answer, ms } = botAnswer(bot, d.questions[a.length]);
+        const { answer, ms } = ladder ? ladderAnswer(ladder, d.questions[a.length]) : botAnswer(bot!, d.questions[a.length]);
         timer = setTimeout(() => {
           if (stop) return;
           a.push(answer);
@@ -325,6 +328,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const myScore = useCountUp(mine.score, 700, 300);
   const theirScore = useCountUp(theirs ? theirs.score : 0, 700, 450);
   const shownDelta = useCountUp(delta, 1400, 800);
+  const ladder = ladderBot(meC ? duel.opponentId : duel.challengerId);
   const verdict = declined ? "Ditolak" : expired ? "Kedaluwarsa" : !done ? "Menunggu" : won ? "Menang" : draw ? "Seri" : "Kalah";
 
   return (
@@ -351,7 +355,13 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
             <span aria-hidden className="font-display text-5xl font-bold tabular-nums">{shownDelta >= 0 ? "+" : ""}{shownDelta}</span>
           </div>
         )}
-        {done && duel.opponentIsBot && <p className="mt-4 text-sm text-muted">Lawan teman demo: rating tidak berubah. Topik yang kamu jawab tetap tercatat.</p>}
+        {done && ladder && (
+          <>
+            <p className="mt-4 text-lg font-semibold">{won ? `Kamu mengalahkan ${ladder.name}!` : draw ? `Seri melawan ${ladder.name}` : `${ladder.name} menang kali ini`}</p>
+            <p className="mt-1 text-sm text-muted">Lawan bot: rating tidak berubah dan tidak masuk hitungan menang/kalah. Topik yang kamu jawab tetap tercatat.</p>
+          </>
+        )}
+        {done && duel.opponentIsBot && !ladder && <p className="mt-4 text-sm text-muted">Lawan teman demo: rating tidak berubah. Topik yang kamu jawab tetap tercatat.</p>}
         {done && duel.endReason === "left" && <p className="mt-2 text-sm text-muted">Ada pemain yang berhenti menjawab lebih dari 30 detik, jadi sisa soalnya dihitung salah.</p>}
         {done && duel.endReason === "timeout" && <p className="mt-2 text-sm text-muted">Waktu duel habis; soal yang belum dijawab dihitung salah.</p>}
         {(declined || expired) && <p className="mt-4 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
@@ -393,7 +403,7 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
       </details>
 
       <div className="flex gap-2">
-        <Link href={`/duel/new?quiz=${duel.quizId}`} className="btn-primary">Duel lagi</Link>
+        <Link href={`/duel/new?quiz=${duel.quizId}${ladder ? "&tab=bot" : ""}`} className="btn-primary">{ladder ? "Lawan bot lagi" : "Duel lagi"}</Link>
         <Link href={`/courses/${duel.courseId}`} className="btn-ghost">Ke mata kuliah</Link>
       </div>
     </Page>

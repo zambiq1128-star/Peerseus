@@ -1,4 +1,5 @@
 "use client";
+import { hiddenFromPeople } from "./bots";
 import { db } from "./db";
 import type { Discussion, DiscussionAnswer, DiscussionVote, Material, Quiz, UserProfile } from "./types";
 
@@ -86,7 +87,8 @@ export async function courseContributors(courseId: string, now = Date.now()): Pr
   const users = await Promise.all(ids.map((id) => db.get<UserProfile>("users", id).catch(() => null)));
   const rows = ids.flatMap((uid, i) => {
     const u = users[i];
-    if (!u) return [];
+    // Demo friends (Firebase) and ladder bots are not real people, so they never rank.
+    if (!u || hiddenFromPeople(u)) return [];
     const t = tally.get(uid)!;
     const points = t.bestAnswers * POINTS.bestAnswer + t.proposals * POINTS.proposal + t.materials * POINTS.material + t.upvotes * POINTS.upvote;
     return [{ uid, name: u.name, isBot: u.isBot, points, ...t }];
