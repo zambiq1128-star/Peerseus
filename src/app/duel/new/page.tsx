@@ -159,7 +159,7 @@ function BotCard({ bot, selected, beaten, onPick }: { bot: LadderBot; selected: 
   return (
     <label className={`flex cursor-pointer items-center gap-3 p-3 ${selected ? "bg-accent-soft" : "hover:bg-navy-3"}`}>
       <input type="radio" name="bot" checked={selected} onChange={onPick} className="shrink-0" />
-      <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center bg-accent font-display text-3xl font-bold text-white [clip-path:polygon(8px_0,100%_0,calc(100%-8px)_100%,0_100%)]">{bot.initial}</span>
+      <span aria-hidden className={`flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden bg-accent font-display font-bold text-white ${bot.initial.length > 2 ? "text-lg" : "text-3xl"} [clip-path:polygon(8px_0,100%_0,calc(100%-8px)_100%,0_100%)]`}>{bot.initial}</span>
       <span className="min-w-0 flex-1 text-sm">
         <span className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-semibold">{bot.name}</span>
