@@ -7,6 +7,7 @@ import { academicLabel, entryYearLabel } from "@/lib/itb";
 import { isLadderBotId } from "@/lib/bots";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
+import { StreakStats } from "@/components/Streak";
 import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
 
 /**
@@ -59,6 +60,8 @@ export default function UserPage() {
           <Link href="/profile" className="btn-ghost">Atur profil</Link>
         </div>
       )}
+
+      {!user.isBot && <StreakStats streak={user.streak} />}
 
       <Section title="Mata kuliah">
         {data.memberships.length === 0 ? <Empty>Belum ikut mata kuliah.</Empty> : (

@@ -12,6 +12,7 @@ import type { Course, Membership, Opportunity, QuestionProposal } from "@/lib/ty
 import { Ransom } from "@/components/Ransom";
 import { Splat, Starburst } from "@/components/Decor";
 import { Empty, ErrorState, Page, Section, Spinner, useAsync } from "@/components/ui";
+import { StreakCard } from "@/components/Streak";
 import { InviteActions, InviteText, useIncomingInvites } from "@/components/DuelInvites";
 
 export default function Home() {
@@ -100,6 +101,8 @@ function HomeBody() {
   return (
     <Page>
       <IncomingInvites uid={uid} />
+
+      <StreakCard uid={uid} />
 
       {reviewByMaterial.length > 0 && (
         <Section title={`Usulan soal menunggu (${data.toReview.length})`}>

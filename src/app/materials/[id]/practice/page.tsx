@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { recordActivityQuietly } from "@/lib/activity";
 import { db } from "@/lib/db";
 import { getMaterial } from "@/lib/peerseus";
 import {
@@ -14,6 +15,7 @@ import { Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, useAsy
 import { MathText } from "@/components/Markdown";
 import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
 import PartnerList from "@/components/PartnerList";
+import { StreakNotice } from "@/components/Streak";
 
 /** Kuis mandiri: all questions of a published quiz, one time limit the user picks, answers shown at the end. */
 export default function PracticePage() {
@@ -52,6 +54,7 @@ function Practice({ quiz }: { quiz: Quiz }) {
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
+  const [streakMsg, setStreakMsg] = useState<string | null>(null);
   const submitting = useRef(false);
 
   const submit = useCallback(async (run: PracticeRun) => {
@@ -61,6 +64,7 @@ function Practice({ quiz }: { quiz: Quiz }) {
     setErr("");
     try {
       const attempt = await finishRun(uid, quiz, run);
+      setStreakMsg((await recordActivityQuietly(uid))?.message ?? null);
       setPhase({ kind: "result", run, attempt, timedOut: Date.now() >= run.deadline });
     } catch (e) {
       // The run stays in this browser, so handing it in can be tried again.
@@ -72,7 +76,7 @@ function Practice({ quiz }: { quiz: Quiz }) {
 
   if (saving) return <Spinner label="Menghitung hasil…" />;
   if (phase.kind === "start") return <Start quiz={quiz} onStart={(m) => setPhase({ kind: "play", run: startRun(uid, quiz, m) })} />;
-  if (phase.kind === "result") return <Result quiz={quiz} {...phase} onAgain={() => setPhase({ kind: "start" })} />;
+  if (phase.kind === "result") return <Result quiz={quiz} {...phase} streakMsg={streakMsg} onAgain={() => setPhase({ kind: "start" })} />;
   return (
     <Play
       quiz={quiz}
@@ -211,7 +215,7 @@ function Play({ quiz, run, err, onChange, onSubmit }: {
   );
 }
 
-function Result({ quiz, run, attempt, timedOut, onAgain }: { quiz: Quiz; run: PracticeRun; attempt: PracticeAttempt; timedOut: boolean; onAgain: () => void }) {
+function Result({ quiz, run, attempt, timedOut, streakMsg, onAgain }: { quiz: Quiz; run: PracticeRun; attempt: PracticeAttempt; timedOut: boolean; streakMsg: string | null; onAgain: () => void }) {
   const items = runQuestions(quiz, run);
   const missed = practiceMissedTopics(items);
   const discuss = useQuestionDiscussions(quiz.id);
@@ -226,6 +230,8 @@ function Result({ quiz, run, attempt, timedOut, onAgain }: { quiz: Quiz; run: Pr
         {timedOut && <p className="mt-3 text-sm text-bad">Waktu habis, jawabanmu dikumpulkan otomatis.</p>}
         <p className="mt-3 text-xs text-muted">Tersimpan di riwayat latihanmu (hanya kamu yang bisa melihat). Rating tidak berubah.</p>
       </div>
+
+      <StreakNotice message={streakMsg} />
 
       <Section title="Topik yang perlu diperkuat">
         {missed.length ? (

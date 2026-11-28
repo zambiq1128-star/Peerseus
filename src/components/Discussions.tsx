@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState } from "react";
+import { recordActivityQuietly } from "@/lib/activity";
 import {
   answerProblem, answerQuestion, canPickBest, deleteAnswer, deleteQuestion, discussionProblem, editAnswer, editQuestion, loadDiscussions,
   report, setBestAnswer, toggleVote, askQuestion, kindOf, BODY_MAX, KIND_LABEL, TITLE_MAX,
@@ -10,6 +11,7 @@ import {
 import { plainSnippet } from "@/lib/latex";
 import type { DiscussionKind, Question, Quiz, UserProfile } from "@/lib/types";
 import { MarkdownView } from "./Markdown";
+import { StreakNotice } from "./Streak";
 import { CollapsibleRows, Empty, ErrorState, Section, Spinner, timeAgo, useAsync } from "./ui";
 
 type KindFilter = "" | DiscussionKind;
@@ -312,15 +314,17 @@ function VoteButton({ target, type, ctx }: { target: (DiscussionView | AnswerVie
 
 function AnswerForm({ d, ctx }: { d: DiscussionView; ctx: Ctx }) {
   const [body, setBody] = useState("");
+  const [streakMsg, setStreakMsg] = useState<string | null>(null);
   const { busy, err, run } = useAction();
   const problem = answerProblem(body);
   return (
     <div className="space-y-2">
+      <StreakNotice message={streakMsg} />
       <BodyField id={`answer-${d.id}`} label="Jawabanmu" value={body} onChange={setBody} rows={3} />
       {err && <p className="text-xs text-bad">{err}</p>}
       <div className="flex justify-end">
         <button className="btn-primary !py-1.5" disabled={!!busy || !!problem}
-          onClick={() => run("answer", async () => { await answerQuestion(d, ctx.me, body); setBody(""); ctx.reload(); })}>
+          onClick={() => run("answer", async () => { await answerQuestion(d, ctx.me, body); setBody(""); setStreakMsg((await recordActivityQuietly(ctx.me.id))?.message ?? null); ctx.reload(); })}>
           {busy ? "Mengirim…" : "Kirim jawaban"}
         </button>
       </div>

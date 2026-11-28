@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { recordActivityQuietly } from "@/lib/activity";
 import { useAuth } from "@/lib/auth";
 import { ladderAnswer, ladderBot } from "@/lib/bots";
 import { serverNow } from "@/lib/db";
@@ -15,6 +16,7 @@ import { ErrorState, NotFound, Page, Section, Spinner, useCountUp } from "@/comp
 import { DiscussLink, useQuestionDiscussions } from "@/components/DiscussLink";
 import { InviteActions, useNow } from "@/components/DuelInvites";
 import PartnerList from "@/components/PartnerList";
+import { StreakNotice } from "@/components/Streak";
 import { MathText } from "@/components/Markdown";
 
 export default function DuelPage() {
@@ -333,6 +335,12 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
   const shownDelta = useCountUp(delta, 1400, 800);
   const ladder = ladderBot(meC ? duel.opponentId : duel.challengerId);
   const byTime = decidedByTime(duel);
+  // Streak: a finished duel counts once for the day it finished. Only a duel that just ended is recorded, so opening an old one changes nothing.
+  const [streakMsg, setStreakMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!done || typeof duel.completedAt !== "number" || serverNow() - duel.completedAt > 30 * 60 * 1000) return;
+    void recordActivityQuietly(uid, duel.completedAt).then((r) => { if (r?.message) setStreakMsg(r.message); });
+  }, [done, duel.completedAt, uid]);
   const verdict = declined ? "Ditolak" : expired ? "Kedaluwarsa" : !done ? "Menunggu" : won ? "Menang" : draw ? "Seri" : "Kalah";
 
   return (
@@ -377,6 +385,8 @@ function Result({ duel, uid }: { duel: Duel; uid: string }) {
         {(declined || expired) && <p className="mt-4 text-sm text-muted">Rating tidak berubah. Jawabanmu tetap dipakai untuk topik yang perlu diperkuat.</p>}
         {!done && !declined && !expired && <p className="mt-4 text-sm text-muted">Hasil akhir muncul setelah {oppName} selesai menjawab.</p>}
       </div>
+
+      <StreakNotice message={streakMsg} />
 
       <Section title="Topik yang perlu diperkuat">
         {missed.length ? (
