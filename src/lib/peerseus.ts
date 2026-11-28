@@ -1,4 +1,5 @@
 "use client";
+import { hiddenFromPeople, isLadderBotId, LADDER_BOTS } from "./bots";
 import { callAi, newAiState, type Reply, type WaitInfo } from "./convert";
 import type { CourseInfo } from "./curriculum";
 import { db, newId, serverNow, serverTime } from "./db";
@@ -75,7 +76,8 @@ async function membersWithProfiles(courseId: string): Promise<{ member: Membersh
   const profiles = await Promise.all(members.map((m) => db.get<UserProfile>("users", m.uid)));
   return members.flatMap((m, i) => {
     const p = profiles[i];
-    return p ? [{ member: { ...m, name: p.name || m.name, major: p.major || m.major }, profile: p }] : [];
+    // Demo friends (Firebase) and ladder bots are not real people: never listed, ranked or recommended.
+    return p && !hiddenFromPeople(p) ? [{ member: { ...m, name: p.name || m.name, major: p.major || m.major }, profile: p }] : [];
   });
 }
 
@@ -257,7 +259,9 @@ export async function activeOutgoingInvite(uid: string) {
 }
 
 /** Sends an invite (or returns the one still waiting, since only one may be active). Returns the duel id. */
-export async function createInvite(quiz: Quiz, me: UserProfile, opponent: Membership) {
+export async function createInvite(quiz: Quiz, me: UserProfile, opponent: Pick<Membership, "uid" | "name" | "isBot">) {
+  // The rules compare opponentIsBot with users/{opponentId}.isBot, so a ladder bot's document must exist first.
+  if (isLadderBotId(opponent.uid)) await ensureLadderBots();
   const waiting = await activeOutgoingInvite(me.id);
   if (waiting) return waiting.id;
   const id = newId("duel_");
@@ -280,6 +284,21 @@ export async function createInvite(quiz: Quiz, me: UserProfile, opponent: Member
   };
   await db.set("duels", id, duel);
   return id;
+}
+
+/** Creates the five users/bot_* documents once (rules need them for opponentIsBot). Safe to call again. */
+export async function ensureLadderBots() {
+  await Promise.all(LADDER_BOTS.map(async (b) => {
+    if ((await db.get<UserProfile>("users", b.id))?.isBot) return;
+    const profile: UserProfile = { id: b.id, name: b.name, major: "", year: 1, bio: b.tagline, isPublic: false, isBot: true, courseIds: [], createdAt: Date.now() };
+    await db.set("users", b.id, profile);
+  }));
+}
+
+/** Ids of the ladder bots I have beaten in this course (from my duel history; no extra collection). */
+export async function defeatedLadderBots(uid: string, courseId: string) {
+  const won = (await myDuels(uid)).filter((d) => d.status === "completed" && d.courseId === courseId && d.winnerId === uid && isLadderBotId(d.opponentId));
+  return new Set(won.map((d) => d.opponentId));
 }
 
 /** Why an invite can no longer be answered. */

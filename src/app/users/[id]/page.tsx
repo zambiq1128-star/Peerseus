@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { academicLabel, entryYearLabel } from "@/lib/itb";
+import { isLadderBotId } from "@/lib/bots";
 import { MATERIAL_TYPES, materialType } from "@/lib/peerseus";
 import type { Course, Material, Membership, UserProfile } from "@/lib/types";
 import { AccountBadge, CollapsibleRows, Empty, ErrorState, NotFound, Page, PageHeader, Section, Spinner, timeAgo, useAsync } from "@/components/ui";
@@ -43,7 +44,7 @@ export default function UserPage() {
           back={{ label: "Kembali" }}
           title={<>
             {user.name}
-            {user.isBot && <span className="badge ml-2 align-middle">demo</span>}
+            {user.isBot && <span className="badge ml-2 align-middle">{isLadderBotId(user.id) ? "bot" : "demo"}</span>}
             <AccountBadge itb={user.isItbVerified} className="ml-2 align-middle" />
           </>}
           sub={[academicLabel(user), entryYearLabel(user), user.semester ? `semester ${user.semester}` : ""].filter(Boolean).join(" · ")}
